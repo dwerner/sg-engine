@@ -2,9 +2,23 @@
 name = "something_good"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
+publish = false
 build = "build.rs"
 
+[lib]
+name = "engine"
+
+# cargo rustc --lib -- -C prefer-dynamic
+crate-type = ["rlib", "dylib"]
+
+[[bin]]
+name = "something_good"
+
 [dependencies]
+# hot-swapping
+#dynamic_reload = "0.2" - buggy? works sometimes - only the first time
+libloading = "0.3"
+
 futures = "0.1"
 #futures-uds = "0.1" #when it becomes available
 #futures-cpupool
@@ -17,6 +31,8 @@ sdl2 = "0.22"
 winit = "0.5"
 vulkano = "0.2"
 vulkano-win = "0.2"
+vulkano-shaders = "0.2"
+glsl-to-spirv = "0.1"
 
 
 # protocol + net

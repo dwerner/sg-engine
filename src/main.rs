@@ -72,6 +72,8 @@ extern crate time;
 extern crate vulkano;
 extern crate winit;
 extern crate vulkano_win;
+extern crate glsl_to_spirv;
+extern crate vulkano_shaders;
 
 use vulkano_win::VkSurfaceBuild;
 use vulkano::buffer::BufferUsage;
@@ -105,8 +107,8 @@ use bincode::rustc_serialize::{encode/*, decode*/};
 
 use rustc_serialize::{json /*, Encodable, Decodable*/};
 
-extern crate something_good;
-use something_good::renderer;
+extern crate engine;
+use engine::renderer;
 
 //use std::fmt::Debug;
 
@@ -212,10 +214,24 @@ fn main() {
 		).expect("Failed to create vertex buffer")
 	};
 
-	mod vs { include!{concat!(env!("OUT_DIR"), "/shaders/shaders/src/bin/triangle_vs.glsl") }}
+	mod vs { include!{concat!(env!("OUT_DIR"), "/shaders/assets/shaders/triangle_vs.glsl") }}
 	let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
-	mod fs { include!{concat!(env!("OUT_DIR"), "/shaders/shaders/src/bin/triangle_fs.glsl") }}
+	mod fs { include!{concat!(env!("OUT_DIR"), "/shaders/assets/shaders/triangle_fs.glsl") }}
 	let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
+
+	let geo_shader_src = r"
+#version 330 core
+layout (points) in;
+layout (line_strip, max_vertices = 2) out;
+void main() {    
+	gl_Position = gl_in[0].gl_Position + vec4(-0.1, 0.0, 0.0, 0.0); 
+	EmitVertex();
+	gl_Position = gl_in[0].gl_Position + vec4(0.1, 0.0, 0.0, 0.0);
+	EmitVertex();
+	EndPrimitive();
+}";
+
+	//let geometry_shader = glsl_to_spirv::compile(geo_shader_src, glsl_to_spirv::ShaderType::Geometry).unwrap();
 
 	mod render_pass {
 		use vulkano::format::Format;
@@ -241,9 +257,12 @@ fn main() {
 	let pipeline = GraphicsPipeline::new(&device, GraphicsPipelineParams {
 		vertex_input: SingleBufferDefinition::new(),
 		vertex_shader: vs.main_entry_point(),
-		input_assembly: InputAssembly::triangle_list(),
+		input_assembly: vulkano::pipeline::input_assembly::InputAssembly {
+			topology: vulkano::pipeline::input_assembly::PrimitiveTopology::TriangleStrip,
+			primitive_restart_enable: false,
+		},
 		tessellation: None,
-		geometry_shader: None,
+		geometry_shader: None, //&geometry_shader,
 		viewport: ViewportsState::Fixed {
 			data: vec![(
 				Viewport {
