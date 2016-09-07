@@ -1,4 +1,5 @@
 pub mod socket;
+pub mod protocol;
 
 #[test]
 fn test_socket() {

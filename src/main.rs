@@ -76,8 +76,7 @@ use bincode::rustc_serialize::{encode/*, decode*/};
 use rustc_serialize::{json /*, Encodable, Decodable*/};
 
 extern crate engine;
-use engine::renderer;
-use engine::renderer::renderer::{Vertex};
+use engine::renderer::{Vertex, Renderer};
 
 //use std::fmt::Debug;
 
@@ -122,7 +121,7 @@ fn main() {
 	println!("update_str len: {}", update_str.len());
 	println!("update_bin len: {}", update_bin.len());
 
-	let mut renderer = engine::renderer::renderer::Renderer::new();
+	let mut renderer = Renderer::new();
 
 	let red  = [1.0, 0.0, 0.0, 1.0];
 	let blue = [0.0, 1.0, 0.0, 1.0];
