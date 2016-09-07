@@ -34,6 +34,9 @@ vulkano-win = "0.2"
 vulkano-shaders = "0.2"
 glsl-to-spirv = "0.1"
 
+# models
+piston-opengex = "0.6"
+
 
 # protocol + net
 rustc-serialize = "0.3"

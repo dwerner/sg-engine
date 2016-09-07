@@ -64,6 +64,7 @@
  */
 
 extern crate winit;
+extern crate vulkano;
 extern crate rustc_serialize;
 extern crate bincode;
 extern crate capnp;
@@ -76,6 +77,7 @@ use rustc_serialize::{json /*, Encodable, Decodable*/};
 
 extern crate engine;
 use engine::renderer;
+use engine::renderer::renderer::{Vertex};
 
 //use std::fmt::Debug;
 
@@ -121,7 +123,21 @@ fn main() {
 	println!("update_bin len: {}", update_bin.len());
 
 	let mut renderer = engine::renderer::renderer::Renderer::new();
-	let mut r2 = engine::renderer::renderer::Renderer::new();
+
+	let red  = [1.0, 0.0, 0.0, 1.0];
+	let blue = [0.0, 1.0, 0.0, 1.0];
+	let green= [0.0, 0.0, 1.0, 1.0];
+	let items = vec![
+		Vertex::new([-0.5, -0.25, 0.0], red),
+		Vertex::new([0.0, 0.5, 0.0], green),
+		Vertex::new([0.25, -0.1, 0.0], blue),
+
+		Vertex::new([0.5, 0.25, 0.0], red),
+		Vertex::new([0.0, -0.5, 0.0], blue),
+		Vertex::new([-0.25, 0.1, 0.0], green),
+	];
+
+	let vertex_buffer = renderer.createBuffer(items);
 	
 	let mut frame = 0;
 	'running: loop {
@@ -131,8 +147,7 @@ fn main() {
 		}
 
 		std::thread::sleep(std::time::Duration::from_millis(16));
-		renderer.render();
-		r2.render();
+		renderer.render(&vertex_buffer);
 
 		// Make use of winit
 		for ev in renderer.window().window().poll_events() {

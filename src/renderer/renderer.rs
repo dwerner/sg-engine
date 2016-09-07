@@ -55,8 +55,16 @@ pub mod render_pass {
 }
 
 #[derive(Debug, Clone)]
-pub struct Vertex { position: [f32;2] }
-impl_vertex!(Vertex, position);
+pub struct Vertex {
+	position: [f32;3],
+	color: [f32;4]
+}
+impl_vertex!(Vertex, position, color);
+impl Vertex {
+	pub fn new(position: [f32;3], color: [f32;4] ) -> Self {
+		Vertex { position: position, color: color}
+	}
+}
 
 pub struct Renderer /*<'a>*/ {
 	instance: Arc<vulkano::instance::Instance>,
@@ -67,7 +75,6 @@ pub struct Renderer /*<'a>*/ {
 	queue: Arc<vulkano::device::Queue>,
 	swapchain: Arc<vulkano::swapchain::Swapchain>,
 	images: Vec<Arc<vulkano::image::SwapchainImage>>,
-	vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
 	submissions: Vec<Arc<Submission>>,
 	pipeline: Arc<vulkano::pipeline::GraphicsPipeline<vulkano::pipeline::vertex::SingleBufferDefinition<Vertex>, 
 							vulkano::descriptor::pipeline_layout::EmptyPipeline,
@@ -118,23 +125,6 @@ impl Renderer /*<'a> Renderer <'a> */{
 			present, true, None).expect("Failed to create swapchain.")
 		};
 
-		let vertex_buffer = {
-			CpuAccessibleBuffer::from_iter(
-				&device,
-				&BufferUsage::all(),
-				Some(queue.family()),
-				[
-					Vertex { position: [-0.5, -0.25] }, 
-					Vertex { position: [0.0, 0.5] }, 
-					Vertex { position: [0.25, -0.1] },
-
-					Vertex { position: [0.5, 0.25] }, 
-					Vertex { position: [0.0, -0.5] }, 
-					Vertex { position: [-0.25, 0.1] },
-				].iter().cloned()
-			).expect("Failed to create vertex buffer")
-		};
-
 		let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
 		let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
 
@@ -153,14 +143,14 @@ impl Renderer /*<'a> Renderer <'a> */{
 			geometry_shader: None, //&geometry_shader,
 			viewport: ViewportsState::Fixed {
 				data: vec![(
-								Viewport {
-									origin: [0.0, 0.0],
-									depth_range: 0.0 .. 1.0,
-									dimensions: [images[0].dimensions()[0] as f32,
-									images[0].dimensions()[1] as f32],
-								},
-								Scissor::irrelevant()
-								)],
+					Viewport {
+						origin: [0.0, 0.0],
+						depth_range: 0.0 .. 1.0,
+						dimensions: [images[0].dimensions()[0] as f32,
+						images[0].dimensions()[1] as f32],
+					},
+					Scissor::irrelevant()
+				)],
 			},
 			raster: Default::default(),
 			multisample: Multisample::disabled(),
@@ -190,7 +180,6 @@ impl Renderer /*<'a> Renderer <'a> */{
 			queue: queue,
 			swapchain: swapchain,
 			images: images,
-			vertex_buffer: vertex_buffer,
 			submissions: submissions,
 			pipeline: pipeline,
 			framebuffers: framebuffers,
@@ -200,7 +189,7 @@ impl Renderer /*<'a> Renderer <'a> */{
 
 	}
 
-	pub fn render(&mut self) {
+	pub fn render(&mut self, vertex_buffer: &Arc<CpuAccessibleBuffer<[Vertex]>>) {
 		self.fps.update();
 		self.submissions.retain(|s| s.destroying_would_block() );
 		let image_num = self.swapchain.acquire_next_image(std::time::Duration::new(1,0)).unwrap();
@@ -208,7 +197,7 @@ impl Renderer /*<'a> Renderer <'a> */{
 			.draw_inline(&self.render_pass, &self.framebuffers[image_num], render_pass::ClearValues {
 				color: [1.0, 0.0, 0.5, 1.0]
 			})
-			.draw(&self.pipeline, &self.vertex_buffer, &DynamicState::none(), (), &())
+			.draw(&self.pipeline, vertex_buffer, &DynamicState::none(), (), &())
 			.draw_end()
 		.build();
 
@@ -222,5 +211,14 @@ impl Renderer /*<'a> Renderer <'a> */{
 
 	pub fn window(&self) -> &vulkano_win::Window {
 		&self.window
+	}
+
+	pub fn createBuffer(&self, values: Vec<Vertex>) -> Arc<CpuAccessibleBuffer<[Vertex]>> {
+		vulkano::buffer::CpuAccessibleBuffer::from_iter(
+			&self.device,
+			&BufferUsage::all(),
+			Some(self.queue.family()),
+			values.as_slice().iter().cloned()
+		).expect("Failed to create vertex buffer")
 	}
 }
