@@ -66,60 +66,14 @@
 extern crate winit;
 extern crate vulkano;
 extern crate rustc_serialize;
-extern crate bincode;
-extern crate capnp;
 extern crate time;
-
-use bincode::SizeLimit;
-use bincode::rustc_serialize::{encode/*, decode*/};
-
-use rustc_serialize::{json /*, Encodable, Decodable*/};
 
 extern crate engine;
 use engine::renderer::{Vertex, Renderer};
 
-//use std::fmt::Debug;
-
-#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)]
-struct SyncUpdate<M> {
-	sequence: u32, 
-	data: M
-}
-
-#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)]
-enum Anything {
-	Nothing,
-	Everything(u8),
-}
-
-#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)]
-struct Datum {
-	v: u8,
-}
-
-#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)]
-struct Datum2(u8);
-
-#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)]
-struct BoolDat(bool);
 
 fn main() {
 
-	let pwd = std::env::current_dir();
-	println!("{:?}", pwd);
-
-	let mut vec = Vec::with_capacity(256);
-	for x in 0u8..255 {
-		vec.push(BoolDat( x > 124));
-	}
-
-	let update = SyncUpdate { sequence: 42, data: vec };
-	let update_str = json::encode(&update).unwrap().to_string();
-	let update_bin = encode(&update, SizeLimit::Infinite).unwrap();
-
-	//println!("update_str {}", update_str);
-	println!("update_str len: {}", update_str.len());
-	println!("update_bin len: {}", update_bin.len());
 
 	let mut renderer = Renderer::new();
 
@@ -136,7 +90,7 @@ fn main() {
 		Vertex::new([-0.25, 0.1, 0.0], green),
 	];
 
-	let vertex_buffer = renderer.createBuffer(items);
+	let vertex_buffer = renderer.create_buffer(items);
 	
 	let mut frame = 0;
 	'running: loop {
@@ -159,4 +113,34 @@ fn main() {
 			}
 		}
 	}
+}
+
+fn play_wire_proto() {
+
+	extern crate bincode;
+	extern crate capnp;
+	use bincode::SizeLimit;
+	use bincode::rustc_serialize::{encode/*, decode*/};
+	use rustc_serialize::{json /*, Encodable, Decodable*/};
+	#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)] struct SyncUpdate<M> { sequence: u32, data: M }
+	#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)] enum Anything { Nothing, Everything(u8), }
+	#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)] struct Datum { v: u8, }
+	#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)] struct Datum2(u8);
+	#[derive(Debug, RustcEncodable, RustcDecodable, PartialEq)] struct BoolDat(bool);
+
+	let pwd = std::env::current_dir();
+	println!("{:?}", pwd);
+
+	let mut vec = Vec::with_capacity(256);
+	for x in 0u8..255 {
+		vec.push(BoolDat( x > 124));
+	}
+
+	let update = SyncUpdate { sequence: 42, data: vec };
+	let update_str = json::encode(&update).unwrap().to_string();
+	let update_bin = encode(&update, SizeLimit::Infinite).unwrap();
+
+	//println!("update_str {}", update_str);
+	println!("update_str len: {}", update_str.len());
+	println!("update_bin len: {}", update_bin.len());
 }

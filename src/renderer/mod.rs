@@ -22,7 +22,7 @@ use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::GraphicsPipelineParams;
 use vulkano::pipeline::blend::Blend;
 use vulkano::pipeline::depth_stencil::DepthStencil;
-use vulkano::pipeline::input_assembly::InputAssembly;
+//use vulkano::pipeline::input_assembly::InputAssembly;
 use vulkano::pipeline::multisample::Multisample;
 use vulkano::pipeline::vertex::SingleBufferDefinition;
 use vulkano::pipeline::viewport::ViewportsState;
@@ -170,7 +170,7 @@ impl Renderer /*<'a> Renderer <'a> */{
 			}).unwrap()
 		}).collect::<Vec<_>>();
 
-		let mut submissions:Vec<Arc<Submission>> = Vec::new();
+		let submissions:Vec<Arc<Submission>> = Vec::new();
 		window.window().set_title("Something good...");
 
 		Renderer {
@@ -211,11 +211,23 @@ impl Renderer /*<'a> Renderer <'a> */{
 		self.fps.get()
 	}
 
+	pub fn instance(&self) -> Arc<vulkano::instance::Instance> {
+		self.instance.clone()
+	}
+
+	pub fn queues(&mut self) -> &mut vulkano::device::QueuesIter {
+		&mut self.queues
+	}
+
+	pub fn images(&mut self) -> &Vec<Arc<vulkano::image::SwapchainImage>> {
+		&mut self.images
+	}
+
 	pub fn window(&self) -> &vulkano_win::Window {
 		&self.window
 	}
 
-	pub fn createBuffer(&self, values: Vec<Vertex>) -> Arc<CpuAccessibleBuffer<[Vertex]>> {
+	pub fn create_buffer(&self, values: Vec<Vertex>) -> Arc<CpuAccessibleBuffer<[Vertex]>> {
 		vulkano::buffer::CpuAccessibleBuffer::from_iter(
 			&self.device,
 			&BufferUsage::all(),

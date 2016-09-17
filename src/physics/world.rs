@@ -1,5 +1,7 @@
 use std::vec::Vec;
 
+use cgmath::{Vector3};
+
 pub struct World {
 	pub bodies: Vec<Body>
 }
@@ -11,7 +13,11 @@ impl World {
 }
 
 pub struct Body {
-	x: f32,
-	y: f32,
-	z: f32
+	body: Vector3<f32>
+}
+
+impl Body {
+	pub fn body(&self) -> Vector3<f32> {
+		self.body
+	}
 }
