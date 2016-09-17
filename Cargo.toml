@@ -15,14 +15,8 @@ crate-type = ["rlib", "dylib"]
 name = "something_good"
 
 [dependencies]
-# hot-swapping
-#dynamic_reload = "0.2" - buggy? works sometimes - only the first time
-libloading = "0.3"
 
 futures = "0.1"
-#futures-uds = "0.1" #when it becomes available
-#futures-cpupool
-
 cgmath = "0.11.0"
 time = "0.1"
 
@@ -36,7 +30,6 @@ glsl-to-spirv = "0.1"
 
 # models
 piston-opengex = "0.6"
-
 
 # protocol + net
 rustc-serialize = "0.3"
