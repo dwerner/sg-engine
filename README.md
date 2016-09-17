@@ -39,7 +39,7 @@
   - arbitrary precision types (like varint)
   - desync handling
   
-  Knobs:
+### Knobs:
   - snapshot send rate (per second)
   - packet size
   - interpolation between snapshots in buffer
@@ -48,7 +48,7 @@
   - protocol (tcp/udp) - udp send/ack_send
   - data compression (none, zlib, compress)
 
-  Detections:
+### Detections:
   - snapshot length in bytes
   - bandwidth
   - latency
