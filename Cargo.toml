@@ -23,7 +23,7 @@ time = "0.1"
 # renderer
 sdl2 = "0.22"
 winit = "0.5"
-vulkano = "0.2"
+vulkano = "0.2.1"
 vulkano-win = "0.2"
 vulkano-shaders = "0.2"
 glsl-to-spirv = "0.1"
@@ -32,7 +32,7 @@ glsl-to-spirv = "0.1"
 piston-opengex = "0.6"
 
 # protocol + net
-rustc-serialize = "0.3"
+rustc-serialize = "*"
 bincode = "0.6"
 capnp = "0.7"
 capnpc = "0.7"

@@ -22,7 +22,7 @@ use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::GraphicsPipelineParams;
 use vulkano::pipeline::blend::Blend;
 use vulkano::pipeline::depth_stencil::DepthStencil;
-//use vulkano::pipeline::input_assembly::InputAssembly;
+use vulkano::pipeline::input_assembly::InputAssembly;
 use vulkano::pipeline::multisample::Multisample;
 use vulkano::pipeline::vertex::SingleBufferDefinition;
 use vulkano::pipeline::viewport::ViewportsState;
@@ -30,6 +30,10 @@ use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::viewport::Scissor;
 use vulkano::swapchain::SurfaceTransform;
 use vulkano::swapchain::Swapchain;
+use vulkano::pipeline::input_assembly::PrimitiveTopology;
+use vulkano::image::SwapchainImage;
+use vulkano::device::QueuesIter;
+use vulkano::device::Queue;
 
 use std::sync::Arc;
 
@@ -63,32 +67,29 @@ pub struct Vertex {
 	position: [f32;3],
 	color: [f32;4]
 }
-impl_vertex!(Vertex, position, color);
+impl_vertex!(Vertex, position, color); // passing arguments to shaders here
 impl Vertex {
 	pub fn new(position: [f32;3], color: [f32;4] ) -> Self {
 		Vertex { position: position, color: color}
 	}
 }
 
-pub struct Renderer /*<'a>*/ {
-	instance: Arc<vulkano::instance::Instance>,
-	//physical: vulkano::instance::PhysicalDevice<'a>,
+pub struct Renderer {
+	instance: Arc<Instance>,
 	window: vulkano_win::Window,
-	device: Arc<vulkano::device::Device>,
-	queues: vulkano::device::QueuesIter,
-	queue: Arc<vulkano::device::Queue>,
-	swapchain: Arc<vulkano::swapchain::Swapchain>,
-	images: Vec<Arc<vulkano::image::SwapchainImage>>,
+	device: Arc<Device>,
+	queues: QueuesIter,
+	queue: Arc<Queue>,
+	swapchain: Arc<Swapchain>,
+	images: Vec<Arc<SwapchainImage>>,
 	submissions: Vec<Arc<Submission>>,
-	pipeline: Arc<vulkano::pipeline::GraphicsPipeline<vulkano::pipeline::vertex::SingleBufferDefinition<Vertex>, 
-							vulkano::descriptor::pipeline_layout::EmptyPipeline,
-							render_pass::CustomRenderPass>>,
-	framebuffers: Vec<Arc<vulkano::framebuffer::Framebuffer<render_pass::CustomRenderPass>>>,
+	pipeline: Arc<GraphicsPipeline<SingleBufferDefinition<Vertex>, EmptyPipeline, render_pass::CustomRenderPass>>,
+	framebuffers: Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
 	render_pass: Arc<render_pass::CustomRenderPass>,
 	fps: fps::FPS,
 }
 
-impl Renderer /*<'a> Renderer <'a> */{
+impl Renderer {
 	pub fn new() -> Self {
 		// Vulkan
 		let instance = {
@@ -151,8 +152,8 @@ impl Renderer /*<'a> Renderer <'a> */{
 		let pipeline = GraphicsPipeline::new(&device, GraphicsPipelineParams {
 			vertex_input: SingleBufferDefinition::new(),
 			vertex_shader: vs.main_entry_point(),
-			input_assembly: vulkano::pipeline::input_assembly::InputAssembly {
-				topology: vulkano::pipeline::input_assembly::PrimitiveTopology::TriangleStrip,
+			input_assembly: InputAssembly {
+				topology: PrimitiveTopology::TriangleStrip,
 				primitive_restart_enable: false,
 			},
 			tessellation: None,
@@ -228,11 +229,11 @@ impl Renderer /*<'a> Renderer <'a> */{
 	// TODO: Stop creating an external buffer
 	// Allow the last buffer to be cleared?
 	pub fn create_buffer(&self, values: Vec<Vertex>) -> Arc<CpuAccessibleBuffer<[Vertex]>> {
-		vulkano::buffer::CpuAccessibleBuffer::from_iter(
+		CpuAccessibleBuffer::from_iter(
 			&self.device,
 			&BufferUsage::all(),
 			Some(self.queue.family()),
-			values.as_slice().iter().cloned()
+			values.as_slice().iter().cloned() // we end up copying them?
 		).expect("Failed to create vertex buffer")
 	}
 
@@ -240,15 +241,15 @@ impl Renderer /*<'a> Renderer <'a> */{
 		self.fps.get()
 	}
 
-	pub fn instance(&self) -> Arc<vulkano::instance::Instance> {
+	pub fn instance(&self) -> Arc<Instance> {
 		self.instance.clone()
 	}
 
-	pub fn queues(&mut self) -> &mut vulkano::device::QueuesIter {
+	pub fn queues(&mut self) -> &mut QueuesIter {
 		&mut self.queues
 	}
 
-	pub fn images(&mut self) -> &Vec<Arc<vulkano::image::SwapchainImage>> {
+	pub fn images(&mut self) -> &Vec<Arc<SwapchainImage>> {
 		&mut self.images
 	}
 
