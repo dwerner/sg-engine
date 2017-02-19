@@ -26,6 +26,8 @@ fn main() {
   play_region_bin();
 	play_game_bin();
 	play_game_loaded_bin();
+
+	play_draw_stuff();
 }
 
 fn play_gameobject_bin() {

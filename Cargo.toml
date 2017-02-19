@@ -23,7 +23,7 @@ time = "0.1"
 # renderer
 sdl2 = "0.22"
 winit = "0.5"
-vulkano = "0.2.1"
+vulkano = "0.2"
 vulkano-win = "0.2"
 vulkano-shaders = "0.2"
 glsl-to-spirv = "0.1"
@@ -36,6 +36,15 @@ rustc-serialize = "*"
 bincode = "0.6"
 capnp = "0.7"
 capnpc = "0.7"
+
+# from aow
+libc = "*"
+gl = "*"
+glutin = "*"
+glium = "*"
+image = "*"
+byteorder = "*"
+rand = "*"
 
 [build-dependencies]
 vulkano-shaders = "0.2"
