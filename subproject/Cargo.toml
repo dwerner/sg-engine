@@ -1,0 +1,14 @@
+[package]
+name = "subproject"
+version = "0.1.0"
+authors = ["Daniel Werner <dan.werner@gmail.com>"]
+
+[features]
+default = []
+dynamic_lib = []
+
+[lib]
+name = "subproject"
+crate-type=["cdylib", "rlib"]
+
+[dependencies]

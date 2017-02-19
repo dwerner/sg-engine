@@ -6,6 +6,7 @@ extern crate cgmath;
 extern crate engine;
 use engine::renderer::{Vertex, Renderer};
 use engine::game::{Region, RegionId, Game, GameObject, ObjectId};
+use engine::load_state; 
 
 // Just playing around with some wireprotocol bits here.
 extern crate bincode;
@@ -17,6 +18,13 @@ use rustc_serialize::{json /*, Encodable, Decodable*/};
 
 use cgmath::Vector3;
 
+extern crate subproject;
+use std::time::Duration;
+use subproject::{state};
+
+use std::thread;
+
+
 fn main() {
 	let vec3 = Vector3::new(0.0, 0.0, 0.0);
 	let bytes = encode(&vec3, bincode::SizeLimit::Infinite).unwrap();
@@ -27,7 +35,22 @@ fn main() {
 	play_game_bin();
 	play_game_loaded_bin();
 
+	// spin off the dylib loader in the background, 
+	// pretty useless for now but shows basic functionality
+	thread::spawn(|| {
+		play_dylib_load();
+	});
+
+	// draw with Renderer / Vulkano
 	play_draw_stuff();
+}
+
+fn play_dylib_load() {
+	let mut state = state::State { blob: 42, name: "(I'm text from main.rs)".to_string() };
+	loop {
+		std::thread::sleep(Duration::from_millis(1000));
+		load_state(&mut state);
+	}
 }
 
 fn play_gameobject_bin() {

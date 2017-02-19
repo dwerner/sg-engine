@@ -45,6 +45,11 @@ glium = "*"
 image = "*"
 byteorder = "*"
 rand = "*"
+libloading = "0.3"
+
+[dependencies.subproject]
+path = "subproject"
 
 [build-dependencies]
 vulkano-shaders = "0.2"
+
