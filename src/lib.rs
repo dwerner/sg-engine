@@ -20,22 +20,30 @@ extern crate subproject;
 use libloading::{Symbol, Library};
 use subproject::state;
 
-const WINLIBPATH: &'static str = "../../subproject/target/debug/deps/subproject.dll";//concat!(env!("OUT_DIR"), "/library.dll");
-const LINUX_LIBPATH: &'static str = "subproject/target/debug/libsubproject.so";//concat!(env!("OUT_DIR"), "/library.dll");
+#[cfg(target_os = "windows")]
+const LIBPATH: &'static str = "../../subproject/target/debug/deps/subproject.dll";
+
+#[cfg(target_os = "linux")]
+const LIBPATH: &'static str = "subproject/target/debug/deps/libsubproject.so";
 
 pub fn load_state(state: &mut state::State) {
-	let lib = Library::new(LINUX_LIBPATH);
+
+	let lib = Library::new(LIBPATH);
 	match lib {
 		Ok(lib) => {
 			unsafe {
 				let f: Result<Symbol<unsafe extern fn(&mut state::State)>, std::io::Error> = lib.get(b"use_state\0");
 				match f {
-					Ok(use_state) => use_state(state),
+					Ok(use_state) => {
+						use_state(state);
+					},
 					Err(err) => println!("{}", err)
 				}
 			}
 		},
-		Err(err) => println!("{}", err)
+		Err(err) => {
+			println!("{}", err);
+		}
 	}
 }
 

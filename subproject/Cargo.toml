@@ -9,6 +9,6 @@ dynamic_lib = []
 
 [lib]
 name = "subproject"
-crate-type=["cdylib", "rlib"]
+crate-type=["dylib", "rlib"]
 
 [dependencies]
