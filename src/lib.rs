@@ -28,6 +28,7 @@ const LIBPATH: &'static str = "subproject/target/debug/deps/libsubproject.so";
 
 pub fn load_state(state: &mut state::State) {
 
+	// TODO: add last-modified-date check to this
 	let lib = Library::new(LIBPATH);
 	match lib {
 		Ok(lib) => {
