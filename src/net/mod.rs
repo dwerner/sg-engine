@@ -1,5 +1,6 @@
 pub mod socket;
 pub mod protocol;
+pub mod transport;
 
 #[test]
 fn test_socket() {

@@ -6,7 +6,7 @@ extern crate cgmath;
 extern crate engine;
 use engine::renderer::{Vertex, Renderer};
 use engine::game::{Region, RegionId, Game, GameObject, ObjectId};
-use engine::LibLoader;
+use engine::libloader::LibLoader;
 
 // Just playing around with some wireprotocol bits here.
 extern crate bincode;
@@ -38,18 +38,18 @@ fn main() {
 	// spin off the dylib loader in the background, 
 	// pretty useless for now but shows basic functionality
 	//thread::spawn(|| {
-		play_dylib_load();
+	play_dylib_load();
 	//});
 
 	// draw with Renderer / Vulkano
-	// play_draw_stuff();
+	play_draw_stuff();
 }
 
 fn play_dylib_load() {
 	let mut state = state::State { blob: 42, name: "(I'm text from main.rs)".to_string(), data: vec!["arf".to_string()] };
 	let mut loader = LibLoader::new();
 	loop {
-		std::thread::sleep(Duration::from_millis(1000));
+		thread::sleep(Duration::from_millis(1000));
         loader.check();
         loader.func(&mut state);
 	}
@@ -123,7 +123,7 @@ fn play_draw_stuff() {
 			println!("FPS: {}", renderer.fps());
 		}
 
-		std::thread::sleep(std::time::Duration::from_millis(16));
+		thread::sleep(Duration::from_millis(16));
 		renderer.render(&vertex_buffer);
 
 		// Make use of winit

@@ -6,5 +6,12 @@ pub mod state;
 //#[cfg(crate_type="dylib")]
 pub extern "C" fn use_state( s: &mut state::State ) {
     println!("state: ooh wow wow  {} {}", s.name, s.blob);
-    s.blob += 1;
+		if s.blob % 100 == 0 {
+			println!("woot");
+		} else if s.blob % 3 == 0 {
+			println!("threesies!");
+		} else if s.blob % 5 == 0 {
+			println!("five and dime!");
+		}
+		s.blob += 1;
 }

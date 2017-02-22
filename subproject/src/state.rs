@@ -5,3 +5,4 @@ pub struct State {
     pub name: String,
     pub data: Vec<String>
 }
+
