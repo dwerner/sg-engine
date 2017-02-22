@@ -8,9 +8,13 @@ pub extern "C" fn use_state( s: &mut state::State ) {
     println!("state: ooh wow wow  {} {}", s.name, s.blob);
 		if s.blob % 100 == 0 {
 			println!("woot");
-		} else if s.blob % 3 == 0 {
+		} 
+		
+		if s.blob % 3 == 0 {
 			println!("threesies!");
-		} else if s.blob % 5 == 0 {
+		} 
+		
+		if s.blob % 5 == 0 {
 			println!("five and dime!");
 		}
 		s.blob += 1;

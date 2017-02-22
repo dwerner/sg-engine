@@ -1,7 +1,6 @@
 pub mod net;
 pub mod physics;
 pub mod renderer;
-pub mod game;
 pub mod libloader;
 
 #[macro_use]
