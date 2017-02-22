@@ -47,22 +47,33 @@ impl LibLoader {
 
     pub fn check(&mut self) {
         let source = Path::new(LIBPATH);
-        let new_meta = fs::metadata(&source).expect("unable to stat file");
-        let modified = new_meta.modified().unwrap();
-        let duration: Duration = modified.duration_since(UNIX_EPOCH).expect("Unable to get time");
-        if self.lib.is_none() || self.modified != duration {
-            self.version += 1;
-            self.modified = duration;
-            println!("Found new library to copy/load at {}", LIBPATH);
-            let new_filename = format!("target/libsubproject_{}.so", self.version);
-            let copy_result = fs::copy(&source, Path::new(&new_filename));
-            match copy_result {
-                Ok(_) => println!("copying new lib to {}", new_filename),
-                Err(err) => println!("error copying file {}", err)
+        match fs::metadata(&source) {
+            Ok(new_meta) => {
+                let modified = new_meta.modified().unwrap();
+                let duration: Duration = modified.duration_since(UNIX_EPOCH).expect("Unable to get time");
+                if self.lib.is_none() || self.modified != duration {
+                    self.modified = duration;
+                    println!("Loading new version ({}) of library {}", self.version, LIBPATH);
+                    let new_filename = format!("target/libsubproject_{}.so", self.version);
+                    println!("copying new lib to {}", new_filename);
+                    match fs::copy(&source, Path::new(&new_filename)) {
+                        Ok(_) => {
+                            match Library::new(&new_filename) {
+                                Ok(lib) => {
+                                    self.version += 1;
+                                    self.lib = Some(lib);
+                                },
+                                Err(err) => println!("Unable to open new library at {} because {}", new_filename, err)
+                            }
+                        },
+                        Err(err) => println!("error copying file {}", err)
+                    }
+                }
             }
-            match Library::new(&new_filename) {
-                Ok(lib) => self.lib = Some(lib),
-                Err(err) => println!("Unable to open new library at {} because {}", new_filename, err)
+            Err(err) => {
+                self.lib = None;
+                self.modified = Duration::from_millis(0);
+                println!("unable to stat file! {}", err);
             }
         }
     }
