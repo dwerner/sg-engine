@@ -6,7 +6,7 @@ extern crate cgmath;
 extern crate engine;
 use engine::renderer::{Vertex, Renderer};
 use engine::game::{Region, RegionId, Game, GameObject, ObjectId};
-use engine::load_state; 
+use engine::LibLoader;
 
 // Just playing around with some wireprotocol bits here.
 extern crate bincode;
@@ -31,25 +31,27 @@ fn main() {
 	println!("Vector3 bin length: {}", bytes.len());
 
 	play_gameobject_bin();
-  play_region_bin();
+	play_region_bin();
 	play_game_bin();
 	play_game_loaded_bin();
 
 	// spin off the dylib loader in the background, 
 	// pretty useless for now but shows basic functionality
-	thread::spawn(|| {
+	//thread::spawn(|| {
 		play_dylib_load();
-	});
+	//});
 
 	// draw with Renderer / Vulkano
-	play_draw_stuff();
+	// play_draw_stuff();
 }
 
 fn play_dylib_load() {
-	let mut state = state::State { blob: 42, name: "(I'm text from main.rs)".to_string() };
+	let mut state = state::State { blob: 42, name: "(I'm text from main.rs)".to_string(), data: vec!["arf".to_string()] };
+	let mut loader = LibLoader::new();
 	loop {
 		std::thread::sleep(Duration::from_millis(1000));
-		load_state(&mut state);
+        loader.check();
+        loader.func(&mut state);
 	}
 }
 
