@@ -13,8 +13,8 @@ crate-type = ["rlib"]
 name = "something_good"
 
 [dependencies]
+ansi_term = "0.9"
 
-futures = "0.1"
 cgmath = "0.11.0"
 time = "0.1"
 
