@@ -15,5 +15,7 @@ extern crate bincode;
 extern crate rustc_serialize;
 
 extern crate libloading;
-extern crate subproject;
+
+// our subproject
+extern crate game_state;
 

@@ -1,4 +1,4 @@
 [root]
-name = "subproject"
+name = "game_state"
 version = "0.1.0"
 

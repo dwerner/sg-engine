@@ -8,6 +8,7 @@ dependencies = [
  "capnpc 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgmath 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "game_state 0.1.0",
  "gl 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glsl-to-spirv 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -19,7 +20,8 @@ dependencies = [
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "sdl2 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "subproject 0.1.0",
+ "simulation 0.1.0",
+ "simulation2 0.1.0",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano-shaders 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -297,6 +299,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "game_state"
+version = "0.1.0"
 
 [[package]]
 name = "gcc"
@@ -778,6 +784,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "simulation"
+version = "0.1.0"
+dependencies = [
+ "game_state 0.1.0",
+]
+
+[[package]]
+name = "simulation2"
+version = "0.1.0"
+dependencies = [
+ "game_state 0.1.0",
+]
+
+[[package]]
 name = "siphasher"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -786,10 +806,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "smallvec"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "subproject"
-version = "0.1.0"
 
 [[package]]
 name = "target_build_utils"

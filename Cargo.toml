@@ -7,9 +7,7 @@ build = "build.rs"
 
 [lib]
 name = "engine"
-
-# cargo rustc --lib -- -C prefer-dynamic
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib"]
 
 [[bin]]
 name = "something_good"
@@ -47,8 +45,17 @@ byteorder = "*"
 rand = "*"
 libloading = "0.3"
 
-[dependencies.subproject]
-path = "subproject"
+[dependencies.game_state]
+path = "game_state"
+
+# simulation and simulation2 don't need to be deps, but can be
+# to get cargo to build them when the main project is built
+
+[dependencies.simulation]
+path = "simulation"
+
+[dependencies.simulation2]
+path = "simulation2"
 
 [build-dependencies]
 vulkano-shaders = "0.2"
