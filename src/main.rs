@@ -15,6 +15,12 @@ use subproject::{state};
 
 use std::thread;
 
+#[cfg(target_os = "windows")]
+const LIBPATH: &'static str = "../../subproject/target/debug/deps/subproject.dll";
+
+#[cfg(target_os = "linux")]
+const LIBPATH: &'static str = "subproject/target/debug/deps/libsubproject.so";
+
 
 fn main() {
 	// spin off the dylib loader in the background,
@@ -27,9 +33,10 @@ fn main() {
 	play_draw_stuff();
 }
 
+
 fn play_dylib_load() {
 	let mut state = state::State { blob: 42, name: "(I'm text from main.rs)".to_string(), data: vec!["arf".to_string()] };
-	let mut loader = LibLoader::new();
+	let mut loader = LibLoader::new(LIBPATH);
 	loop {
 		thread::sleep(Duration::from_millis(1000));
         loader.check();

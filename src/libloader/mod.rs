@@ -6,36 +6,30 @@ use std::path::Path;
 use std::fs;
 
 
-#[cfg(target_os = "windows")]
-const LIBPATH: &'static str = "../../subproject/target/debug/deps/subproject.dll";
-
-#[cfg(target_os = "linux")]
-const LIBPATH: &'static str = "subproject/target/debug/deps/libsubproject.so";
-
-
 pub struct LibLoader {
+    filename: String,
     lib: Option<Library>,
     modified: Duration,
     version: u64
 }
 
 impl LibLoader {
-    pub fn new() -> Self {
+    pub fn new(filename: &str) -> Self {
         let modified = Duration::from_millis(0);
-        let mut loader = LibLoader { lib: None, modified: modified, version: 0 };
+        let mut loader = LibLoader { filename: filename.to_string(), lib: None, modified: modified, version: 0 };
         loader.check();
         loader
     }
 
     pub fn check(&mut self) {
-        let source = Path::new(LIBPATH);
+        let source = Path::new(&self.filename);
         match fs::metadata(&source) {
             Ok(new_meta) => {
                 let modified = new_meta.modified().unwrap();
                 let duration: Duration = modified.duration_since(UNIX_EPOCH).expect("Unable to get time");
                 if self.lib.is_none() || self.modified != duration {
                     self.modified = duration;
-                    println!("Loading new version ({}) of library {}", self.version, LIBPATH);
+                    println!("Loading new version ({}) of library {}", self.version, self.filename);
                     let new_filename = format!("target/libsubproject_{}.so", self.version);
                     println!("copying new lib to {}", new_filename);
                     match fs::copy(&source, Path::new(&new_filename)) {
