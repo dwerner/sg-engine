@@ -17,7 +17,7 @@ use std::thread;
 
 // Platform-specific wiring for simulation and simulation2 dynamically loaded libs (hot loaded)
 #[cfg(target_os = "windows")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/mod_simulation.dll";
-#[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/deps/libmod_simulation.so";
+#[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/libmod_simulation.so";
 
 fn main() {
 	// spin off the dylib loader in the background,

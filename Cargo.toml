@@ -13,12 +13,13 @@ crate-type = ["rlib"]
 name = "something_good"
 
 [dependencies]
+# LibLoader
+libloading = "0.3"
 ansi_term = "0.9"
-
-cgmath = "0.11.0"
 time = "0.1"
 
-# renderer
+# Renderer
+cgmath = "0.12"
 sdl2 = "0.22"
 winit = "0.5"
 vulkano = "0.2"
@@ -26,24 +27,11 @@ vulkano-win = "0.2"
 vulkano-shaders = "0.2"
 glsl-to-spirv = "0.1"
 
-# models
-piston-opengex = "0.6"
-
-# protocol + net
-rustc-serialize = "*"
-bincode = "0.6"
-capnp = "0.7"
-capnpc = "0.7"
-
-# from aow
-libc = "*"
-gl = "*"
-glutin = "*"
-glium = "*"
-image = "*"
-byteorder = "*"
-rand = "*"
-libloading = "0.3"
+# 3ds loader
+bincode = "1.0.0-alpha" # update this when it's past alpha
+byteorder = "1.0"
+rand = "0.3"
+serde_json ="0.9"
 
 [dependencies.game_state]
 path = "game_state"
