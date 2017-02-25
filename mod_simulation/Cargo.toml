@@ -1,5 +1,5 @@
 [package]
-name = "simulation2"
+name = "mod_simulation"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
 
@@ -8,7 +8,7 @@ default = []
 dynamic_lib = []
 
 [lib]
-name = "simulation2"
+name = "mod_simulation"
 crate-type=["dylib"]
 
 [dependencies]

@@ -16,12 +16,11 @@ dependencies = [
  "image 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "libloading 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mod_simulation 0.1.0",
  "piston-opengex 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "sdl2 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "simulation 0.1.0",
- "simulation2 0.1.0",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano-shaders 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -510,6 +509,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mod_simulation"
+version = "0.1.0"
+dependencies = [
+ "game_state 0.1.0",
+]
+
+[[package]]
 name = "nom"
 version = "1.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -778,20 +784,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "simulation"
-version = "0.1.0"
-dependencies = [
- "game_state 0.1.0",
-]
-
-[[package]]
-name = "simulation2"
-version = "0.1.0"
-dependencies = [
- "game_state 0.1.0",
 ]
 
 [[package]]

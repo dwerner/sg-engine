@@ -16,10 +16,8 @@ use game_state::{state};
 use std::thread;
 
 // Platform-specific wiring for simulation and simulation2 dynamically loaded libs (hot loaded)
-#[cfg(target_os = "windows")] const SIM_LIBPATH: &'static str = "../../simulation/target/debug/deps/simulation.dll";
-#[cfg(target_os = "windows")] const SIM2_LIBPATH: &'static str = "../../simulation2/target/debug/deps/simulation2.dll";
-#[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "simulation/target/debug/deps/libsimulation.so";
-#[cfg(target_os = "linux")] const SIM2_LIBPATH: &'static str = "simulation2/target/debug/deps/libsimulation2.so";
+#[cfg(target_os = "windows")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/mod_simulation.dll";
+#[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/deps/libmod_simulation.so";
 
 fn main() {
 	// spin off the dylib loader in the background,
@@ -37,15 +35,11 @@ fn play_dylib_load() {
 	let mut state = state::State { blob: 42, name: "(:S)".to_string(), data: vec!["arf".to_string()] };
 
 	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
-	let mut sim = LibLoader::new(SIM_LIBPATH, "use_state");
-	let mut sim2 = LibLoader::new(SIM2_LIBPATH, "use_state2");
+	let mut sim = LibLoader::new(SIM_LIBPATH, "simulation");
 	loop {
 			thread::sleep(Duration::from_millis(1000));
-			sim.check();
-			sim.func(&mut state);
-
-			sim2.check();
-			sim2.func(&mut state);
+			sim.check_update(&mut state);
+			sim.tick(&mut state);
 	}
 }
 
