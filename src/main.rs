@@ -60,6 +60,7 @@ fn main() {
 
         // TODO: gather delta time instead
 		thread::sleep(Duration::from_millis(16));
+
 		sim.tick(&mut state);
 		rendering.tick(&mut state);
 

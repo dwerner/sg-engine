@@ -272,7 +272,7 @@ impl VulkanRenderer {
 
 impl Renderer for VulkanRenderer {
     fn draw(&mut self, renderables: &Vec<Box<Renderable>>) {
-        let mut vertices = Vec::new();
+        let mut vertices = Vec::with_capacity(renderables.len());
         for ref renderable in renderables {
             let geom = renderable.get_geometry().clone();
             for v in geom {
