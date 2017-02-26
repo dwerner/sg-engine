@@ -97,7 +97,7 @@ pub struct VulkanRenderer {
 }
 
 impl VulkanRenderer {
-	pub fn new(h: u32, w: u32) -> Self {
+	pub fn new(title: &str, h: u32, w: u32) -> Self {
 		// Vulkan
 		let instance = {
 			let extensions = vulkano_win::required_extensions();
@@ -108,6 +108,7 @@ impl VulkanRenderer {
 			.next().expect("No device available.");
 
 		let window = winit::WindowBuilder::new()
+            .with_title(title)
             .with_dimensions(h,w)
             .build_vk_surface(&instance).unwrap();
 
