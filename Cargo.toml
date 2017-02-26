@@ -39,9 +39,6 @@ path = "game_state"
 # mods don't need to be deps, but can be
 # to get cargo to build them when the main project is built
 
-[dependencies.mod_simulation]
-path = "mod_simulation"
-
 [build-dependencies]
 vulkano-shaders = "0.2"
 
