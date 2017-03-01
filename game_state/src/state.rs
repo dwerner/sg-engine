@@ -49,18 +49,18 @@ impl GameObj {
 
 #[test]
 fn do_shit_with_gameobjects () {
-    let root = GameObj::new(0, None);
+    let mut root = GameObj::new(0, None);
+    let mut root_ptr = Box::new(root);
 
-    let root_ptr = Box::new(root);
-
-    let child = GameObj::new(1, Some(Box::into_raw(root_ptr)));
+    let child = GameObj::new(42, Some(Box::into_raw(root_ptr)));
     let child_ptr = Box::new(child);
 
-    let parent: Box<GameObj> = unsafe {
+    let mut parent = unsafe {
         Box::from_raw(child_ptr.parent.unwrap())
     };
+    parent.add_child(child_ptr);
 
-    let found_child = parent.find_child(1).unwrap();
-    assert!(found_child.id == child_ptr.id);
+    let found_child = parent.find_child(42).unwrap();
+    assert!(found_child.id == 42);
 }
 
