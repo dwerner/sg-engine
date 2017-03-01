@@ -22,10 +22,10 @@ impl Renderable for Merp {
         let green = [0.0, 1.0, 0.0, 1.0];
         let blue = [0.0, 0.0, 1.0, 1.0];
         let items = vec![
-            //ColoredVertex::new([-1.0, -1.1, 0.0], red),
-            //ColoredVertex::new([-1.0, 1.1, 0.0], red),
-            //ColoredVertex::new([1.0, -1.1, 0.0], blue),
-            //ColoredVertex::new([1.0, 1.0, 0.0], blue),
+            ColoredVertex::new([-1.0, -1.1, 0.0], red),
+            ColoredVertex::new([-1.0, 1.1, 0.0], red),
+            ColoredVertex::new([1.0, -1.1, 0.0], blue),
+            ColoredVertex::new([1.0, 1.0, 0.0], blue),
         ];
         items
     }
@@ -36,17 +36,17 @@ impl Renderable for Blobject {
         let green = [0.0, 1.0, 0.0, 1.0];
         let blue = [0.0, 0.0, 1.0, 1.0];
         let items = vec![
-            ColoredVertex::new([-0.5, -0.5, 0.0], red),
-            ColoredVertex::new([0.0, 0.5, 0.0], green),
-            ColoredVertex::new([0.25, -0.1, 0.0], blue),
+            //ColoredVertex::new([-0.5, -0.5, 0.0], red),
+            //ColoredVertex::new([0.0, 0.5, 0.0], green),
+            //ColoredVertex::new([0.25, -0.1, 0.0], blue),
 
             //ColoredVertex::new([0.5, 0.25, 0.0], red),
-            //ColoredVertex::new([0.0, -0.5, 0.0], blue),
-            //ColoredVertex::new([-0.25, 0.1, 0.0], green),
+            ColoredVertex::new([0.0, -0.5, 0.0], blue),
+            ColoredVertex::new([-0.25, 0.1, 0.0], green),
 
-            //ColoredVertex::new([-0.25, -0.1, 0.0], green),
-            //ColoredVertex::new([-0.25, 0.1, 0.0], green),
-            //ColoredVertex::new([0.25, -0.1, 0.0], green),
+            ColoredVertex::new([-0.25, -0.1, 0.0], green),
+            ColoredVertex::new([-0.25, 0.1, 0.0], green),
+            ColoredVertex::new([0.25, -0.1, 0.0], green),
         ];
         items
     }
@@ -66,8 +66,8 @@ pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
 #[no_mangle]
 pub extern "C" fn mod_rendering_tick( s: &mut state::State) {
     // to avoid borrowing from s.renderers...
-    for i in 0..s.renderers.len() {
-        s.renderers[i].draw(&s.renderables);
+    for ref renderer in s.renderers {
+        renderer.draw(&s.renderables)
     }
 }
 

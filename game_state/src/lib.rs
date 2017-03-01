@@ -1,4 +1,5 @@
 pub mod state;
+extern crate cgmath;
 
 // Represents the public interface for mods
 // traits for implementing behavior of state objects should exist here

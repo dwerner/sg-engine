@@ -196,7 +196,6 @@ impl VulkanRenderer {
 		}).collect::<Vec<_>>();
 
 		let submissions:Vec<Arc<Submission>> = Vec::new();
-		window.window().set_title("Something good...");
 
 		VulkanRenderer {
 			// render

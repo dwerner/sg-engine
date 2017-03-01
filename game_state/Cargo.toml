@@ -12,3 +12,4 @@ name = "game_state"
 crate-type=["rlib"]
 
 [dependencies]
+cgmath = "0.12"

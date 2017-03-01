@@ -38,6 +38,7 @@ fn main() {
 		renderers: vec![
             Box::new(VulkanRenderer::new("title", 320, 240)),
             Box::new(VulkanRenderer::new("another title", 320, 240)),
+            Box::new(VulkanRenderer::new("title2", 320, 240)),
         ],
 		renderables: Vec::new(),
 		blob: 42,
@@ -51,19 +52,29 @@ fn main() {
 
 	let mut frame = 0;
 	loop {
-		frame += 1;
-		if frame % 60 == 0 {
-			//println!("FPS: {}", state.renderer.fps());
-			sim.check_update(&mut state);
-            rendering.check_update(&mut state);
-		}
-
         // TODO: gather delta time instead
 		thread::sleep(Duration::from_millis(16));
 
+
+        let start = time::PreciseTime::now();
 		sim.tick(&mut state);
+
+        let sim_time = start.to(time::PreciseTime::now());
+
 		rendering.tick(&mut state);
 
+        let rendering_time = start.to(time::PreciseTime::now());
+
+        frame += 1;
+        if frame % 60 == 0 {
+            println!(
+                "Sim time: {}, render time: {}",
+                sim_time.num_microseconds().unwrap(),
+                rendering_time.num_microseconds().unwrap()
+            );
+            sim.check_update(&mut state);
+            rendering.check_update(&mut state);
+        }
 	}
 }
 
