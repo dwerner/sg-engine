@@ -5,7 +5,7 @@ use std::str::String;
 
 macro_rules! burp {
 	( $( $x:expr ),+ ) => {{
-			let mut temp = Vec::with_capacity(1);
+			let mut temp = vec::with_capacity(1);
 			$( temp.push($x); )+
 			temp
 	}}

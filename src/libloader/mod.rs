@@ -7,6 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::path::Path;
 use std::fs;
 
+use time::PreciseTime;
+use time::Duration as TDuration;
+
 pub struct LibLoader {
     filename: String,
     lib: Option<Library>,
@@ -64,9 +67,12 @@ impl LibLoader {
         }
     }
 
-    pub fn tick(&self, state: &mut state::State) {
+    // External interface prefers time::Duration (TDuration)
+    pub fn tick(&self, state: &mut state::State) -> TDuration {
         let method_name = format!("mod_{}_tick", self.mod_name);
+        let start_time = PreciseTime::now();
         self.call(&method_name, state);
+        start_time.to(PreciseTime::now())
     }
 
     fn load(&self, state: &mut state::State) {
@@ -93,7 +99,6 @@ impl LibLoader {
         );
     }
 
-
     fn call(&self, method_name: &str, state: &mut state::State) {
         match self.lib {
             Some(ref lib) => {
@@ -102,6 +107,7 @@ impl LibLoader {
                     let func: Symbol<unsafe extern fn(&mut state::State)> =
                         lib.get(method).expect("unable to find symbol");
                     func(state);
+
                 }
             },
             None => println!("Cannot call method {} - lib not found", method_name)

@@ -15,6 +15,13 @@ use game_state::{state, Renderable, Renderer};
 
 use std::thread;
 
+macro_rules! declare_mod {
+	( $( $x:expr ),+ ) => {{
+		#[cfg(target_os = "windows")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/mod_simulation.dll";
+		#[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/deps/libmod_simulation.so";
+	}}
+}
+
 // Platform-specific wiring for simulation and simulation2 dynamically loaded libs (hot loaded)
 #[cfg(target_os = "windows")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/mod_simulation.dll";
 #[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/deps/libmod_simulation.so";
@@ -37,7 +44,6 @@ fn main() {
 	let mut state = state::State {
 		renderers: vec![
             Box::new(VulkanRenderer::new("title", 320, 240)),
-            Box::new(VulkanRenderer::new("another title", 320, 240)),
             Box::new(VulkanRenderer::new("title2", 320, 240)),
         ],
 		renderables: Vec::new(),
@@ -55,22 +61,15 @@ fn main() {
         // TODO: gather delta time instead
 		thread::sleep(Duration::from_millis(16));
 
-
-        let start = time::PreciseTime::now();
-		sim.tick(&mut state);
-
-        let sim_time = start.to(time::PreciseTime::now());
-
-		rendering.tick(&mut state);
-
-        let rendering_time = start.to(time::PreciseTime::now());
+		let sim_time = sim.tick(&mut state);
+		let render_time = rendering.tick(&mut state);
 
         frame += 1;
         if frame % 60 == 0 {
             println!(
                 "Sim time: {}, render time: {}",
                 sim_time.num_microseconds().unwrap(),
-                rendering_time.num_microseconds().unwrap()
+                render_time.num_microseconds().unwrap()
             );
             sim.check_update(&mut state);
             rendering.check_update(&mut state);

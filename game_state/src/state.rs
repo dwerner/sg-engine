@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 
-use cgmath::Matrix;
+//use cgmath::Matrix;
 
 pub struct State {
     pub renderers: Vec<Box<Renderer>>,
@@ -22,16 +22,34 @@ pub struct GameObj { // le cliche classname
  //  global_mat: Matrix<f32>,
 }
 
+impl Drop for GameObj {
+    fn drop(&mut self) {
+        println!("Dropping {}", self.id);
+    }
+}
+
 impl GameObj {
 
-    fn new(id: u32, parent: Option<*mut GameObj>) -> Self {
+    fn new(id: u32, parent: Option<Box<GameObj>>) -> Self {
         GameObj {
             id: id,
-            parent: parent,
+            parent: match parent {
+                Some(p) => Some(Box::into_raw(p)),
+                None => None
+            },
             children: Vec::new(),
             // local_mat: Matrix<f32>::one(),
             // global_mat: Matrix<f32>::one()
         }
+    }
+
+    fn reparent(&mut self, parent: Option<Box<GameObj>>) {
+        self.parent = match parent {
+            Some(p) => {
+                Some(Box::into_raw(p))
+            },
+            None => None
+        };
     }
 
     fn find_child(&self, id: u32) -> Option<&Box<GameObj>> {
@@ -42,9 +60,24 @@ impl GameObj {
         }
     }
 
+    fn children(&mut self) -> &mut Vec<Box<GameObj>> {
+        &mut self.children
+    }
+
     fn add_child(&mut self, child: Box<GameObj>) {
         self.children.push(child);
     }
+
+    fn parent(&self) -> Option<Box<GameObj>> {
+        match self.parent {
+            Some(p) => Some(unsafe { Box::from_raw(p) }),
+            None => None
+        }
+    }
+
+    //fn root(&self) -> Box<GameObj> {
+    //}
+
 }
 
 #[test]
@@ -52,15 +85,35 @@ fn do_shit_with_gameobjects () {
     let mut root = GameObj::new(0, None);
     let mut root_ptr = Box::new(root);
 
-    let child = GameObj::new(42, Some(Box::into_raw(root_ptr)));
+    // Child consumes ownership of parent as *mut, now lost by lifetimes
+    let child = GameObj::new(42, Some(root_ptr));
     let child_ptr = Box::new(child);
 
-    let mut parent = unsafe {
-        Box::from_raw(child_ptr.parent.unwrap())
-    };
+    // Gather the *mut lost to the child and own it here
+    let mut parent = child_ptr.parent().unwrap();
+
+    // parent consumes ownership of child
     parent.add_child(child_ptr);
 
-    let found_child = parent.find_child(42).unwrap();
+    let found_child: &Box<GameObj> = parent.find_child(42).unwrap();
     assert!(found_child.id == 42);
 }
 
+#[test]
+fn do_shit_with_gameobjects2 () {
+    let mut root = GameObj::new(0, None);
+    let mut root_ptr = Box::new(root);
+
+    // Child consumes ownership of parent as *mut, now lost by lifetimes
+    let child = GameObj::new(42, Some(root_ptr));
+    let child_ptr = Box::new(child);
+
+    // Gather the *mut lost to the child and own it here
+    let mut parent = child_ptr.parent().unwrap();
+
+    // parent consumes ownership of child
+    parent.children.push(child_ptr);
+
+    let found_child: &Box<GameObj> = parent.find_child(42).unwrap();
+    assert!(found_child.id == 42);
+}

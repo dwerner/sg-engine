@@ -4,6 +4,12 @@ use game_state::state;
 use game_state::ColoredVertex;
 use game_state::{ Renderer, Renderable, Physical, Syncable, Identifyable };
 
+
+struct Mesh {
+    id: u64,
+    //position: Vec3<f32> //cgmath
+}
+
 struct Blobject {
     id: u64,
     x: u32,
@@ -36,11 +42,11 @@ impl Renderable for Blobject {
         let green = [0.0, 1.0, 0.0, 1.0];
         let blue = [0.0, 0.0, 1.0, 1.0];
         let items = vec![
-            //ColoredVertex::new([-0.5, -0.5, 0.0], red),
-            //ColoredVertex::new([0.0, 0.5, 0.0], green),
-            //ColoredVertex::new([0.25, -0.1, 0.0], blue),
+            ColoredVertex::new([-0.5, -0.5, 0.0], red),
+            ColoredVertex::new([0.0, 0.5, 0.0], green),
+            ColoredVertex::new([0.25, -0.1, 0.0], blue),
 
-            //ColoredVertex::new([0.5, 0.25, 0.0], red),
+            ColoredVertex::new([0.5, 0.25, 0.0], red),
             ColoredVertex::new([0.0, -0.5, 0.0], blue),
             ColoredVertex::new([-0.25, 0.1, 0.0], green),
 
