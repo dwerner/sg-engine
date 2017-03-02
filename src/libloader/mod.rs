@@ -10,6 +10,20 @@ use std::fs;
 use time::PreciseTime;
 use time::Duration as TDuration;
 
+#[macro_export]
+macro_rules! load_mod {
+	( $s:expr ) => {{
+		let name = stringify!($s);
+        let path = if cfg!(windows) {
+            format!( "mod_{0}/target/debug/mod_{0}.dll", name )
+        } else {
+            format!( "mod_{0}/target/debug/deps/libmod_{0}.so", name )
+        };
+		println!("macro load {0} {0}", name);
+		LibLoader::new(&path, name)
+	}};
+}
+
 pub struct LibLoader {
     filename: String,
     lib: Option<Library>,

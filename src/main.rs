@@ -3,7 +3,9 @@ extern crate vulkano;
 extern crate time;
 extern crate cgmath;
 
+#[macro_use]
 extern crate engine;
+
 use engine::renderer::{Vertex, VulkanRenderer};
 use engine::libloader::LibLoader;
 
@@ -14,20 +16,6 @@ use std::time::Duration;
 use game_state::{state, Renderable, Renderer};
 
 use std::thread;
-
-macro_rules! declare_mod {
-	( $( $x:expr ),+ ) => {{
-		#[cfg(target_os = "windows")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/mod_simulation.dll";
-		#[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/deps/libmod_simulation.so";
-	}}
-}
-
-// Platform-specific wiring for simulation and simulation2 dynamically loaded libs (hot loaded)
-#[cfg(target_os = "windows")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/mod_simulation.dll";
-#[cfg(target_os = "linux")] const SIM_LIBPATH: &'static str = "mod_simulation/target/debug/deps/libmod_simulation.so";
-
-#[cfg(target_os = "windows")] const RENDERING_LIBPATH: &'static str = "mod_rendering/target/debug/mod_rendering.dll";
-#[cfg(target_os = "linux")] const RENDERING_LIBPATH: &'static str = "mod_rendering/target/debug/libmod_rendering.so";
 
 struct DummyRenderer { }
 
@@ -51,8 +39,9 @@ fn main() {
 	};
 
 	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
-	let mut sim = LibLoader::new(SIM_LIBPATH, "simulation");
-	let mut rendering = LibLoader::new(RENDERING_LIBPATH, "rendering");
+	let mut sim = load_mod!(simulation);
+	let mut rendering = load_mod!(rendering);
+
     sim.check_update(&mut state);
     rendering.check_update(&mut state);
 
