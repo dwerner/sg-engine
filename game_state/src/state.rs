@@ -1,6 +1,6 @@
 use super::{ Renderer, Renderable }; //, Physical, Syncable, Identifyable };
 use std::rc::Rc;
-
+use std::fmt;
 use std::cell::RefCell;
 
 
@@ -13,28 +13,43 @@ pub struct State {
 }
 impl State {}
 
-pub struct GameObj { // le cliche classname
+pub struct Graph {
+    root: Box<Node>
+}
+
+pub struct Node { // le cliche classname
     id: u32,
-    parent: Option<*mut GameObj>,
-    children: Vec<Box<GameObj>>,
+    parent: Option<Rc<RefCell<Node>>>,
+    children: Vec<Rc<RefCell<Node>>>,
     // TODO: figure out type signatures
  //   local_mat: Matrix<f32>,
  //  global_mat: Matrix<f32>,
 }
 
-impl Drop for GameObj {
+impl Drop for Node {
     fn drop(&mut self) {
         println!("Dropping {}", self.id);
     }
 }
 
-impl GameObj {
+impl fmt::Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let p = match self.parent {
+            Some(_) => "*",
+            None => "*root"
+        };
+        write!(f, "{} ->(id: {})", p, self.id);
+        Ok(())
+    }
+}
 
-    fn new(id: u32, parent: Option<Box<GameObj>>) -> Self {
-        GameObj {
+impl Node {
+
+    fn new(id: u32, parent: Option<Rc<RefCell<Node>>>) -> Self {
+        Node {
             id: id,
             parent: match parent {
-                Some(p) => Some(Box::into_raw(p)),
+                Some(p) => Some(p),
                 None => None
             },
             children: Vec::new(),
@@ -43,77 +58,74 @@ impl GameObj {
         }
     }
 
-    fn reparent(&mut self, parent: Option<Box<GameObj>>) {
-        self.parent = match parent {
-            Some(p) => {
-                Some(Box::into_raw(p))
-            },
-            None => None
-        };
+    pub fn create(id: u32, parent: Option<Rc<RefCell<Node>>>) -> Rc<RefCell<Node>> {
+        Rc::new(RefCell::new(Node::new(id, parent)))
     }
 
-    fn find_child(&self, id: u32) -> Option<&Box<GameObj>> {
-        let option: Option<&Box<GameObj>> = self.children.iter().find(|ref x| x.id == id);
+    // FIX THIS - needs to add to children etc
+    pub fn reparent(&mut self, parent: Rc<RefCell<Node>>) {
+        self.parent = Some(parent);
+    }
+
+    pub fn find_child(&self, id: u32) -> Option<Rc<RefCell<Node>>> {
+        let option: Option<&Rc<RefCell<Node>>> =
+            self.children.iter().find(|x| x.borrow().id == id);
         match option {
             Some(obj_ref) => Some(obj_ref.clone()),
             None => None
         }
     }
 
-    fn children(&mut self) -> &mut Vec<Box<GameObj>> {
+    pub fn children(&mut self) -> &mut Vec<Rc<RefCell<Node>>> {
         &mut self.children
     }
 
-    fn add_child(&mut self, child: Box<GameObj>) {
+    pub fn add_child(&mut self, child: Rc<RefCell<Node>>) {
         self.children.push(child);
     }
 
-    fn parent(&self) -> Option<Box<GameObj>> {
+
+    pub fn parent(&self) -> Option<Rc<RefCell<Node>>> {
         match self.parent {
-            Some(p) => Some(unsafe { Box::from_raw(p) }),
+            Some(ref p) => Some(p.clone()),
             None => None
         }
     }
 
-    //fn root(&self) -> Box<GameObj> {
+    pub fn debug_draw(&self, lvl: u32) {
+        if lvl == 0 {
+            println!("-- Hierarchy Dump --");
+        }
+        let c = if self.children.len() > 0 {
+            "..."
+        } else {
+            ".leaf*"
+        };
+        println!(
+            "{}{}{}",
+            (0..lvl).map(|_| "....").collect::<String>(),
+            self,
+            c
+        );
+        for child in &self.children {
+            child.borrow().debug_draw(lvl+1);
+        }
+    }
+
+    //fn root(&self) -> Box<Node> {
     //}
 
 }
 
 #[test]
-fn do_shit_with_gameobjects () {
-    let mut root = GameObj::new(0, None);
-    let mut root_ptr = Box::new(root);
+fn traverse_nodes () {
+    let root_ptr = Node::create(0, None);
+    let child_ptr = Node::create(42, Some(root_ptr.clone()));
 
-    // Child consumes ownership of parent as *mut, now lost by lifetimes
-    let child = GameObj::new(42, Some(root_ptr));
-    let child_ptr = Box::new(child);
+    let mut parent = &child_ptr.borrow().parent().unwrap();
 
-    // Gather the *mut lost to the child and own it here
-    let mut parent = child_ptr.parent().unwrap();
+    &parent.borrow_mut().add_child(child_ptr);
 
-    // parent consumes ownership of child
-    parent.add_child(child_ptr);
-
-    let found_child: &Box<GameObj> = parent.find_child(42).unwrap();
-    assert!(found_child.id == 42);
-}
-
-#[test]
-fn do_shit_with_gameobjects2 () {
-    let mut root = GameObj::new(0, None);
-    let mut root_ptr = Box::new(root);
-
-    // Child consumes ownership of parent as *mut, now lost by lifetimes
-    let child = GameObj::new(42, Some(root_ptr));
-    let child_ptr = Box::new(child);
-
-    // Gather the *mut lost to the child and own it here
-    let mut parent = child_ptr.parent().unwrap();
-
-    // parent consumes ownership of child
-    parent.children.push(child_ptr);
-
-    let found_child: &Box<GameObj> = parent.find_child(42).unwrap();
-    assert!(found_child.id == 42);
+    let found_child = &parent.borrow().find_child(42).unwrap();
+    assert!(found_child.borrow().id == 42);
 }
