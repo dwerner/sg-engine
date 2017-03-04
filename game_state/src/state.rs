@@ -89,6 +89,20 @@ impl Node {
         }
     }
 
+    /// Recursively find if this node is a child of another
+    pub fn is_child_of(this: Rc<RefCell<Node>>, parent: Rc<RefCell<Node>>) -> bool {
+        match this.borrow().parent() {
+            Some(p) => {
+                if p.borrow().id == parent.borrow().id {
+                    true
+                } else {
+                    Node::is_child_of(p, parent)
+                }
+            },
+            None => false
+        }
+    }
+
     pub fn reparent(child: Rc<RefCell<Node>>, to: Rc<RefCell<Node>>) {
         match child.borrow().parent() {
             Some(old_parent) => {
@@ -181,12 +195,21 @@ fn traverse_nodes() {
 fn find_root() {
     let root = Node::create(0, None);
     let child = Node::create(1, Some(root.clone()));
-    let found_root = Node::find_root(child);
+    let found_root = Node::find_root(child.clone());
     assert!(root.borrow().id == found_root.borrow().id);
 }
 
 #[test]
-fn reparentable() {
+fn is_child_of() {
+    let root = Node::create(0, None);
+    let child = Node::create(1, Some(root.clone()));
+    assert!(Node::is_child_of(child.clone(), root.clone()));
+    let r = Node::create(42, None);
+    assert!( ! Node::is_child_of(child.clone(), r.clone()) );
+}
+
+#[test]
+fn reparent() {
     let root = Node::create(0, None);
 
     let child = Node::create(2, Some(root.clone()));
@@ -204,4 +227,17 @@ fn reparentable() {
 
     let actual_child = root2.borrow().find_child(2);
     assert!(actual_child.is_some());
+}
+#[test]
+fn is_child_of_reparent() {
+    let root = Node::create(0, None);
+    let im = Node::create(1, Some(root.clone()));
+    let child = Node::create(2, Some(im.clone()));
+    assert!( Node::is_child_of(child.clone(), im.clone()) );
+    assert!( Node::is_child_of(child.clone(), root.clone()) );
+
+    let root2 = Node::create(3, None);
+    Node::reparent(im.clone(), root2.clone());
+
+    assert!( Node::is_child_of(child.clone(), root2.clone()) );
 }
