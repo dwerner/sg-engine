@@ -1,5 +1,5 @@
 use super::{ Renderer, Renderable }; //, Physical, Syncable, Identifyable };
-use std::rc::Rc;
+use std::rc::{ Rc, Weak };
 use std::fmt;
 use std::cell::RefCell;
 
@@ -14,12 +14,12 @@ pub struct State {
 impl State {}
 
 pub struct Graph {
-    root: Box<Node>
+    root: Rc<RefCell<Node>>
 }
 
 pub struct Node { // le cliche classname
     id: u32,
-    parent: Option<Rc<RefCell<Node>>>,
+    parent: Option<Weak<RefCell<Node>>>,
     children: Vec<Rc<RefCell<Node>>>,
     // TODO: figure out type signatures
  //   local_mat: Matrix<f32>,
@@ -45,7 +45,38 @@ impl fmt::Display for Node {
 
 impl Node {
 
-    fn new(id: u32, parent: Option<Rc<RefCell<Node>>>) -> Self {
+    pub fn create(id: u32, parent: Option<Rc<RefCell<Node>>>) -> Rc<RefCell<Node>> {
+        let prt = match parent {
+            Some(ref p) => {
+                Some(Rc::downgrade(p))
+            },
+            None => None
+        };
+
+        let node = Rc::new(
+            RefCell::new(
+                Node::new(id, prt)
+            )
+        );
+
+        match parent {
+            Some(ref p) => {
+                p.borrow_mut().add_child(node.clone());
+            },
+            None => {}
+        };
+
+        node
+    }
+
+    pub fn find_root(node: Rc<RefCell<Node>>) -> Rc<RefCell<Node>> {
+        match node.borrow().parent() {
+            Some(p) => Node::find_root(p.clone()),
+            None => return node.clone()
+        }
+    }
+
+    fn new(id: u32, parent: Option<Weak<RefCell<Node>>>) -> Self {
         Node {
             id: id,
             parent: match parent {
@@ -58,13 +89,32 @@ impl Node {
         }
     }
 
-    pub fn create(id: u32, parent: Option<Rc<RefCell<Node>>>) -> Rc<RefCell<Node>> {
-        Rc::new(RefCell::new(Node::new(id, parent)))
+    pub fn reparent(child: Rc<RefCell<Node>>, to: Rc<RefCell<Node>>) {
+        match child.borrow().parent() {
+            Some(old_parent) => {
+                old_parent.borrow_mut().remove_child(child.clone());
+            },
+            None => {}
+        }
+        child.borrow_mut().parent = Some(Rc::downgrade(&to.clone()));
+        to.borrow_mut().add_child(child.clone());
     }
 
-    // FIX THIS - needs to add to children etc
-    pub fn reparent(&mut self, parent: Rc<RefCell<Node>>) {
-        self.parent = Some(parent);
+    pub fn remove_child(&mut self, child: Rc<RefCell<Node>>) {
+        let mut idx: Option<usize> = None;
+        for i in 0usize..self.children.len() {
+            let child_id = self.children[i].borrow().id;
+            if child_id == child.borrow().id {
+                idx = Some(i);
+                break;
+            }
+        }
+        match idx {
+           Some(i) => {
+               self.children.remove(i);
+           },
+           _ => {}
+        };
     }
 
     pub fn find_child(&self, id: u32) -> Option<Rc<RefCell<Node>>> {
@@ -81,13 +131,14 @@ impl Node {
     }
 
     pub fn add_child(&mut self, child: Rc<RefCell<Node>>) {
-        self.children.push(child);
+        if self.id != child.borrow().id {
+            self.children.push(child);
+        }
     }
-
 
     pub fn parent(&self) -> Option<Rc<RefCell<Node>>> {
         match self.parent {
-            Some(ref p) => Some(p.clone()),
+            Some(ref p) => Some(p.upgrade().unwrap()),
             None => None
         }
     }
@@ -112,20 +163,45 @@ impl Node {
         }
     }
 
-    //fn root(&self) -> Box<Node> {
-    //}
-
 }
 
 #[test]
-fn traverse_nodes () {
+fn traverse_nodes() {
     let root_ptr = Node::create(0, None);
     let child_ptr = Node::create(42, Some(root_ptr.clone()));
 
-    let mut parent = &child_ptr.borrow().parent().unwrap();
+    let parent: Rc<RefCell<Node>> = child_ptr.borrow().parent().unwrap();
+    parent.borrow_mut().add_child(child_ptr);
 
-    &parent.borrow_mut().add_child(child_ptr);
-
-    let found_child = &parent.borrow().find_child(42).unwrap();
+    let found_child = parent.borrow().find_child(42).unwrap();
     assert!(found_child.borrow().id == 42);
+}
+
+#[test]
+fn find_root() {
+    let root = Node::create(0, None);
+    let child = Node::create(1, Some(root.clone()));
+    let found_root = Node::find_root(child);
+    assert!(root.borrow().id == found_root.borrow().id);
+}
+
+#[test]
+fn reparentable() {
+    let root = Node::create(0, None);
+
+    let child = Node::create(2, Some(root.clone()));
+    let original_child = root.borrow().find_child(2);
+    assert!(original_child.is_some());
+
+    let root2 = Node::create(1, None);
+    Node::reparent(child.clone(), root2.clone());
+
+    let found_root = Node::find_root(child);
+    assert!(root2.borrow().id == found_root.borrow().id);
+
+    let stale_child = root.borrow().find_child(2);
+    assert!(stale_child.is_none());
+
+    let actual_child = root2.borrow().find_child(2);
+    assert!(actual_child.is_some());
 }

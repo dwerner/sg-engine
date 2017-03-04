@@ -10,7 +10,9 @@ fn main () {
     // Child consumes ownership of parent as *mut, now lost by lifetimes
     for x in 1..10 {
         let child = Node::create(x, Some(root_rc.clone()));
-        root_rc.borrow_mut().add_child(child.clone());
+        for y in 1..x {
+            let subchild = Node::create(y*10, Some(child.clone()));
+        }
     }
 
     let pb = root_rc.borrow();
