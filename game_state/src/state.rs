@@ -103,15 +103,23 @@ impl Node {
         }
     }
 
-    pub fn reparent(child: Rc<RefCell<Node>>, to: Rc<RefCell<Node>>) {
-        match child.borrow().parent() {
-            Some(old_parent) => {
-                old_parent.borrow_mut().remove_child(child.clone());
-            },
-            None => {}
+    pub fn reparent(child: Rc<RefCell<Node>>, target: Rc<RefCell<Node>>) -> Result<(), String> {
+        if child.borrow().id == target.borrow().id {
+            return Err("Cannot make node a child of itself.".to_string());
         }
-        child.borrow_mut().parent = Some(Rc::downgrade(&to.clone()));
-        to.borrow_mut().add_child(child.clone());
+        if  !Node::is_child_of(target.clone(), child.clone()) { // check for cycles
+            match child.borrow().parent() {
+                Some(old_parent) => {
+                    old_parent.borrow_mut().remove_child(child.clone());
+                },
+                None => {}
+            }
+            child.borrow_mut().parent = Some(Rc::downgrade(&target.clone()));
+            target.borrow_mut().add_child(child.clone());
+            Ok(())
+        } else {
+            Err("Node cycle detected. Child is a parent of reparent target.".to_string()) // format for better debug msg
+        }
     }
 
     pub fn remove_child(&mut self, child: Rc<RefCell<Node>>) {
@@ -144,8 +152,7 @@ impl Node {
         &mut self.children
     }
 
-    pub fn add_child(&mut self, child: Rc<RefCell<Node>>) {
-        assert!( self.id == child.parent().unwrap().borrow().id );
+    fn add_child(&mut self, child: Rc<RefCell<Node>>) {
         if self.id != child.borrow().id {
             self.children.push(child);
         }
@@ -238,7 +245,26 @@ fn is_child_of_reparent() {
     assert!( Node::is_child_of(child.clone(), root.clone()) );
 
     let root2 = Node::create(3, None);
-    Node::reparent(im.clone(), root2.clone());
+    let result = Node::reparent(im.clone(), root2.clone());
 
+    assert!( result.is_ok() );
     assert!( Node::is_child_of(child.clone(), root2.clone()) );
+}
+
+
+#[test]
+fn fails_to_reparent_to_self() {
+    let root = Node::create(0, None);
+    let result = Node::reparent(root.clone(), root.clone());
+    assert!( result.is_err() );
+}
+
+#[test]
+fn fails_to_reparent_causing_a_cycle() {
+    let root = Node::create(0, None);
+    let child = Node::create(1, Some(root.clone()));
+    let sibling = Node::create(2, Some(root.clone()));
+
+    let result = Node::reparent(root.clone(), sibling.clone());
+    assert!( result.is_err() );
 }
