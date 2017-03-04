@@ -145,6 +145,7 @@ impl Node {
     }
 
     pub fn add_child(&mut self, child: Rc<RefCell<Node>>) {
+        assert!( self.id == child.parent().unwrap().borrow().id );
         if self.id != child.borrow().id {
             self.children.push(child);
         }
