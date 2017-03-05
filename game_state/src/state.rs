@@ -148,6 +148,15 @@ impl Node {
         }
     }
 
+    pub fn siblings(&self) -> Option<&Vec<Rc<RefCell<Node>>>> {
+        match self.parent() {
+            Some(p) => {
+                Some(&p.borrow().children)
+            },
+            None => None
+        }
+    }
+
     pub fn children(&mut self) -> &mut Vec<Rc<RefCell<Node>>> {
         &mut self.children
     }
