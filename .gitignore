@@ -3,4 +3,5 @@ target
 *.swp
 *.iml
 .idea/**
+**/.idea/**
 

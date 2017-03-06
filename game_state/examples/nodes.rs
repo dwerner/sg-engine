@@ -3,7 +3,7 @@ extern crate game_state;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use game_state::state::{ Graph, Node };
+use game_state::scene::{ Graph, Node };
 
 fn main () {
     let root_rc = Node::create(0, None);

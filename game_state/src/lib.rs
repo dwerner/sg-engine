@@ -1,4 +1,6 @@
 pub mod state;
+pub mod scene;
+
 extern crate cgmath;
 
 // Represents the public interface for mods
