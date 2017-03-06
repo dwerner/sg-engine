@@ -160,6 +160,7 @@ impl Node {
         self.children.len() == 0
     }
 
+    // intentionally private for the time being (Node::new() specifies a parent)
     fn add_child(&mut self, child: Rc<RefCell<Node>>) {
         if self.id != child.borrow().id {
             self.children.push(child);

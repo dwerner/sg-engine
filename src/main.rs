@@ -28,7 +28,6 @@ impl Renderer for DummyRenderer {
 }
 
 fn main() {
-    // TODO: merge these two loops
 	let mut state = state::State {
 		renderers: vec![
             Box::new(VulkanRenderer::new("title", 320, 240)),

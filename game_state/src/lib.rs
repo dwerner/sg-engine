@@ -8,6 +8,7 @@ extern crate cgmath;
 // but the impls for those traits can be in mods
 
 pub trait Renderer {
+    // TODO Renderer should take in a SceneGraph
     fn draw(&mut self, renderables: &Vec<Box<Renderable>>);
 }
 
