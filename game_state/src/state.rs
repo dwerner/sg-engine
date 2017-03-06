@@ -148,10 +148,15 @@ impl Node {
         }
     }
 
-    pub fn siblings(&self) -> Option<&Vec<Rc<RefCell<Node>>>> {
+    pub fn siblings(&self) -> Option<Vec<Rc<RefCell<Node>>>> {
         match self.parent() {
             Some(p) => {
-                Some(&p.borrow().children)
+                Some(
+                    p.borrow().children.iter()
+                    .filter(|x| x.borrow().id != self.id)
+                    .map(|x| x.clone())
+                    .collect()
+                )
             },
             None => None
         }
@@ -276,4 +281,16 @@ fn fails_to_reparent_causing_a_cycle() {
 
     let result = Node::reparent(root.clone(), sibling.clone());
     assert!( result.is_err() );
+}
+
+#[test]
+fn siblings_as_expected() {
+    let root = Node::create(0, None);
+    let child = Node::create(1, Some(root.clone()));
+    let sibling = Node::create(2, Some(root.clone()));
+
+    let maybe_siblings = child.borrow().siblings();
+    let siblings = maybe_siblings.unwrap();
+    assert!( siblings.len() == 1 );
+    assert!( sibling.borrow().id == siblings[0].borrow().id );
 }
