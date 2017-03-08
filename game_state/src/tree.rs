@@ -6,11 +6,16 @@ type NodeMut<T> = RefCell<Node<T>>;
 pub type RcNode<T> = Rc<NodeMut<T>>;
 pub type WeakNode<T> = Weak<NodeMut<T>>;
 
+pub trait NodeVisitor<T> {
+    fn visit(&mut self);
+    fn next(&mut self) -> bool;
+}
+
 pub struct Node<T> {
     pub id: u32,
     parent: Option<WeakNode<T>>,
     children: Vec<RcNode<T>>,
-    data: T
+    pub data: T
 }
 
 impl <T> Drop for Node<T> {
@@ -42,7 +47,7 @@ impl <T> Node<T> {
 
         let node = Rc::new(
             RefCell::new(
-                Node::new(id, prt, data)
+                Node::new(id, data, prt)
             )
         );
 
@@ -63,7 +68,7 @@ impl <T> Node<T> {
         }
     }
 
-    fn new(id: u32, parent: Option<WeakNode<T>>, data: T) -> Self {
+    fn new(id: u32, data: T, parent: Option<WeakNode<T>>) -> Self {
         Node {
             id: id,
             parent: match parent {

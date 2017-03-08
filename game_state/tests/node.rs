@@ -3,7 +3,7 @@ extern crate game_state;
 #[cfg(test)]
 mod tests {
 
-    use game_state::tree::Node;
+    use game_state::tree::{ Node, NodeVisitor, RcNode };
 
     use std::rc::{ Rc, Weak };
     use std::cell::RefCell;
@@ -98,5 +98,58 @@ mod tests {
         let siblings = maybe_siblings.unwrap();
         assert!( siblings.len() == 1 );
         assert!( sibling.borrow().id == siblings[0].borrow().id );
+    }
+
+    #[test]
+    fn visitor() {
+
+        // master branch
+        let root = Node::create(0, 5u32, None);
+        let grandparent = Node::create(1, 4, Some(root.clone()));
+        let parent = Node::create(2, 3, Some(grandparent.clone()));
+        let child = Node::create(3, 2, Some(parent.clone()));
+        let grandchild = Node::create(4, 1, Some(child.clone()));
+
+        // misfits. Sibling branch to those in master
+        let great_aunt = Node::create(11, 4, Some(root.clone()));
+        let uncle = Node::create(21, 3, Some(great_aunt.clone()));
+        let cousin = Node::create(31, 2, Some(uncle.clone()));
+        let niece = Node::create(41, 1, Some(cousin.clone()));
+
+
+        struct SummingVisitor {
+            x: u32,
+            current_node: Option<RcNode<u32>>
+        }
+        impl NodeVisitor<u32> for SummingVisitor {
+            fn visit(&mut self) {
+                self.x += match self.current_node {
+                    Some(ref n) => n.borrow().data,
+                    None => 0
+                }
+            }
+            fn next(&mut self) -> bool {
+                let maybe_parent = match self.current_node {
+                    Some(ref n) => {
+                        n.borrow().parent()
+                    },
+                    None => None
+                };
+                self.current_node = maybe_parent;
+                self.current_node.is_some()
+            }
+        }
+
+        let mut v = SummingVisitor {
+            x: 0,
+            current_node: Some(grandchild.clone())
+        };
+
+        loop {
+            v.visit();
+            if !v.next() { break; }
+        }
+
+        assert_eq!(v.x, 15);
     }
 }
