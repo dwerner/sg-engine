@@ -1,5 +1,5 @@
 pub mod state;
-pub mod scene;
+pub mod tree;
 
 extern crate cgmath;
 

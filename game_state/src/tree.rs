@@ -2,27 +2,21 @@ use std::rc::{ Rc, Weak };
 use std::fmt;
 use std::cell::RefCell;
 
-use cgmath::*;
 
-pub struct SceneGraph {
-    root: Rc<RefCell<Node>>
-}
-
-pub struct Node {
+pub struct Node<T> {
     pub id: u32,
-    parent: Option<Weak<RefCell<Node>>>,
-    children: Vec<Rc<RefCell<Node>>>,
-    local_mat: Matrix4<f32>,
-    global_mat: Matrix4<f32>,
+    parent: Option<Weak<RefCell<Node<T>>>>,
+    children: Vec<Rc<RefCell<Node<T>>>>,
+    data: T
 }
 
-impl Drop for Node {
+impl <T> Drop for Node<T> {
     fn drop(&mut self) {
         println!("Dropping {}", self.id);
     }
 }
 
-impl fmt::Display for Node {
+impl <T> fmt::Display for Node<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let p = match self.parent {
             Some(_) => "*",
@@ -33,9 +27,9 @@ impl fmt::Display for Node {
     }
 }
 
-impl Node {
+impl <T> Node<T> {
 
-    pub fn create(id: u32, parent: Option<Rc<RefCell<Node>>>) -> Rc<RefCell<Node>> {
+    pub fn create(id: u32, data: T, parent: Option<Rc<RefCell<Node<T>>>>) -> Rc<RefCell<Node<T>>> {
         let prt = match parent {
             Some(ref p) => {
                 Some(Rc::downgrade(p))
@@ -45,7 +39,7 @@ impl Node {
 
         let node = Rc::new(
             RefCell::new(
-                Node::new(id, prt, Matrix4::<f32>::identity(), Matrix4::<f32>::identity())
+                Node::new(id, prt, data)
             )
         );
 
@@ -59,14 +53,14 @@ impl Node {
         node
     }
 
-    pub fn find_root(node: Rc<RefCell<Node>>) -> Rc<RefCell<Node>> {
+    pub fn find_root(node: Rc<RefCell<Node<T>>>) -> Rc<RefCell<Node<T>>> {
         match node.borrow().parent() {
             Some(p) => Node::find_root(p.clone()),
             None => return node.clone()
         }
     }
 
-    fn new(id: u32, parent: Option<Weak<RefCell<Node>>>, local: Matrix4<f32>, global: Matrix4<f32>) -> Self {
+    fn new(id: u32, parent: Option<Weak<RefCell<Node<T>>>>, data: T) -> Self {
         Node {
             id: id,
             parent: match parent {
@@ -74,13 +68,12 @@ impl Node {
                 None => None
             },
             children: Vec::new(),
-            local_mat: local,
-            global_mat: global
+            data: data
         }
     }
 
     /// Recursively find if this node is a child of another
-    pub fn is_child_of(this: Rc<RefCell<Node>>, parent: Rc<RefCell<Node>>) -> bool {
+    pub fn is_child_of(this: Rc<RefCell<Node<T>>>, parent: Rc<RefCell<Node<T>>>) -> bool {
         match this.borrow().parent() {
             Some(p) => {
                 if p.borrow().id == parent.borrow().id {
@@ -93,7 +86,7 @@ impl Node {
         }
     }
 
-    pub fn reparent(child: Rc<RefCell<Node>>, target: Rc<RefCell<Node>>) -> Result<(), String> {
+    pub fn reparent(child: Rc<RefCell<Node<T>>>, target: Rc<RefCell<Node<T>>>) -> Result<(), String> {
         if child.borrow().id == target.borrow().id {
             return Err("Cannot make node a child of itself.".to_string());
         }
@@ -112,7 +105,7 @@ impl Node {
         }
     }
 
-    pub fn remove_child(&mut self, child: Rc<RefCell<Node>>) {
+    pub fn remove_child(&mut self, child: Rc<RefCell<Node<T>>>) {
         let mut idx: Option<usize> = None;
         for i in 0usize..self.children.len() {
             let child_id = self.children[i].borrow().id;
@@ -129,8 +122,8 @@ impl Node {
         };
     }
 
-    pub fn find_child(&self, id: u32) -> Option<Rc<RefCell<Node>>> {
-        let option: Option<&Rc<RefCell<Node>>> =
+    pub fn find_child(&self, id: u32) -> Option<Rc<RefCell<Node<T>>>> {
+        let option: Option<&Rc<RefCell<Node<T>>>> =
             self.children.iter().find(|x| x.borrow().id == id);
         match option {
             Some(obj_ref) => Some(obj_ref.clone()),
@@ -138,7 +131,7 @@ impl Node {
         }
     }
 
-    pub fn siblings(&self) -> Option<Vec<Rc<RefCell<Node>>>> {
+    pub fn siblings(&self) -> Option<Vec<Rc<RefCell<Node<T>>>>> {
         match self.parent() {
             Some(p) => {
                 Some(
@@ -152,7 +145,7 @@ impl Node {
         }
     }
 
-    pub fn children(&mut self) -> &mut Vec<Rc<RefCell<Node>>> {
+    pub fn children(&mut self) -> &mut Vec<Rc<RefCell<Node<T>>>> {
         &mut self.children
     }
 
@@ -161,13 +154,13 @@ impl Node {
     }
 
     // intentionally private for the time being (Node::new() specifies a parent)
-    fn add_child(&mut self, child: Rc<RefCell<Node>>) {
+    fn add_child(&mut self, child: Rc<RefCell<Node<T>>>) {
         if self.id != child.borrow().id {
             self.children.push(child);
         }
     }
 
-    pub fn parent(&self) -> Option<Rc<RefCell<Node>>> {
+    pub fn parent(&self) -> Option<Rc<RefCell<Node<T>>>> {
         match self.parent {
             Some(ref p) => Some(p.upgrade().unwrap()),
             None => None
