@@ -6,26 +6,14 @@ extern crate cgmath;
 #[macro_use]
 extern crate engine;
 
-use engine::renderer::{Vertex, VulkanRenderer};
+use engine::renderer::VulkanRenderer;
 use engine::libloader::LibLoader;
-
-use cgmath::Vector3;
 
 extern crate game_state;
 use std::time::Duration;
-use game_state::{state, Renderable, Renderer};
+use game_state::state;
 
 use std::thread;
-
-struct DummyRenderer { }
-
-impl Renderer for DummyRenderer {
-	fn draw(&mut self, renderables: &Vec<Box<Renderable>>) {
-		for ref renderable in renderables {
-			println!("DummyRenderer - Rendering something.. I swear.");
-		}
-	}
-}
 
 fn main() {
 	let mut state = state::State {

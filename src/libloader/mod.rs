@@ -2,7 +2,7 @@ use libloading::{Symbol, Library};
 use ansi_term::Color::{ Green, Yellow, Cyan };
 use game_state::state;
 
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{UNIX_EPOCH, Duration};
 use std::path::Path;
 use std::fs;
 
@@ -34,7 +34,7 @@ pub struct LibLoader {
 impl LibLoader {
     pub fn new(filename: &str, mod_name: &str) -> Self {
         let modified = Duration::from_millis(0);
-        let mut loader = LibLoader {
+        let loader = LibLoader {
             filename: filename.to_string(),
             lib: None,
             modified: modified,
