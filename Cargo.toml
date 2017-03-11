@@ -22,9 +22,9 @@ time = "0.1"
 cgmath = "0.12"
 sdl2 = "0.22"
 winit = "0.5"
-vulkano = "0.2"
-vulkano-win = "0.2"
-vulkano-shaders = "0.2"
+vulkano = "0.3"
+vulkano-win = "0.3"
+vulkano-shaders = "0.3"
 glsl-to-spirv = "0.1"
 
 # 3ds loader

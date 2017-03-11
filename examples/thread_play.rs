@@ -5,7 +5,7 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 
 extern crate time;
-
+/*
 fn main() {
 	timed_run("single_thread", thread_play1);
 	timed_run("single_thread_yielding", thread_play2);
@@ -246,3 +246,4 @@ fn thread_play1(name: &'static str) {
 	});
 	let _res = child.unwrap().join();
 }
+*/

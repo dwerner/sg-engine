@@ -30,7 +30,7 @@ impl <T> fmt::Display for Node<T> {
             Some(_) => "*",
             None => "*root"
         };
-        write!(f, "{} ->(id: {})", p, self.id);
+        write!(f, "{} ->(id: {})", p, self.id).expect("unable to display node");
         Ok(())
     }
 }

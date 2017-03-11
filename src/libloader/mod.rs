@@ -1,6 +1,5 @@
 use libloading::{Symbol, Library};
-use ansi_term::Color::Green;
-use ansi_term::Color::Yellow;
+use ansi_term::Color::{ Green, Yellow, Cyan };
 use game_state::state;
 
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
@@ -108,7 +107,7 @@ impl LibLoader {
                   Green.bold().paint("["),
                   Green.bold().paint(message),
                   Yellow.paint(file_stem),
-                  Yellow.paint(format!("{}",self.version)),
+                  Cyan.paint(format!("{}",self.version)),
                   Green.bold().paint("]")
         );
     }

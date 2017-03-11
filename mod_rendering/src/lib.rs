@@ -2,7 +2,7 @@ extern crate game_state;
 
 use game_state::state;
 use game_state::ColoredVertex;
-use game_state::{ Renderer, Renderable, Physical, Syncable, Identifyable };
+use game_state::{ Renderer, Renderable, Identifyable };
 
 
 struct Blobject {
