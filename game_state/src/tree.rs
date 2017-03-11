@@ -11,10 +11,6 @@ pub trait NodeVisitor<T> {
     fn next(&mut self) -> bool;
 }
 
-pub struct Tree<T> {
-    root: RcNode<T>
-}
-
 pub struct Node<T> {
     pub id: u32,
     parent: Option<WeakNode<T>>,

@@ -2,8 +2,6 @@
 
 use std::env;
 use std::fs;
-use std::fs::File;
-use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -20,7 +18,7 @@ fn main() {
 	// from aow-rust
 	let root_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 
-	let mut dest_dir = get_out_path(&root_dir, "assets/");
+	let dest_dir = get_out_path(&root_dir, "assets/");
 	let asset_source_path = Path::new(&root_dir).join("assets");
 
 	println!("Copying assets from: {}", asset_source_path.display());
@@ -28,7 +26,7 @@ fn main() {
 	let paths = fs::read_dir(asset_source_path).unwrap();
 
 	if !dest_dir.exists() {
-		fs::create_dir(dest_dir);
+		fs::create_dir(dest_dir).expect("unable to create dir");
 	}
 
 	for entry in paths {
