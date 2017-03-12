@@ -98,32 +98,12 @@ mod tests {
             let wh: WeakInputHandler = Arc::downgrade(handler);
             self.handlers.push(wh);
         }
-/*        fn remove_handler(&mut self, handler: ArcInputHandler) {
-            let found = self.handlers.iter().position(|h| {
-                let it = h.upgrade();
-                it.is_some() && it.unwrap() == handler
-            });
-            match found {
-                Some(p) => {
-                    self.handlers.remove(p);
-                },
-                None => {}
-            }
-        }
-        */
+
         fn publish(&mut self, event: &InputEvent) {
             for handler in self.handlers.iter() {
                 match handler.upgrade() {
                     Some(a) => {
-                        match a.lock() {
-                            Err(e) => {
-                                panic!("unable to publish event to handler {}", e);
-                            },
-                            Ok(ref mut i) => {
-                                i.event(0, event);
-                            }
-
-                        }
+                        a.lock().unwrap().event(0, event);
                     },
                     None => {} //dropped
                 }
