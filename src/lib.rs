@@ -3,6 +3,7 @@ pub mod physics;
 pub mod renderer;
 pub mod libloader;
 pub mod input;
+pub mod ui;
 
 #[macro_use]
 extern crate vulkano;
