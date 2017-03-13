@@ -1,4 +1,5 @@
-# something good...
+# Keep going
+https://www.youtube.com/watch?v=c1H92b_uLdU
 
 - physics
 - network

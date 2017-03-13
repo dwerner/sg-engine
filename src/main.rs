@@ -3,78 +3,53 @@ extern crate vulkano;
 extern crate time;
 extern crate cgmath;
 
+#[macro_use]
 extern crate engine;
-use engine::renderer::{Vertex, Renderer};
+
+use engine::renderer::VulkanRenderer;
 use engine::libloader::LibLoader;
 
-use cgmath::Vector3;
-
-extern crate subproject;
+extern crate game_state;
 use std::time::Duration;
-use subproject::{state};
+use game_state::state;
 
 use std::thread;
 
-
 fn main() {
-	// spin off the dylib loader in the background,
-	// pretty useless for now but shows basic functionality
-	//thread::spawn(|| {
-	play_dylib_load();
-	//});
+	let mut state = state::State {
+		renderers: vec![
+            Box::new(VulkanRenderer::new("title", 320, 240)),
+            Box::new(VulkanRenderer::new("title2", 320, 240)),
+        ],
+		renderables: Vec::new(),
+		blob: 42,
+	};
 
-	// draw with Renderer / Vulkano
-	play_draw_stuff();
-}
+	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
+	let mut sim = load_mod!(simulation);
+	let mut rendering = load_mod!(rendering);
 
-fn play_dylib_load() {
-	let mut state = state::State { blob: 42, name: "(I'm text from main.rs)".to_string(), data: vec!["arf".to_string()] };
-	let mut loader = LibLoader::new();
-	loop {
-		thread::sleep(Duration::from_millis(1000));
-        loader.check();
-        loader.func(&mut state);
-	}
-}
+    sim.check_update(&mut state);
+    rendering.check_update(&mut state);
 
-fn play_draw_stuff() {
-	let mut renderer = Renderer::new();
-
-	let red  = [1.0, 0.0, 0.0, 1.0];
-	let blue = [0.0, 1.0, 0.0, 1.0];
-	let green= [0.0, 0.0, 1.0, 1.0];
-	let items = vec![
-		Vertex::new([-0.5, -0.25, 0.0], red),
-		Vertex::new([0.0, 0.5, 0.0], green),
-		Vertex::new([0.25, -0.1, 0.0], blue),
-
-		Vertex::new([0.5, 0.25, 0.0], red),
-		Vertex::new([0.0, -0.5, 0.0], blue),
-		Vertex::new([-0.25, 0.1, 0.0], green),
-	];
-
-	let vertex_buffer = renderer.create_buffer(items);
-	
 	let mut frame = 0;
-	'running: loop {
-		frame += 1;
-		if frame % 100 == 0 {
-			println!("FPS: {}", renderer.fps());
-		}
-
+	loop {
+        // TODO: gather delta time instead
 		thread::sleep(Duration::from_millis(16));
-		renderer.render(&vertex_buffer);
 
-		// Make use of winit
-		for ev in renderer.native_window().poll_events() {
-			match ev {
-				winit::Event::Closed => {
-					println!("Window closed.");
-					break 'running;
-				},
-				_ => ()
-			}
-		}
+		let sim_time = sim.tick(&mut state);
+		let render_time = rendering.tick(&mut state);
+
+        frame += 1;
+        if frame % 60 == 0 {
+            println!(
+                "Sim time: {}, render time: {}",
+                sim_time.num_microseconds().unwrap(),
+                render_time.num_microseconds().unwrap()
+            );
+            sim.check_update(&mut state);
+            rendering.check_update(&mut state);
+        }
 	}
 }
 

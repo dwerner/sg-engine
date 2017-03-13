@@ -1,0 +1,15 @@
+[package]
+name = "game_state"
+version = "0.1.0"
+authors = ["Daniel Werner <dan.werner@gmail.com>"]
+
+[features]
+default = []
+dynamic_lib = []
+
+[lib]
+name = "game_state"
+crate-type=["rlib"]
+
+[dependencies]
+cgmath = "0.12"
