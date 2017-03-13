@@ -37,7 +37,11 @@ pub enum InputEvent {
 pub struct Device {
     id: u32,
 }
-
+/// Altogether these tests prove jack shit of functionality, really they were about me learning
+/// HOW one goes about supporting upcasting... in this case with AsBase, however they type information
+/// injected into the trait results in a single concrete type, however implemented with dynamic dispatch... :(
+/// So basically, I just tied my dick in a knot. i.e., I could just use a single struct with impl. I still
+/// don't get dynamic dispatch over many different types of handlers that I care about.
 
 #[cfg(test)]
 mod tests {
@@ -52,12 +56,16 @@ mod tests {
         ArcEventHandler,
         WeakEventHandler,
         KeysDown,
+        AsBase,
     };
     use super::*;
 
     struct KeydownHandler { keys_down: KeysDown }
     impl KeydownHandler { fn keys(&self) -> &KeysDown { &self.keys_down } }
-    impl EventHandler<InputEvent> for KeydownHandler {
+    impl AsBase<KeydownHandler> for KeydownHandler {
+        fn as_base(&self) -> &KeydownHandler { self }
+    }
+    impl EventHandler<InputEvent, KeydownHandler> for KeydownHandler {
         fn id(&self) -> u32 { 0 }
         fn event(&mut self, event: &InputEvent) {
             match event {
@@ -70,23 +78,19 @@ mod tests {
                 _ => { panic!("Nope!"); }
             }
         }
-
-        #[cfg(test)] fn keys(&self) -> &KeysDown {
-            &self.keys_down
-        }
     }
 
     struct KeydownProducer {
-        handlers: Vec<WeakEventHandler<InputEvent>>,
+        handlers: Vec<WeakEventHandler<InputEvent, KeydownHandler>>,
     }
 
-    impl EventProducer<InputEvent> for KeydownProducer {
-        fn add_handler(&mut self, handler: &ArcEventHandler<InputEvent>) {
-            let wh: WeakEventHandler<InputEvent> = Arc::downgrade(handler);
+    impl EventProducer<InputEvent, KeydownHandler> for KeydownProducer {
+        fn add_handler(&mut self, handler: &ArcEventHandler<InputEvent, KeydownHandler>) {
+            let wh: WeakEventHandler<InputEvent, KeydownHandler> = Arc::downgrade(handler);
             self.handlers.push(wh);
         }
 
-        fn remove_handler(&mut self, handler: &ArcEventHandler<InputEvent>) {
+        fn remove_handler(&mut self, handler: &ArcEventHandler<InputEvent, KeydownHandler>) {
             // TODO: complete this using EventHandler::id when appropriate
         }
 
@@ -107,9 +111,15 @@ mod tests {
 
         let mut producer = KeydownProducer{ handlers: Vec::new() };
 
+        let h1 = KeydownHandler{ keys_down:[false; 256] };
+        let h2 = KeydownHandler{ keys_down:[false; 256] };
+
+        let bh1: Box<KeydownHandler> = Box::new(h1);
+        let bh2: Box<KeydownHandler> = Box::new(h2);
+
         // need these type hints for trait object
-        let b1: Box<EventHandler<InputEvent>> = Box::new(KeydownHandler{ keys_down:[false; 256] });
-        let b2: Box<EventHandler<InputEvent>> = Box::new(KeydownHandler{ keys_down:[false; 256] });
+        let b1: Box<EventHandler<InputEvent, KeydownHandler>> = bh1;
+        let b2: Box<EventHandler<InputEvent, KeydownHandler>> = bh2;
 
         let mut handler1 = Arc::new( Mutex::new(b1) );
         let mut handler2 = Arc::new( Mutex::new(b2) );
@@ -121,8 +131,8 @@ mod tests {
         producer.publish(&event);
 
         // TODO: along with test-only keys() hook, fix this test to not require it
-        let pressed = handler1.lock().unwrap().keys()[42];
-        let pressed2 = handler2.lock().unwrap().keys()[42];
+        let pressed = handler1.lock().unwrap().as_base().keys()[42];
+        let pressed2 = handler2.lock().unwrap().as_base().keys()[42];
         assert!(pressed && pressed2);
 
     }

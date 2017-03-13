@@ -8,45 +8,43 @@ use std::sync::{
 pub type KeysDown = [bool; 256];
 
 /// Since we want cross-thread handling of input, we choose Arc
-pub type ArcEventHandler<T> = Arc<Mutex<Box<EventHandler<T>>>>;
-pub type WeakEventHandler<T> = Weak<Mutex<Box<EventHandler<T>>>>;
+pub type ArcEventHandler<T, H> = Arc<Mutex<Box<EventHandler<T, H>>>>;
+pub type WeakEventHandler<T, H> = Weak<Mutex<Box<EventHandler<T, H>>>>;
 
-pub trait EventHandler<T> where T: Copy+Clone {
-    fn id(&self) -> u32;
-    fn event(&mut self, event: &T);
-
-    // TODO: remove the need for this test-only hook into state
-    #[cfg(test)] fn keys(&self) -> &KeysDown;
+pub trait AsBase<T> {
+    fn as_base(&self) -> &T;
 }
 
-pub trait EventProducer<T> where T: Copy+Clone {
-    fn add_handler(&mut self, handler: &ArcEventHandler<T>);
-    fn remove_handler(&mut self, handler: &ArcEventHandler<T>);
+pub trait EventHandler<T, H> : AsBase<H> where T: Copy+Clone {
+    fn id(&self) -> u32;
+    fn event(&mut self, event: &T);
+}
+
+pub trait EventProducer<T, H> where T: Copy+Clone {
+    fn add_handler(&mut self, handler: &ArcEventHandler<T, H>);
+    fn remove_handler(&mut self, handler: &ArcEventHandler<T, H>);
     fn publish(&mut self, event: &T);
 }
 
 #[cfg(test)]
 mod tests {
 
-    #[derive(Copy, Clone]
+    #[derive(Copy, Clone)]
     enum TestEvent {
         Yup(i32),
-        Nope(String),
-        None
+        Nope,
     }
 
     struct TestEventHandler {
         last_event: TestEvent
     }
-    impl EventHandler<TestEvent> for TestEventHandler {
+    impl AsBase<TestEventHandler> for TestEventHandler {
+        fn as_base(&self) -> &TestEventHandler { self }
+    }
+    impl EventHandler<TestEvent, TestEventHandler> for TestEventHandler {
         fn id(&self)->u32 { 0 }
         fn event(&mut self, event: &TestEvent) {
-            self.last_event = event;
-        }
-        fn keys(&self) -> &KeysDown {
-            // TODO:: FFFFUUUUUUUU
-            // Essentially, asking the Box to consume the original type,
-            // we lose access to it. Why not just make EventHandler<T> a struct?
+            self.last_event = *event;
         }
     }
 
@@ -55,6 +53,7 @@ mod tests {
     #[test]
     fn event_handler_producer_test(){
 
+        let handler = TestEventHandler{ last_event: TestEvent::Nope };
     }
 }
 
