@@ -1,13 +1,7 @@
-use super::screen::{
+use input::screen::{
     DeltaVector,
     ScreenPoint,
     ScreenRect,
-};
-
-use std::sync::{
-    Arc,
-    Mutex,
-    Weak,
 };
 
 #[derive(Copy, Clone)]
@@ -44,35 +38,28 @@ pub struct Device {
     id: u32,
 }
 
-/// Keep track of all keys t
-type KeysDown = [bool; 256];
-
-/// Since we want cross-thread handling of input, we choose Arc
-type ArcInputHandler = Arc<Mutex<Box<InputHandler>>>;
-type WeakInputHandler = Weak<Mutex<Box<InputHandler>>>;
-
-pub trait InputHandler {
-    fn event(&mut self, target_id: u32, event: &InputEvent);
-
-    #[cfg(test)] fn keys(&self) -> &KeysDown;
-}
-
-pub trait InputEventProducer {
-    fn add_handler(&mut self, handler: &ArcInputHandler);
-    // fn remove_handler(&mut self, handler: ArcInputHandler);
-    fn publish(&mut self, event: &InputEvent);
-}
-
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{
+        Arc,
+        Mutex,
+        Weak,
+    };
+    use event::{
+        EventHandler,
+        EventProducer,
+        ArcEventHandler,
+        WeakEventHandler,
+        KeysDown,
+    };
     use super::*;
 
     struct KeydownHandler { keys_down: KeysDown }
     impl KeydownHandler { fn keys(&self) -> &KeysDown { &self.keys_down } }
-    impl InputHandler for KeydownHandler {
-
-        fn event(&mut self, target_id: u32, event: &InputEvent) {
+    impl EventHandler<InputEvent> for KeydownHandler {
+        fn id(&self) -> u32 { 0 }
+        fn event(&mut self, event: &InputEvent) {
             match event {
                 &InputEvent::KeyDown(code) => {
                     self.keys_down[code as usize] = true;
@@ -90,22 +77,26 @@ mod tests {
     }
 
     struct KeydownProducer {
-        handlers: Vec<WeakInputHandler>,
+        handlers: Vec<WeakEventHandler<InputEvent>>,
     }
 
-    impl InputEventProducer for KeydownProducer {
-        fn add_handler(&mut self, handler: &ArcInputHandler) {
-            let wh: WeakInputHandler = Arc::downgrade(handler);
+    impl EventProducer<InputEvent> for KeydownProducer {
+        fn add_handler(&mut self, handler: &ArcEventHandler<InputEvent>) {
+            let wh: WeakEventHandler<InputEvent> = Arc::downgrade(handler);
             self.handlers.push(wh);
+        }
+
+        fn remove_handler(&mut self, handler: &ArcEventHandler<InputEvent>) {
+            // TODO: complete this using EventHandler::id when appropriate
         }
 
         fn publish(&mut self, event: &InputEvent) {
             for handler in self.handlers.iter() {
                 match handler.upgrade() {
                     Some(a) => {
-                        a.lock().unwrap().event(0, event);
+                        a.lock().unwrap().event(event);
                     },
-                    None => {} //dropped
+                    None => {} //arc has been dropped
                 }
             }
         }
@@ -117,8 +108,8 @@ mod tests {
         let mut producer = KeydownProducer{ handlers: Vec::new() };
 
         // need these type hints for trait object
-        let b1: Box<InputHandler> = Box::new(KeydownHandler{ keys_down:[false; 256] });
-        let b2: Box<InputHandler> = Box::new(KeydownHandler{ keys_down:[false; 256] });
+        let b1: Box<EventHandler<InputEvent>> = Box::new(KeydownHandler{ keys_down:[false; 256] });
+        let b2: Box<EventHandler<InputEvent>> = Box::new(KeydownHandler{ keys_down:[false; 256] });
 
         let mut handler1 = Arc::new( Mutex::new(b1) );
         let mut handler2 = Arc::new( Mutex::new(b2) );
@@ -129,6 +120,7 @@ mod tests {
         let event = InputEvent::KeyDown(42);
         producer.publish(&event);
 
+        // TODO: along with test-only keys() hook, fix this test to not require it
         let pressed = handler1.lock().unwrap().keys()[42];
         let pressed2 = handler2.lock().unwrap().keys()[42];
         assert!(pressed && pressed2);
@@ -139,12 +131,12 @@ mod tests {
     fn input_handler_handles_events() {
         let mut handler = KeydownHandler{ keys_down: [false; 256] };
         let down_event = InputEvent::KeyDown(42);
-        handler.event(0, &down_event);
+        handler.event(&down_event);
 
         let up_event = InputEvent::KeyUp(42);
         assert_eq!(handler.keys()[42], true);
 
-        handler.event(0, &up_event);
+        handler.event(&up_event);
         assert_eq!(handler.keys()[42], false);
     }
 }
