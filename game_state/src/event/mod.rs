@@ -13,14 +13,6 @@ pub type EventHandler<T>= Fn(T) -> ();
 pub type ArcEventHandler<T> = Arc<Mutex<Box<EventHandler<T>>>>;
 pub type WeakEventHandler<T> = Weak<Mutex<Box<EventHandler<T>>>>;
 
-/*
-pub trait EventHandler<T> where T: Copy+Clone {
-    fn id(&self) -> u32;
-    fn event(&mut self, event: &T);
-}
-*/
-
-
 pub trait EventProducer<T> where T: Copy+Clone {
     fn add_handler(&mut self, id: String, handler: &ArcEventHandler<T>);
     fn remove_handler(&mut self, id: &str);

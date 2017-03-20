@@ -16,14 +16,12 @@ use game_state::state;
 use std::thread;
 
 fn main() {
-	let mut state = state::State {
-		renderers: vec![
+	let mut state = state::State::new(
+		vec![
             Box::new(VulkanRenderer::new("title", 320, 240)),
             Box::new(VulkanRenderer::new("title2", 320, 240)),
-        ],
-		renderables: Vec::new(),
-		blob: 42,
-	};
+        ]
+    );
 
 	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
 	let mut sim = load_mod!(simulation);

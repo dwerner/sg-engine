@@ -2,6 +2,10 @@ pub mod state;
 pub mod tree;
 pub mod model;
 
+pub mod ui;
+pub mod input;
+pub mod event;
+
 extern crate cgmath;
 
 // Represents the public interface for mods
