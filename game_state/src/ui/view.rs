@@ -9,16 +9,21 @@ use input::screen::{
     ScreenRect
 };
 
+use model::GVertex;
+use Renderable;
+
 use std::collections::HashMap;
 use ui::events::UIEvent;
 
 pub struct UIView {
+    pub uid: u64,
     pub id: String,
     pub bounds: ScreenRect
 }
 impl UIView {
-    pub fn new(id: String, bounds: ScreenRect) -> Self {
+    pub fn new(uid: u64, id: String, bounds: ScreenRect) -> Self {
         UIView {
+            uid: uid,
             id: id,
             bounds: bounds
         }
@@ -38,6 +43,26 @@ impl UIView {
     }
 }
 
+impl Identifyable for UIView {
+    fn identify(&self) -> u64 { self.uid }
+}
+
+impl Renderable for UIView {
+    fn get_geometry(&self) -> Vec<GVertex> {
+        vec![
+            GVertex::new([self.bounds.x, self.bounds.y, 0], [1,1,1,1]),
+            GVertex::new([self.bounds.x+self.bounds.w, self.bounds.y, 0], [1,1,1,1]),
+            GVertex::new([
+                           self.bounds.x+self.bounds.w,
+                           self.bounds.y+self.bounds.h,
+                           0
+                         ],
+                         [1,1,1,1]),
+            GVertex::new([self.bounds.x, self.bounds.y, 0], [1,1,1,1]),
+        ]
+    }
+}
+
 pub struct UIWindow {
     pub id: String,
     //TODO: should make the view private
@@ -50,7 +75,7 @@ impl UIWindow {
     pub fn new(id: String, bounds: ScreenRect) -> Self {
         UIWindow{
             id: id.clone(),
-            view: UIView::new(id, bounds),
+            view: UIView::new(0, id, bounds),
             event_producer: CopyingEventProducer::<UIEvent>::new(),
             active_handlers: HashMap::new(),
         }
@@ -88,7 +113,7 @@ mod tests {
     #[test]
     fn test_window_hit_test() {
         let mut window = UIWindow::new("window1".to_string(), ScreenRect::new(10,10,20,20));
-        let generic = UIView::new("dunno".to_string(), ScreenRect::new(5,5,5,5));
+        let generic = UIView::new(0, "dunno".to_string(), ScreenRect::new(5,5,5,5));
         let hit = ScreenPoint::new(15,15);
         let miss = ScreenPoint::new(5,5);
         window.view.move_to_point(&hit);
