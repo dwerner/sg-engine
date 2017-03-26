@@ -2,6 +2,7 @@
 name = "mod_rendering"
 version = "0.1.0"
 dependencies = [
+ "cgmath 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "game_state 0.1.0",
 ]
 

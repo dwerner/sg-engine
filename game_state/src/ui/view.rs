@@ -9,8 +9,12 @@ use input::screen::{
     ScreenRect
 };
 
+use cgmath::Matrix4;
+
 use model::GVertex;
 use Renderable;
+use model::Mesh;
+use Identifyable;
 
 use std::collections::HashMap;
 use ui::events::UIEvent;
@@ -48,18 +52,15 @@ impl Identifyable for UIView {
 }
 
 impl Renderable for UIView {
-    fn get_geometry(&self) -> Vec<GVertex> {
-        vec![
-            GVertex::new([self.bounds.x, self.bounds.y, 0], [1,1,1,1]),
-            GVertex::new([self.bounds.x+self.bounds.w, self.bounds.y, 0], [1,1,1,1]),
-            GVertex::new([
-                           self.bounds.x+self.bounds.w,
-                           self.bounds.y+self.bounds.h,
-                           0
-                         ],
-                         [1,1,1,1]),
-            GVertex::new([self.bounds.x, self.bounds.y, 0], [1,1,1,1]),
-        ]
+    fn get_mesh(&self) -> &Mesh {
+        panic!("nope!!!");
+    }
+
+    fn get_view_matrix(&self) -> &Matrix4<f32> {
+        panic!("nope");
+    }
+    fn get_world_matrix(&self) -> &Matrix4<f32> {
+        panic!("nope");
     }
 }
 

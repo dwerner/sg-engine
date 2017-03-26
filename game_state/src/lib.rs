@@ -6,15 +6,24 @@ pub mod ui;
 pub mod input;
 pub mod event;
 
+
 extern crate cgmath;
+
+use cgmath::Matrix4;
+
+use model::Mesh;
+use std::sync::Arc;
 
 // Represents the public interface for mods
 // traits for implementing behavior of state objects should exist here
 // but the impls for those traits can be in mods
 
 pub trait Renderer {
-    // TODO Renderer should take in a SceneGraph
-    fn draw(&mut self, renderables: &Vec<Box<Renderable>>);
+    fn init(&mut self) {}
+    fn deinit(&mut self) {}
+
+    fn queue_renderable(&mut self, renderable: Arc<Box<Renderable>>);
+    fn present(&mut self);
 }
 
 pub trait Identifyable {
@@ -22,5 +31,7 @@ pub trait Identifyable {
 }
 
 pub trait Renderable : Identifyable {
-    fn get_geometry(&self) -> Vec<model::GVertex>;
+    fn get_mesh(&self) -> &Mesh;
+    fn get_view_matrix(&self) -> &Matrix4<f32>;
+    fn get_world_matrix(&self) -> &Matrix4<f32>;
 }

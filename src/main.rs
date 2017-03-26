@@ -18,7 +18,7 @@ use std::thread;
 fn main() {
 	let mut state = state::State::new(
 		vec![
-            Box::new(VulkanRenderer::new("title", 320, 240)),
+//            Box::new(VulkanRenderer::new("title", 320, 240)),
             Box::new(VulkanRenderer::new("title2", 320, 240)),
         ]
     );

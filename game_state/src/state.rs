@@ -5,10 +5,15 @@ use ui::events::UIEvent;
 use ui::view::UIView;
 
 use std::collections::VecDeque;
-
+use tree::Node;
+use std::cell::RefCell;
+use std::rc::Rc;
+use input::screen::ScreenRect;
 
 pub struct State {
     pub renderers: Vec<Box<Renderer>>,
+    pub renderables: Vec<Box<Renderable>>, // should move this into renderlayers
+    //TODO: pub render_layers: Vec<RenderLayer>,
     pub blob: u64,
     pub input_state: InputState,
     pub ui_state: UIState,
@@ -18,6 +23,7 @@ impl State {
     pub fn new(renderers: Vec<Box<Renderer>>) -> Self {
         State{
             renderers: renderers,
+            renderables: Vec::new(),
             blob: 0,
             input_state: InputState {
                 pending_input_events: VecDeque::new()
@@ -25,7 +31,7 @@ impl State {
             ui_state: UIState {
                 pending_ui_events: VecDeque::new(),
                 scene: SceneGraph {
-                    root: tree::Node(0,0, None)
+                    root: Node::create(0,UIView::new(0, "id".to_string(), ScreenRect::new(0,0,5,5)), None)
                 }
             }
         }
@@ -37,10 +43,10 @@ pub struct InputState {
 }
 
 pub struct SceneGraph<T: Renderable> {
-    root: tree::Node<T>,
+    root: Rc<RefCell<Node<T>>>,
 }
 
 pub struct UIState {
     pub pending_ui_events: VecDeque<(String, UIEvent)>,
-    pub scene: SceneGraph
+    pub scene: SceneGraph<UIView>
 }

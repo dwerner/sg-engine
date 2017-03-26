@@ -25,7 +25,7 @@ use vulkano::pipeline::blend::Blend;
 use vulkano::pipeline::depth_stencil::DepthStencil;
 use vulkano::pipeline::input_assembly::InputAssembly;
 use vulkano::pipeline::multisample::Multisample;
-use vulkano::pipeline::vertex::SingleBufferDefinition;
+use vulkano::pipeline::vertex::TwoBuffersDefinition;
 use vulkano::pipeline::viewport::ViewportsState;
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::viewport::Scissor;
@@ -38,6 +38,8 @@ use vulkano::device::Queue;
 
 use std::sync::Arc;
 use std::time::Duration;
+
+use std::collections::VecDeque;
 
 use self::utils::fps;
 
@@ -83,6 +85,7 @@ pub struct VulkanRenderer {
 	framebuffers: Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
 	render_pass: Arc<render_pass::CustomRenderPass>,
 	fps: fps::FPS,
+    renderable_queue: VecDeque<Arc<Box<Renderable>>>,
 }
 
 impl VulkanRenderer {
@@ -149,10 +152,10 @@ impl VulkanRenderer {
 		}).unwrap();
 
 		let pipeline = GraphicsPipeline::new(&device, GraphicsPipelineParams {
-			vertex_input: SingleBufferDefinition::new(),
+			vertex_input: TwoBuffersDefinition::new(),
 			vertex_shader: vs.main_entry_point(),
 			input_assembly: InputAssembly {
-				topology: PrimitiveTopology::TriangleStrip,
+				topology: PrimitiveTopology::TriangleList,
 				primitive_restart_enable: false,
 			},
 			tessellation: None,
@@ -202,6 +205,7 @@ impl VulkanRenderer {
 			instance: instance.clone(),
 			fps: fps::FPS::new(),
 			window: window,
+            renderable_queue: VecDeque::new(),
 		}
 
 	}
@@ -226,30 +230,89 @@ impl VulkanRenderer {
 	pub fn native_window(&self) -> &winit::Window {
 		&self.window.window()
 	}
-    // TODO: Stop passing a vertex_buffer to render.
-    //  Maybe setup a buffer to add things, then render state?
-    fn render(&mut self, vertices: Vec<Vertex>) {
-        let vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>> =
-            CpuAccessibleBuffer::from_iter(
-                &self.device,
-                &BufferUsage::all(),
-                Some(self.queue.family()),
-                vertices.as_slice().iter().cloned() // we end up copying them?
-            ).expect("Failed to create vertex buffer");
+
+
+    fn render(&mut self) {
+
+        // TODO: create buffers for and setup draw calls
+
+
+
+        self.submissions.retain(|s| s.destroying_would_block());
+        let image_num = self.swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
+
+        // begin the command buffer
+        let mut cmd_buffer_build = PrimaryCommandBufferBuilder::new(&self.device, self.queue.family())
+            .draw_inline(
+                &self.render_pass,
+                &self.framebuffers[image_num],
+                render_pass::ClearValues { color: CLEAR_COLOR });
+
+        loop {
+            match self.renderable_queue.pop_front() {
+                Some(next_renderable) => {
+                    let mesh = next_renderable.get_mesh();
+
+                    let world_mat = next_renderable.get_world_matrix();
+                    let view_mat = next_renderable.get_view_matrix();
+
+                    let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| {
+                        Vertex::from_vector(x.clone())
+                    }).collect();
+
+                    let normals: Vec<Vertex> = mesh.normals.iter().map(|x| {
+                        Vertex::from_normal(x.clone())
+                    }).collect();
+
+                    let indices = &mesh.indices;
+
+                    let vert_buffer = CpuAccessibleBuffer::from_iter(
+                        &self.device,
+                        &BufferUsage::all(),
+                        Some(self.queue.family()),
+                        vertices.iter().cloned()
+                    ).expect("Unable to set vertex buffer");
+
+                    let normal_buffer = CpuAccessibleBuffer::from_iter(
+                        &self.device,
+                        &BufferUsage::all(),
+                        Some(self.queue.family()),
+                        normals.iter().cloned()
+                    ).expect("Unable to set normal buffer");
+
+                    let index_buffer = CpuAccessibleBuffer::from_iter(
+                        &self.device,
+                        &BufferUsage::all(),
+                        Some(self.queue.family()),
+                        indices.iter().cloned()
+                    ).expect("Unable to set index buffer");
+
+                    let uniform_buffer = CpuAccessibleBuffer::<vs::ty::Data>::from_data(
+                        &self.device,
+                        &BufferUsage::all(),
+                        Some(self.queue.family()),
+                        vs::ty::Data {
+                            world: world_mat.into(),
+                            view: view_mat.into(),
+                            projection: SquareMatrix::identity().into()
+                        }
+                    ).expect("Unable to set uniform buffer");
+
+                    cmd_buffer_build = cmd_buffer_build.draw(
+                        &self.pipeline,
+                        &buffer,
+                        &DynamicState::none(), (), &()
+                    );
+                },
+                None => { break; }
+            }
+        }
+        let cmd_buffer = cmd_buffer_build.draw_end().build();
+
+        self.submissions.push(command_buffer::submit(&cmd_buffer, &self.queue).unwrap());
+        self.swapchain.present(&self.queue, image_num).unwrap();
 
         self.fps.update();
-        self.submissions.retain(|s| s.destroying_would_block() );
-        let image_num = self.swapchain.acquire_next_image(Duration::new(1,0)).unwrap();
-        let command_buffer = PrimaryCommandBufferBuilder::new(&self.device, self.queue.family())
-            .draw_inline(&self.render_pass, &self.framebuffers[image_num], render_pass::ClearValues {
-                color: CLEAR_COLOR
-            })
-            .draw(&self.pipeline, &vertex_buffer, &DynamicState::none(), (), &())
-            .draw_end()
-            .build();
-
-        self.submissions.push(command_buffer::submit(&command_buffer, &self.queue).unwrap());
-        self.swapchain.present(&self.queue, image_num).unwrap();
     }
 
     #[allow(dead_code)]
@@ -260,15 +323,12 @@ impl VulkanRenderer {
 }
 
 impl Renderer for VulkanRenderer {
-    fn draw(&mut self, renderables: &Vec<Box<Renderable>>) {
-        let mut vertices = Vec::with_capacity(renderables.len());
-        for ref renderable in renderables {
-            let geom = renderable.get_geometry().clone();
-            for v in geom {
-                vertices.push(Vertex::from(v));
-            }
-        }
-        self.render(vertices);
+    fn queue_renderable(&mut self, renderable: Arc<Box<Renderable>>) {
+        self.renderable_queue.push_back(renderable);
+    }
+
+    fn present(&mut self) {
+        self.render();
     }
 }
 

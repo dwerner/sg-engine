@@ -12,6 +12,7 @@ name = "mod_rendering"
 crate-type=["dylib"]
 
 [dependencies]
+cgmath = "0.12"
 
 [dependencies.game_state]
 path = "../game_state"
