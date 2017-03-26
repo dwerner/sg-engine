@@ -8,13 +8,14 @@ use std::collections::VecDeque;
 use tree::Node;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 use input::screen::ScreenRect;
 
 pub struct State {
     pub renderers: Vec<Box<Renderer>>,
-    pub renderables: Vec<Box<Renderable>>, // should move this into renderlayers
+    pub renderables: Vec<Arc<Box<Renderable>>>, // should move this into renderlayers
     //TODO: pub render_layers: Vec<RenderLayer>,
-    pub blob: u64,
+
     pub input_state: InputState,
     pub ui_state: UIState,
 }
@@ -24,7 +25,6 @@ impl State {
         State{
             renderers: renderers,
             renderables: Vec::new(),
-            blob: 0,
             input_state: InputState {
                 pending_input_events: VecDeque::new()
             },

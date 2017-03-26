@@ -2,10 +2,12 @@ pub mod utils;
 pub mod vertex;
 
 use self::vertex::Vertex;
+use self::vertex::Normal;
 
 extern crate winit;
 extern crate vulkano;
 extern crate vulkano_win;
+extern crate cgmath;
 
 use vulkano_win::VkSurfaceBuild;
 use vulkano::buffer::BufferUsage;
@@ -14,7 +16,6 @@ use vulkano::command_buffer;
 use vulkano::command_buffer::DynamicState;
 use vulkano::command_buffer::PrimaryCommandBufferBuilder;
 use vulkano::command_buffer::Submission;
-use vulkano::descriptor::pipeline_layout::EmptyPipeline;
 use vulkano::device::Device;
 use vulkano::framebuffer::Framebuffer;
 use vulkano::framebuffer::Subpass;
@@ -41,6 +42,8 @@ use std::time::Duration;
 
 use std::collections::VecDeque;
 
+use cgmath::SquareMatrix;
+
 use self::utils::fps;
 
 use game_state::{Renderer, Renderable};
@@ -63,13 +66,26 @@ pub mod render_pass {
 				load:Clear,
 				store:Store,
 				format:Format,
+			},
+			depth: {
+			    load: Clear,
+			    store: DontCare,
+			    format: ::vulkano::format::D16Unorm,
 			}
 		},
 		pass: {
 			color: [color],
-			depth_stencil: {}
+			depth_stencil: {depth}
 		}
 	}
+}
+
+pub mod pipeline_layout {
+    pipeline_layout! {
+        set0: {
+            uniforms: UniformBuffer<::renderer::vs::ty::Data>
+        }
+    }
 }
 
 pub struct VulkanRenderer {
@@ -81,11 +97,12 @@ pub struct VulkanRenderer {
 	swapchain: Arc<Swapchain>,
 	images: Vec<Arc<SwapchainImage>>,
 	submissions: Vec<Arc<Submission>>,
-	pipeline: Arc<GraphicsPipeline<SingleBufferDefinition<Vertex>, EmptyPipeline, render_pass::CustomRenderPass>>,
+	pipeline: Arc<GraphicsPipeline<TwoBuffersDefinition<Vertex, Normal>, pipeline_layout::CustomPipeline, render_pass::CustomRenderPass>>,
 	framebuffers: Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
 	render_pass: Arc<render_pass::CustomRenderPass>,
 	fps: fps::FPS,
     renderable_queue: VecDeque<Arc<Box<Renderable>>>,
+    pipeline_set: Arc<pipeline_layout::set0::Set>,
 }
 
 impl VulkanRenderer {
@@ -148,8 +165,28 @@ impl VulkanRenderer {
 		let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
 
 		let render_pass = render_pass::CustomRenderPass::new(&device, &render_pass::Formats {
-			color: (images[0].format(), 1)
+			color: (images[0].format(), 1),
+            depth: (vulkano::format::D16Unorm, 1)
 		}).unwrap();
+
+        let proj = cgmath::perspective(cgmath::Rad(::std::f32::consts::FRAC_PI_2), { let d = images[0].dimensions(); d[0] as f32 / d[1] as f32 }, 0.01, 100.0);
+        let view = cgmath::Matrix4::look_at(cgmath::Point3::new(0.3, 0.3, 1.0), cgmath::Point3::new(0.0, 0.0, 0.0), cgmath::Vector3::new(0.0, -1.0, 0.0));
+        let scale = cgmath::Matrix4::from_scale(0.01);
+
+        let uniform_buffer = vulkano::buffer::cpu_access::CpuAccessibleBuffer::<vs::ty::Data>
+        ::from_data(&device, &vulkano::buffer::BufferUsage::all(), Some(queue.family()),
+                    vs::ty::Data {
+                        world : <cgmath::Matrix4<f32> as cgmath::SquareMatrix>::identity().into(),
+                        view : (view * scale).into(),
+                        proj : proj.into(),
+                    })
+            .expect("failed to create buffer");
+
+        let descriptor_pool = vulkano::descriptor::descriptor_set::DescriptorPool::new(&device);
+        let pipeline_layout = pipeline_layout::CustomPipeline::new(&device).unwrap();
+        let pipeline_set = pipeline_layout::set0::Set::new(&descriptor_pool, &pipeline_layout, &pipeline_layout::set0::Descriptors {
+            uniforms: &uniform_buffer
+        });
 
 		let pipeline = GraphicsPipeline::new(&device, GraphicsPipelineParams {
 			vertex_input: TwoBuffersDefinition::new(),
@@ -176,14 +213,21 @@ impl VulkanRenderer {
 			fragment_shader: fs.main_entry_point(),
 			depth_stencil: DepthStencil::disabled(),
 			blend: Blend::pass_through(),
-			layout: &EmptyPipeline::new(&device).unwrap(),
+			layout: &pipeline_layout,
 			render_pass: Subpass::from(&render_pass, 0).unwrap(),
 		}).unwrap();
+
+        let depth_buffer = vulkano::image::attachment::AttachmentImage::transient(
+            &device,
+            images[0].dimensions(),
+            vulkano::format::D16Unorm
+        ).unwrap();
 
 		let framebuffers = images.iter().map(|image| {
 			let dimensions = [image.dimensions()[0], image.dimensions()[1], 1];
 			Framebuffer::new(&render_pass, dimensions, render_pass::AList {
-				color: image
+				color: &image,
+                depth: &depth_buffer
 			}).unwrap()
 		}).collect::<Vec<_>>();
 
@@ -206,6 +250,7 @@ impl VulkanRenderer {
 			fps: fps::FPS::new(),
 			window: window,
             renderable_queue: VecDeque::new(),
+            pipeline_set: pipeline_set,
 		}
 
 	}
@@ -236,8 +281,6 @@ impl VulkanRenderer {
 
         // TODO: create buffers for and setup draw calls
 
-
-
         self.submissions.retain(|s| s.destroying_would_block());
         let image_num = self.swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
 
@@ -246,22 +289,30 @@ impl VulkanRenderer {
             .draw_inline(
                 &self.render_pass,
                 &self.framebuffers[image_num],
-                render_pass::ClearValues { color: CLEAR_COLOR });
+                render_pass::ClearValues {
+                    color: CLEAR_COLOR,
+                    depth: 1.0,
+                });
 
         loop {
             match self.renderable_queue.pop_front() {
                 Some(next_renderable) => {
+                    // println!("got renderable");
                     let mesh = next_renderable.get_mesh();
 
                     let world_mat = next_renderable.get_world_matrix();
                     let view_mat = next_renderable.get_view_matrix();
 
+                    let proj = cgmath::perspective(cgmath::Rad(::std::f32::consts::FRAC_PI_2), { let d = self.images[0].dimensions(); d[0] as f32 / d[1] as f32 }, 0.01, 100.0);
+                    let view = cgmath::Matrix4::look_at(cgmath::Point3::new(0.3, 0.3, 1.0), cgmath::Point3::new(0.0, 0.0, 0.0), cgmath::Vector3::new(0.0, -1.0, 0.0));
+                    let scale = cgmath::Matrix4::from_scale(0.01);
+
                     let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| {
                         Vertex::from_vector(x.clone())
                     }).collect();
 
-                    let normals: Vec<Vertex> = mesh.normals.iter().map(|x| {
-                        Vertex::from_normal(x.clone())
+                    let normals: Vec<Normal> = mesh.normals.iter().map(|x| {
+                        Normal::from_normal(x.clone())
                     }).collect();
 
                     let indices = &mesh.indices;
@@ -292,24 +343,34 @@ impl VulkanRenderer {
                         &BufferUsage::all(),
                         Some(self.queue.family()),
                         vs::ty::Data {
-                            world: world_mat.into(),
-                            view: view_mat.into(),
-                            projection: SquareMatrix::identity().into()
+                            world: <cgmath::Matrix4<f32> as cgmath::SquareMatrix>::identity().into(),
+                            view: (view * scale).into(),
+                            proj: proj.into()
                         }
                     ).expect("Unable to set uniform buffer");
 
-                    cmd_buffer_build = cmd_buffer_build.draw(
+
+                    //println!("building indexed command buffer");
+                    cmd_buffer_build = cmd_buffer_build.draw_indexed(
                         &self.pipeline,
-                        &buffer,
-                        &DynamicState::none(), (), &()
+                        (&vert_buffer, &normal_buffer),
+                        &index_buffer,
+                        &DynamicState::none(), &self.pipeline_set, &()
                     );
                 },
                 None => { break; }
             }
         }
-        let cmd_buffer = cmd_buffer_build.draw_end().build();
+        //println!("draw_end() for command buffer");
+        let cmd_buffer_build = cmd_buffer_build.draw_end();
 
+        //println!("finalizing command buffer");
+        let cmd_buffer = cmd_buffer_build.build();
+
+        //println!("submitting command buffer");
         self.submissions.push(command_buffer::submit(&cmd_buffer, &self.queue).unwrap());
+
+        //println!("presenting");
         self.swapchain.present(&self.queue, image_num).unwrap();
 
         self.fps.update();

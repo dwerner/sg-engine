@@ -32,7 +32,18 @@ impl Model {
             id: 0, // u64 id
             view_mat: Matrix4::<f32>::identity(),
             world_mat: Matrix4::<f32>::identity(),
-            mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
+            //mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
+            mesh: Mesh::create(vec![
+                Vector(-0.5,-0.5, 0.0),
+                Vector( 0.5,-0.5, 0.0),
+                Vector( 0.5, 0.5, 0.0),
+            ], vec![
+                Normal( 0.0, 0.0, 1.0),
+                Normal( 0.0, 0.0, 1.0),
+                Normal( 0.0, 0.0, 1.0),
+            ], vec![
+                0u16, 1, 2
+            ]),
             material: Material {},
         }
     }
@@ -44,11 +55,11 @@ impl Model {
 pub struct Mesh {
     pub vertices: Vec<Vector>,
     pub normals: Vec<Normal>,
-    pub indices: Vec<usize>,
+    pub indices: Vec<u16>,
 }
 
 impl Mesh {
-    pub fn create(v: Vec<Vector>, n: Vec<Normal>, i: Vec<usize>) -> Self {
+    pub fn create(v: Vec<Vector>, n: Vec<Normal>, i: Vec<u16>) -> Self {
         assert!(v.len() == i.len()); // can we statically protect for sizing?
         Mesh { vertices:v, normals:n, indices:i }
     }
