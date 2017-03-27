@@ -8,6 +8,7 @@ extern crate winit;
 extern crate vulkano;
 extern crate vulkano_win;
 extern crate cgmath;
+extern crate time;
 
 use vulkano_win::VkSurfaceBuild;
 use vulkano::buffer::BufferUsage;
@@ -103,6 +104,7 @@ pub struct VulkanRenderer {
 	fps: fps::FPS,
     renderable_queue: VecDeque<Arc<Box<Renderable>>>,
     pipeline_set: Arc<pipeline_layout::set0::Set>,
+    uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vs::ty::Data>>
 }
 
 impl VulkanRenderer {
@@ -169,18 +171,31 @@ impl VulkanRenderer {
             depth: (vulkano::format::D16Unorm, 1)
 		}).unwrap();
 
-        let proj = cgmath::perspective(cgmath::Rad(::std::f32::consts::FRAC_PI_2), { let d = images[0].dimensions(); d[0] as f32 / d[1] as f32 }, 0.01, 100.0);
-        let view = cgmath::Matrix4::look_at(cgmath::Point3::new(0.3, 0.3, 1.0), cgmath::Point3::new(0.0, 0.0, 0.0), cgmath::Vector3::new(0.0, -1.0, 0.0));
-        let scale = cgmath::Matrix4::from_scale(0.01);
+        let proj = cgmath::perspective(
+            cgmath::Rad(::std::f32::consts::FRAC_PI_2),
+            { let d = images[0].dimensions(); d[0] as f32 / d[1] as f32 },
+            0.01,
+            5.0
+        );
 
-        let uniform_buffer = vulkano::buffer::cpu_access::CpuAccessibleBuffer::<vs::ty::Data>
-        ::from_data(&device, &vulkano::buffer::BufferUsage::all(), Some(queue.family()),
-                    vs::ty::Data {
-                        world : <cgmath::Matrix4<f32> as cgmath::SquareMatrix>::identity().into(),
-                        view : (view * scale).into(),
-                        proj : proj.into(),
-                    })
-            .expect("failed to create buffer");
+        // Vulkan uses right-handed coordinates, y positive is down
+        let view = cgmath::Matrix4::look_at(
+            cgmath::Point3::new(0.0, 0.0, 3.0),   // eye
+            cgmath::Point3::new(0.0, 0.0, -1.0),  // center
+            cgmath::Vector3::new(0.0, 1.0, 0.0)  // up
+        );
+
+        let scale = cgmath::Matrix4::from_scale(1.0);
+
+        let uniform_buffer = CpuAccessibleBuffer::<vs::ty::Data>::from_data(
+            &device,
+            &vulkano::buffer::BufferUsage::all(),
+            Some(queue.family()),
+            vs::ty::Data {
+                world : <cgmath::Matrix4<f32> as cgmath::SquareMatrix>::identity().into(),
+                view : (view * scale).into(),
+                proj : proj.into(),
+            }).expect("failed to create buffer");
 
         let descriptor_pool = vulkano::descriptor::descriptor_set::DescriptorPool::new(&device);
         let pipeline_layout = pipeline_layout::CustomPipeline::new(&device).unwrap();
@@ -251,6 +266,7 @@ impl VulkanRenderer {
 			window: window,
             renderable_queue: VecDeque::new(),
             pipeline_set: pipeline_set,
+            uniform_buffer: uniform_buffer,
 		}
 
 	}
@@ -303,10 +319,6 @@ impl VulkanRenderer {
                     let world_mat = next_renderable.get_world_matrix();
                     let view_mat = next_renderable.get_view_matrix();
 
-                    let proj = cgmath::perspective(cgmath::Rad(::std::f32::consts::FRAC_PI_2), { let d = self.images[0].dimensions(); d[0] as f32 / d[1] as f32 }, 0.01, 100.0);
-                    let view = cgmath::Matrix4::look_at(cgmath::Point3::new(0.3, 0.3, 1.0), cgmath::Point3::new(0.0, 0.0, 0.0), cgmath::Vector3::new(0.0, -1.0, 0.0));
-                    let scale = cgmath::Matrix4::from_scale(0.01);
-
                     let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| {
                         Vertex::from_vector(x.clone())
                     }).collect();
@@ -338,17 +350,15 @@ impl VulkanRenderer {
                         indices.iter().cloned()
                     ).expect("Unable to set index buffer");
 
-                    let uniform_buffer = CpuAccessibleBuffer::<vs::ty::Data>::from_data(
-                        &self.device,
-                        &BufferUsage::all(),
-                        Some(self.queue.family()),
-                        vs::ty::Data {
-                            world: <cgmath::Matrix4<f32> as cgmath::SquareMatrix>::identity().into(),
-                            view: (view * scale).into(),
-                            proj: proj.into()
-                        }
-                    ).expect("Unable to set uniform buffer");
+                    let mut buffer_content = self.uniform_buffer.write(
+                        Duration::new(1, 0)
+                    ).unwrap();
 
+                    //let rad = cgmath::Rad(1 as f32 * 0.00000000001);
+                    //let rotation = cgmath::Matrix3::from_angle_y( rad.clone() );
+                    //println!("{:?}", rad);
+                    //buffer_content.world = world_mat.into();
+                    //buffer_content.view = cgmath::Matrix4::from(&view_mat).into();
 
                     //println!("building indexed command buffer");
                     cmd_buffer_build = cmd_buffer_build.draw_indexed(

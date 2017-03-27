@@ -135,6 +135,9 @@ impl LibLoader {
             }
             Err(err) => {
                 // reset our state to allow any new lib to be loaded if one appears
+                if self.lib.is_some() {
+                    self.unload(state);
+                }
                 self.lib = None;
                 self.modified = Duration::from_millis(0);
                 println!("unable to stat file! {}", err);
