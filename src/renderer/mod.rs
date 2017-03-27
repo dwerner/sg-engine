@@ -329,6 +329,7 @@ impl VulkanRenderer {
 
                     let indices = &mesh.indices;
 
+										// TODO: move buffers into Model
                     let vert_buffer = CpuAccessibleBuffer::from_iter(
                         &self.device,
                         &BufferUsage::all(),
