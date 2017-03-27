@@ -37,12 +37,19 @@ impl Model {
                 Vector( 0.0, 0.0, 0.0),
                 Vector( 0.0, 0.9, 0.0), // y
                 Vector( 0.5, 0.0, 0.0), // x
+                Vector( 0.0, 0.0, 0.5), // x
+                Vector( 0.0, 0.0, -0.5),
+                Vector( -0.5, 0.0, 0.0),
             ], vec![
+                Normal( 0.0, 0.0, -1.0),
                 Normal( 0.0, 0.0, -1.0),
                 Normal( 0.0, 0.0, 1.0),
                 Normal( 0.0, 0.0, 1.0),
             ], vec![
                 0u16, 1, 2,
+                0,1,3,
+                0,1,4,
+                0,1,5
             ]),
             material: Material {},
         }

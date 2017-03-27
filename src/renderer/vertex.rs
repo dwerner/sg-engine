@@ -18,7 +18,7 @@ impl Normal {
 }
 
 impl Vertex {
-    pub fn new(position: [f32;3], color: [f32;4] ) -> Self {
+    pub fn new(position: [f32;3]) -> Self {
         Vertex { position: position}
     }
     pub fn from_gvertex(vert: GVertex) -> Self { // implies copying :(

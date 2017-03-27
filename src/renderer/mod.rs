@@ -43,8 +43,6 @@ use std::time::Duration;
 
 use std::collections::VecDeque;
 
-use cgmath::SquareMatrix;
-
 use self::utils::fps;
 
 use game_state::{Renderer, Renderable};
@@ -180,8 +178,8 @@ impl VulkanRenderer {
 
         // Vulkan uses right-handed coordinates, y positive is down
         let view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(0.0, 0.0, 3.0),   // eye
-            cgmath::Point3::new(0.0, 0.0, -1.0),  // center
+            cgmath::Point3::new(0.5, -1.0, 1.0),   // eye
+            cgmath::Point3::new(0.0, 0.5, -1.0),  // center
             cgmath::Vector3::new(0.0, 1.0, 0.0)  // up
         );
 
@@ -310,6 +308,8 @@ impl VulkanRenderer {
                     depth: 1.0,
                 });
 
+        let mut rad = 0.00001;
+
         loop {
             match self.renderable_queue.pop_front() {
                 Some(next_renderable) => {
@@ -354,11 +354,11 @@ impl VulkanRenderer {
                         Duration::new(1, 0)
                     ).unwrap();
 
-                    //let rad = cgmath::Rad(1 as f32 * 0.00000000001);
-                    //let rotation = cgmath::Matrix3::from_angle_y( rad.clone() );
-                    //println!("{:?}", rad);
-                    //buffer_content.world = world_mat.into();
-                    //buffer_content.view = cgmath::Matrix4::from(&view_mat).into();
+                    rad += 0.1;
+                    let current_view: cgmath::Matrix4<f32> = buffer_content.view.into();
+                    let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(rad));
+                    buffer_content.view = (current_view * rotation).into();
+                    buffer_content.world = world_mat.clone().into();
 
                     //println!("building indexed command buffer");
                     cmd_buffer_build = cmd_buffer_build.draw_indexed(
