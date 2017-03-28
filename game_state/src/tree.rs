@@ -11,8 +11,12 @@ pub trait NodeVisitor<T> {
     fn next(&mut self) -> bool;
 }
 
+use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+
+static GLOBAL_NODE_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+
 pub struct Node<T> {
-    pub id: u32,
+    pub id: usize,
     parent: Option<WeakNode<T>>,
     children: Vec<RcNode<T>>,
     pub data: T
@@ -37,7 +41,7 @@ impl <T> fmt::Display for Node<T> {
 
 impl <T> Node<T> {
 
-    pub fn create(id: u32, data: T, parent: Option<RcNode<T>>) -> RcNode<T> {
+    pub fn create(data: T, parent: Option<RcNode<T>>) -> RcNode<T> {
         let prt = match parent {
             Some(ref p) => {
                 Some(Rc::downgrade(p))
@@ -47,7 +51,7 @@ impl <T> Node<T> {
 
         let node = Rc::new(
             RefCell::new(
-                Node::new(id, data, prt)
+                Node::new(data, prt)
             )
         );
 
@@ -68,9 +72,9 @@ impl <T> Node<T> {
         }
     }
 
-    fn new(id: u32, data: T, parent: Option<WeakNode<T>>) -> Self {
+    fn new(data: T, parent: Option<WeakNode<T>>) -> Self {
         Node {
-            id: id,
+            id: GLOBAL_NODE_ID.fetch_add(1, Ordering::SeqCst),
             parent: match parent {
                 Some(p) => Some(p),
                 None => None
@@ -130,7 +134,7 @@ impl <T> Node<T> {
         };
     }
 
-    pub fn find_child(&self, id: u32) -> Option<RcNode<T>> {
+    pub fn find_child(&self, id: usize) -> Option<RcNode<T>> {
         let option: Option<&RcNode<T>> =
             self.children.iter().find(|x| x.borrow().id == id);
         match option {
@@ -175,7 +179,7 @@ impl <T> Node<T> {
         }
     }
 
-    pub fn debug_draw(&self, lvl: u32) {
+    pub fn debug_draw(&self, lvl: usize) {
         if lvl == 0 {
             println!("-- Hierarchy Dump --");
         }

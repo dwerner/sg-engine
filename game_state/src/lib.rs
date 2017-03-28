@@ -14,6 +14,8 @@ use cgmath::Matrix4;
 use model::Mesh;
 use std::sync::Arc;
 
+use state::SceneGraph;
+
 // Represents the public interface for mods
 // traits for implementing behavior of state objects should exist here
 // but the impls for those traits can be in mods
@@ -22,7 +24,7 @@ pub trait Renderer {
     fn init(&mut self) {}
     fn deinit(&mut self) {}
 
-    fn queue_renderable(&mut self, renderable: Arc<Box<Renderable>>);
+    fn queue_render_layer(&mut self, renderable: Arc<SceneGraph>);
     fn present(&mut self);
 }
 
