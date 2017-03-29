@@ -2,13 +2,15 @@ use std::rc::{ Rc, Weak };
 use std::fmt;
 use std::cell::RefCell;
 
+use std::collections::VecDeque;
+
 type NodeMut<T> = RefCell<Node<T>>;
 pub type RcNode<T> = Rc<NodeMut<T>>;
 pub type WeakNode<T> = Weak<NodeMut<T>>;
 
 pub trait NodeVisitor<T> {
-    fn visit(&mut self);
-    fn next(&mut self) -> bool;
+    fn visit<F: FnMut(&T)->()>(&mut self, mut func: F);
+    fn has_next(&self) -> bool;
 }
 
 use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
@@ -20,6 +22,33 @@ pub struct Node<T> {
     parent: Option<WeakNode<T>>,
     children: Vec<RcNode<T>>,
     pub data: T
+}
+
+pub struct BreadthFirstVisitor<T> {
+    queue: VecDeque<RcNode<T>>
+}
+impl <T> BreadthFirstVisitor <T> {
+    pub fn new(root: RcNode<T>) -> Self {
+        let mut queue = VecDeque::new();
+        queue.push_back(root);
+        BreadthFirstVisitor{ queue:queue }
+    }
+}
+impl <T> NodeVisitor<T> for BreadthFirstVisitor<T> {
+    fn visit<F: FnMut(&T)->()>(&mut self, mut func: F) {
+        match self.queue.pop_front() {
+            Some(ref n) => {
+                for child in n.borrow().children() {
+                    self.queue.push_back(child.clone());
+                }
+                (func)(&n.borrow().data);
+            },
+            None => {}
+        };
+    }
+    fn has_next(&self) -> bool {
+        !self.queue.is_empty()
+    }
 }
 
 impl <T> Drop for Node<T> {
@@ -157,8 +186,8 @@ impl <T> Node<T> {
         }
     }
 
-    pub fn children(&mut self) -> &mut Vec<RcNode<T>> {
-        &mut self.children
+    pub fn children(&self) -> &Vec<RcNode<T>> {
+        &self.children
     }
 
     pub fn is_leaf(&self) -> bool {

@@ -3,11 +3,7 @@ extern crate game_state;
 #[cfg(test)]
 mod tests {
 
-    use game_state::tree::{ Node, NodeVisitor, RcNode };
-
-    use std::rc::{ Rc, Weak };
-    use std::cell::RefCell;
-
+    use game_state::tree::{ Node, NodeVisitor, BreadthFirstVisitor, RcNode };
 
     #[test]
     fn traverse_nodes() {
@@ -43,7 +39,7 @@ mod tests {
         assert!(original_child.is_some());
 
         let root2 = Node::create(0, None);
-        Node::reparent(child.clone(), root2.clone());
+        Node::reparent(child.clone(), root2.clone()).unwrap();
 
         let found_root = Node::find_root(child.clone());
         assert!(root2.borrow().id == found_root.borrow().id);
@@ -81,7 +77,7 @@ mod tests {
     #[test]
     fn fails_to_reparent_causing_a_cycle() {
         let root = Node::create(0, None);
-        let child = Node::create(0, Some(root.clone()));
+        let _child = Node::create(0, Some(root.clone()));
         let sibling = Node::create(0, Some(root.clone()));
 
         let result = Node::reparent(root.clone(), sibling.clone());
@@ -114,29 +110,33 @@ mod tests {
         let great_aunt = Node::create(4, Some(root.clone()));
         let uncle = Node::create(3, Some(great_aunt.clone()));
         let cousin = Node::create(2, Some(uncle.clone()));
-        let niece = Node::create(1, Some(cousin.clone()));
+        let _niece = Node::create(1, Some(cousin.clone()));
 
 
-        struct SummingVisitor {
-            x: u32,
-            current_node: Option<RcNode<u32>>
+        struct SummingVisitor<T> {
+            x: T,
+            current_node: Option<RcNode<T>>
         }
-        impl NodeVisitor<u32> for SummingVisitor {
-            fn visit(&mut self) {
-                self.x += match self.current_node {
-                    Some(ref n) => n.borrow().data,
-                    None => 0
-                }
+        impl NodeVisitor<u32> for SummingVisitor<u32> {
+            fn visit<F: FnMut(&u32)->()>(&mut self, mut func: F) {
+                let (val, maybe_parent) = match self.current_node {
+                    Some(ref n) => {
+                        (n.borrow().data, n.borrow().parent())
+                    },
+                    None => (0, None)
+                };
+                self.x += val;
+                (func)(&self.x);
+                self.current_node = maybe_parent;
             }
-            fn next(&mut self) -> bool {
+            fn has_next(&self) -> bool {
                 let maybe_parent = match self.current_node {
                     Some(ref n) => {
                         n.borrow().parent()
                     },
                     None => None
                 };
-                self.current_node = maybe_parent;
-                self.current_node.is_some()
+                maybe_parent.is_some()
             }
         }
 
@@ -145,11 +145,38 @@ mod tests {
             current_node: Some(grandchild.clone())
         };
 
-        loop {
-            v.visit();
-            if !v.next() { break; }
+        while v.has_next() {
+            v.visit(|x| assert!(*x > 0));
         }
 
-        assert_eq!(v.x, 15);
+        assert_eq!(v.x, 10);
+    }
+
+    #[test]
+    fn breadth_first_visitor() {
+
+        // master branch
+        let root = Node::create(5u32, None);
+        let grandparent = Node::create(4, Some(root.clone()));
+        let parent = Node::create(3, Some(grandparent.clone()));
+        let child = Node::create(2, Some(parent.clone()));
+        let _grandchild = Node::create(1, Some(child.clone()));
+
+        // misfits. Sibling branch to those in master
+        let great_aunt = Node::create(4, Some(root.clone()));
+        let uncle = Node::create(3, Some(great_aunt.clone()));
+        let cousin = Node::create(2, Some(uncle.clone()));
+        let _niece = Node::create(1, Some(cousin.clone()));
+
+        let mut visitor = BreadthFirstVisitor::new(root.clone());
+
+        let mut counter = 0;
+        let mut loop_ctr = 0;
+        while visitor.has_next() {
+            loop_ctr += 1;
+            visitor.visit(|x| counter += *x );
+        }
+        assert_eq!(loop_ctr, 9);
+        assert_eq!(counter, 25);
     }
 }

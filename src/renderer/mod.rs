@@ -324,6 +324,8 @@ impl VulkanRenderer {
         loop {
             match self.render_layer_queue.pop_front() {
                 Some(next_layer) => {
+
+
                     // println!("got renderable");
                     let mesh = next_renderable.get_mesh();
 
