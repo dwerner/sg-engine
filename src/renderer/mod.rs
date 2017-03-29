@@ -2,7 +2,6 @@ pub mod utils;
 pub mod vertex;
 
 use self::vertex::Vertex;
-use self::vertex::Normal;
 
 extern crate winit;
 extern crate vulkano;
@@ -29,7 +28,7 @@ use vulkano::pipeline::blend::Blend;
 use vulkano::pipeline::depth_stencil::DepthStencil;
 use vulkano::pipeline::input_assembly::InputAssembly;
 use vulkano::pipeline::multisample::Multisample;
-use vulkano::pipeline::vertex::TwoBuffersDefinition;
+use vulkano::pipeline::vertex::SingleBufferDefinition;
 use vulkano::pipeline::viewport::ViewportsState;
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::viewport::Scissor;
@@ -99,7 +98,7 @@ pub struct VulkanRenderer {
 	swapchain: Arc<Swapchain>,
 	images: Vec<Arc<SwapchainImage>>,
 	submissions: Vec<Arc<Submission>>,
-	pipeline: Arc<GraphicsPipeline<TwoBuffersDefinition<Vertex, Normal>, pipeline_layout::CustomPipeline, render_pass::CustomRenderPass>>,
+	pipeline: Arc<GraphicsPipeline<SingleBufferDefinition<Vertex>, pipeline_layout::CustomPipeline, render_pass::CustomRenderPass>>,
 	framebuffers: Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
 	render_pass: Arc<render_pass::CustomRenderPass>,
 	fps: fps::FPS,
@@ -205,7 +204,7 @@ impl VulkanRenderer {
         });
 
 		let pipeline = GraphicsPipeline::new(&device, GraphicsPipelineParams {
-			vertex_input: TwoBuffersDefinition::new(),
+			vertex_input: SingleBufferDefinition::new(),
 			vertex_shader: vs.main_entry_point(),
 			input_assembly: InputAssembly {
 				topology: PrimitiveTopology::TriangleList,
@@ -332,17 +331,12 @@ impl VulkanRenderer {
                     let view_mat = next_renderable.get_view_matrix();
 
                     let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| {
-                        Vertex::from_vector(x.clone())
-                    }).collect();
-
-                    let normals: Vec<Normal> = mesh.normals.iter().map(|x| {
-                        Normal::from_normal(x.clone())
+                        let vertex: Vertex = x.into(); vertex
                     }).collect();
 
                     let indices = &mesh.indices;
 
                     let vert_buffer = self.create_cpu_buffer(&vertices);
-                    let normal_buffer = self.create_cpu_buffer(&normals);
                     let index_buffer = self.create_cpu_buffer(indices);
 
                     let mut buffer_content = self.uniform_buffer.write(
@@ -358,7 +352,7 @@ impl VulkanRenderer {
                     //println!("building indexed command buffer");
                     cmd_buffer_build = cmd_buffer_build.draw_indexed(
                         &self.pipeline,
-                        (&vert_buffer, &normal_buffer),
+                        &vert_buffer,
                         &index_buffer,
                         &DynamicState::none(), &self.pipeline_set, &()
                     );

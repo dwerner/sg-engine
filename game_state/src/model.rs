@@ -4,21 +4,10 @@ use Identifyable;
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
 
-#[derive(Debug, Clone)]
-pub struct GVertex {
-    pub position: [f32;3],
-    pub color: [f32;4]
-}
-
-impl GVertex {
-    pub fn new(position: [f32;3], color: [f32;4] ) -> Self {
-        GVertex { position: position, color: color}
-    }
-}
-
 pub struct Material { }
 
 pub struct Model {
+    pub filename: String,
     pub id: u64,
     pub view_mat: Matrix4<f32>,
     pub world_mat: Matrix4<f32>,
@@ -29,24 +18,18 @@ pub struct Model {
 impl Model {
     pub fn create(filename: &str) -> Self {
         Model {
+            filename: filename.to_string(),
             id: 0, // u64 id
             view_mat: Matrix4::<f32>::identity(),
             world_mat: Matrix4::<f32>::identity(),
             //mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
             mesh: Mesh::create(vec![
-                Vector( 0.0, 0.0, 0.0),
-                Vector( 0.0, 0.9, 0.0), // y
-                Vector( 0.5, 0.0, 0.0), // x
-                Vector( 0.0, 0.0, 0.5), // x
-                Vector( 0.0, 0.0, -0.5),
-                Vector( -0.5, 0.0, 0.0),
-            ], vec![
-                Normal( 0.0, 0.0, -1.0),
-                Normal( 0.0, 0.0, -1.0),
-                Normal( 0.0, 0.0, 1.0),
-                Normal( 0.0, 0.0, 1.0),
-                Normal( 0.0, 0.0, 1.0),
-                Normal( 0.0, 0.0, 1.0),
+                Vertex::from(Vector( 0.0, 0.0, 0.0),  Normal( 0.0, 0.0, -1.0)),
+                Vertex::from(Vector( 0.0, 0.9, 0.0),  Normal( 0.0, 0.0, -1.0)),
+                Vertex::from(Vector( 0.5, 0.0, 0.0),  Normal( 0.0, 0.0, -1.0)),
+                Vertex::from(Vector( 0.0, 0.0, 0.5),  Normal( 0.0, 0.0, -1.0)),
+                Vertex::from(Vector( 0.0, 0.0, -0.5), Normal( 0.0, 0.0, -1.0)),
+                Vertex::from(Vector( -0.5, 0.0, 0.0), Normal( 0.0, 0.0, -1.0)),
             ], vec![
                 0u16, 1, 2,
                 0,1,3,
@@ -60,16 +43,32 @@ impl Model {
 
 #[derive(Copy, Clone)] pub struct Vector(pub f32,pub f32,pub f32);
 #[derive(Copy, Clone)] pub struct Normal(pub f32,pub f32,pub f32);
+#[derive(Copy, Clone)] pub struct Vertex {
+    pub position: Vector,
+    pub normal: Normal
+}
+
+impl Vertex {
+    pub fn create(vx:f32, vy:f32, vz:f32, nx:f32, ny:f32, nz:f32) -> Self {
+        Vertex {
+            position: Vector(vx,vy,vz),
+            normal: Normal(nx,ny,nz)
+        }
+    }
+
+    pub fn from(v: Vector, n: Normal) -> Self {
+        Vertex{ position:v, normal:n }
+    }
+}
 
 pub struct Mesh {
-    pub vertices: Vec<Vector>,
-    pub normals: Vec<Normal>,
+    pub vertices: Vec<Vertex>,
     pub indices: Vec<u16>,
 }
 
 impl Mesh {
-    pub fn create(v: Vec<Vector>, n: Vec<Normal>, i: Vec<u16>) -> Self {
-        Mesh { vertices:v, normals:n, indices:i }
+    pub fn create(v: Vec<Vertex>, i: Vec<u16>) -> Self {
+        Mesh { vertices:v, indices:i }
     }
 }
 

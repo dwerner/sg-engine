@@ -6,8 +6,6 @@ use ui::view::UIView;
 
 use std::collections::VecDeque;
 use tree::{ Node, RcNode };
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
 use input::screen::ScreenRect;
 
@@ -45,7 +43,7 @@ pub struct InputState {
 }
 
 pub struct SceneGraph {
-    root: RcNode<Box<Renderable>>,
+    pub root: RcNode<Box<Renderable>>,
 }
 
 pub struct UIState {

@@ -11,7 +11,6 @@ use input::screen::{
 
 use cgmath::Matrix4;
 
-use model::GVertex;
 use Renderable;
 use model::Mesh;
 use Identifyable;
