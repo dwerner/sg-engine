@@ -322,9 +322,9 @@ impl VulkanRenderer {
                     depth: 1.0,
                 });
 
-		let cell = Rc::new(RefCell::new(cmd_buffer_build));
-
         let mut rad = 0.00001;
+
+		let mut commands = VecDeque::new();
 
         // TODO: do away with this renderable queue
         loop {
