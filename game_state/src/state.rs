@@ -8,6 +8,7 @@ use std::collections::VecDeque;
 use tree::{ Node, RcNode };
 use std::sync::Arc;
 use input::screen::ScreenRect;
+use model::Model;
 
 pub struct State {
     pub renderers: Vec<Box<Renderer>>,
@@ -15,7 +16,7 @@ pub struct State {
     //TODO: pub render_layers: Vec<RenderLayer>,
 
     pub input_state: InputState,
-    pub ui_state: UIState,
+  //  pub ui_state: UIState,
 }
 
 impl State {
@@ -26,7 +27,7 @@ impl State {
             input_state: InputState {
                 pending_input_events: VecDeque::new()
             },
-            ui_state: UIState {
+   /*         ui_state: UIState {
                 pending_ui_events: VecDeque::new(),
                 scene: SceneGraph {
                     root: Node::create(
@@ -34,6 +35,7 @@ impl State {
                         ), None)
                 }
             }
+            */
         }
     }
 }
@@ -43,7 +45,7 @@ pub struct InputState {
 }
 
 pub struct SceneGraph {
-    pub root: RcNode<Box<Renderable>>,
+    pub root: RcNode<Box<Model>>,
 }
 
 pub struct UIState {

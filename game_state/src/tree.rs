@@ -24,6 +24,32 @@ pub struct Node<T> {
     pub data: T
 }
 
+pub struct BreadthFirstIterator<T> {
+    queue: VecDeque<RcNode<T>>
+}
+impl <T> BreadthFirstIterator <T> {
+    pub fn new(root: RcNode<T>) -> Self {
+        let mut queue = VecDeque::new();
+        queue.push_back(root);
+        BreadthFirstIterator{ queue:queue }
+    }
+}
+impl <T> Iterator for BreadthFirstIterator<T> {
+    type Item = (usize, RcNode<T>);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.queue.pop_front() {
+            Some(ref n) => {
+                for child in n.borrow().children() {
+                    self.queue.push_back(child.clone());
+                }
+                let id = n.borrow().id;
+                Some((id, n.clone()))
+            },
+            None => None
+        }
+    }
+}
+
 pub struct BreadthFirstVisitor<T> {
     queue: VecDeque<RcNode<T>>
 }

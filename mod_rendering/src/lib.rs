@@ -13,11 +13,19 @@ use game_state::state::{ SceneGraph };
 pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
     assert!(s.render_layers.len() == 0);
     s.render_layers.push({
+        let root = Node::create(
+            Box::new(
+                Model::create("somefile", cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0f32,0.0,0.0)))
+            ), None
+        );
+        let _child = Node::create(
+            Box::new(
+                Model::create("otherfile", cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0,0.0,0.5)))
+            ),
+            Some(root.clone())
+        );
         let graph = SceneGraph {
-            root: Node::create(
-                Box::new(Model::create("somefile")),
-                None
-            )
+            root: root
         };
         Arc::new(graph)
     });

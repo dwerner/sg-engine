@@ -43,11 +43,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use std::collections::VecDeque;
+use std::collections::hash_map::HashMap;
 
 use self::utils::fps;
 
 use game_state::{Renderer, Renderable};
-use game_state::tree::{ BreadthFirstVisitor, NodeVisitor };
+use game_state::tree::{ BreadthFirstIterator };
 use game_state::state::SceneGraph;
 
 use std::cell::RefCell;
@@ -109,6 +110,12 @@ pub struct VulkanRenderer {
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     pipeline_set: Arc<pipeline_layout::set0::Set>,
     uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vs::ty::Data>>,
+    buffer_cache: HashMap<usize, BufferItem>
+}
+
+pub struct BufferItem {
+    pub vertices: Arc<CpuAccessibleBuffer<[Vertex]>>,
+    pub indices: Arc<CpuAccessibleBuffer<[u16]>>
 }
 
 impl VulkanRenderer {
@@ -271,6 +278,7 @@ impl VulkanRenderer {
             render_layer_queue: VecDeque::new(),
             pipeline_set: pipeline_set,
             uniform_buffer: uniform_buffer,
+            buffer_cache: HashMap::new()
 		}
 
 	}
@@ -296,13 +304,25 @@ impl VulkanRenderer {
 		&self.window.window()
 	}
 
-    pub fn create_cpu_buffer<T:'static+Sized+Clone>(&self, data: &Vec<T>) -> Arc<CpuAccessibleBuffer<[T]>> {
-        CpuAccessibleBuffer::from_iter(
-            &self.device,
-            &BufferUsage::all(),
-            Some(self.queue.family()),
-            data.iter().cloned()
-        ).expect("Unable to create buffer")
+
+
+    pub fn get_or_create_buffers(&mut self, id: usize, vertices: &Vec<Vertex>, indices: &Vec<u16>) -> &BufferItem {
+        self.buffer_cache.entry(id).or_insert(
+            BufferItem{
+                vertices: CpuAccessibleBuffer::from_iter(
+                    &self.device,
+                    &BufferUsage::all(),
+                    Some(self.queue.family()),
+                    vertices.iter().cloned()
+                ).expect("Unable to create buffer"),
+                indices: CpuAccessibleBuffer::from_iter(
+                    &self.device,
+                    &BufferUsage::all(),
+                    Some(self.queue.family()),
+                    indices.iter().cloned()
+                ).expect("Unable to create buffer")
+            }
+        )
     }
 
     fn render(&mut self) {
@@ -324,56 +344,62 @@ impl VulkanRenderer {
 
         let mut rad = 0.00001;
 
-		let mut commands = VecDeque::new();
-
         // TODO: do away with this renderable queue
         loop {
             match self.render_layer_queue.pop_front() {
                 Some(next_layer) => {
 
-                    let mut visitor = BreadthFirstVisitor::new(next_layer.root.clone());
-					while visitor.has_next() {
-						visitor.visit(|renderable| {
-							// println!("got renderable");
-							let mesh = renderable.get_mesh();
+                    let mut iterator = BreadthFirstIterator::new(next_layer.root.clone());
+                    for (id, rc_renderable) in iterator {
+                        // println!("got renderable");
+                        let ref renderable = rc_renderable.borrow().data;
+                        let mesh = renderable.get_mesh();
 
-							let world_mat = renderable.get_world_matrix();
-							let view_mat = renderable.get_view_matrix();
+                        let view_mat = renderable.get_view_matrix();
+                        let world_mat = renderable.get_world_matrix();
 
-							let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| {
-								Vertex::from(*x)
-							}).collect();
+                        let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| {
+                            Vertex::from(*x)
+                        }).collect();
 
-							let indices = &mesh.indices;
+                        let indices = &mesh.indices;
 
-							let vert_buffer = self.create_cpu_buffer(&vertices);
-							let index_buffer = self.create_cpu_buffer(indices);
+                        {
+                            let mut buffer_content = self.uniform_buffer.write( Duration::new(1, 0) ).unwrap();
+                            rad += 0.02;
+                            let current_world: cgmath::Matrix4<f32> = buffer_content.world.into();
+                            let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(rad));
+                            let translation = cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.01,0.01,0.01));
+                            buffer_content.world = (
+                                current_world
+                                    * world_mat
+                                    * rotation
+                            //        * translation
+                            ).into();
+                        }
 
-							let mut buffer_content = self.uniform_buffer.write(
-								Duration::new(1, 0)
-							).unwrap();
+                        let (v,i) = {
+                            let &BufferItem {
+                                vertices: ref vert_buffer,
+                                indices: ref index_buffer
+                            } = self.get_or_create_buffers(id, &vertices, indices);
+                            (vert_buffer.clone(), index_buffer.clone())
+                        };
 
-							rad += 0.1;
-							let current_view: cgmath::Matrix4<f32> = buffer_content.view.into();
-							let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(rad));
-							buffer_content.view = (current_view * rotation).into();
-							buffer_content.world = world_mat.clone().into();
-
-							//println!("building indexed command buffer");
-							commands.push_back(cmd_buffer_build.draw_indexed(
-								&self.pipeline,
-								&vert_buffer,
-								&index_buffer,
-								&DynamicState::none(), &self.pipeline_set, &()
-							));
-						});
-					}
+                        //println!("building indexed command buffer");
+                        cmd_buffer_build = cmd_buffer_build.draw_indexed(
+                            &self.pipeline,
+                            &v,
+                            &i,
+                            &DynamicState::none(), &self.pipeline_set, &()
+                        );
+                    }
                 },
                 None => { break; }
             }
         }
         //println!("draw_end() for command buffer");
-        let cmd_buffer_build = commands.get(0).unwrap().draw_end();
+        let cmd_buffer_build = cmd_buffer_build.draw_end();
 
         //println!("finalizing command buffer");
         let cmd_buffer = cmd_buffer_build.build();

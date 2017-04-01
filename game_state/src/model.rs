@@ -16,12 +16,12 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn create(filename: &str) -> Self {
+    pub fn create(filename: &str, world_mat: Matrix4<f32>) -> Self {
         Model {
             filename: filename.to_string(),
             id: 0, // u64 id
             view_mat: Matrix4::<f32>::identity(),
-            world_mat: Matrix4::<f32>::identity(),
+            world_mat: world_mat,
             //mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
             mesh: Mesh::create(vec![
                 Vertex::from(Vector( 0.0, 0.0, 0.0),  Normal( 0.0, 0.0, -1.0)),
