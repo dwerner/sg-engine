@@ -192,8 +192,8 @@ impl VulkanRenderer {
 
         // Vulkan uses right-handed coordinates, y positive is down
         let view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(0.0, -2.0, -5.0),   // eye
-            cgmath::Point3::new(0.0, 0.0, 0.0),  // center
+            cgmath::Point3::new(-0.5, -0.5, -4.0),   // eye
+            cgmath::Point3::new(0.0, 0.5, 0.0),  // center
             cgmath::Vector3::new(0.0, 1.0, 0.0)  // up
         );
 
@@ -334,7 +334,6 @@ impl VulkanRenderer {
         self.submissions.retain(|s| s.destroying_would_block());
         let image_num = self.swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
 
-        // begin the command buffer
         let mut cmd_buffer_build = PrimaryCommandBufferBuilder::new(&self.device, self.queue.family())
             .draw_inline(
                 &self.render_pass,
@@ -342,7 +341,8 @@ impl VulkanRenderer {
                 render_pass::ClearValues {
                     color: CLEAR_COLOR,
                     depth: 1.0,
-                });
+                }
+            );
 
         // TODO: do away with this renderable queue
         loop {
@@ -358,29 +358,22 @@ impl VulkanRenderer {
                         let model_mat = node.data.get_model_matrix().clone();
                         match node.parent() {
                             Some(parent) => {
-                                node.data.set_world_matrix(model_mat * parent.borrow().data.get_world_matrix());
+                                let ref parent_model = parent.borrow().data;
+                                let global_mat = parent_model.get_world_matrix() * model_mat;
+                                node.data.set_world_matrix(global_mat);
                             },
                             None => {
-                                node.data.set_world_matrix(model_mat);
+                                self.debug_world_rotation += 0.01;
+                                let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
+                                node.data.set_world_matrix(model_mat * rotation);
                             }
                         }
 
                         // Setup uniform buffer with world matrix of model
-                        if id == 0 {
-                            let mut buffer_content = self.uniform_buffer.write(Duration::new(1, 0)).unwrap();
+                        {
                             let world_mat = node.data.get_world_matrix();
-                            self.debug_world_rotation += 0.01;
-                            let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
-                            buffer_content.world = (world_mat * rotation).into();
-                            println!("{:?}", self.debug_world_rotation)
-                        }
-                        else {
                             let mut buffer_content = self.uniform_buffer.write(Duration::new(1, 0)).unwrap();
-                            let world_mat = node.data.get_world_matrix();
-                            let translation = cgmath::Matrix4::from_translation(
-                                cgmath::Vector3::new(0.0, self.debug_world_rotation, 0.0)
-                            );
-                            buffer_content.world = (world_mat * translation).into();
+                            buffer_content.world = world_mat.clone().into();
                         }
 
                         let mesh = node.data.get_mesh();
@@ -396,27 +389,28 @@ impl VulkanRenderer {
                             (vert_buffer.clone(), index_buffer.clone())
                         };
 
-                        //println!("building indexed command buffer");
+                        // begin the command buffer
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
-                            &self.pipeline,
-                            &v,
-                            &i,
-                            &DynamicState::none(), &self.pipeline_set, &()
+                                &self.pipeline,
+                                &v,
+                                &i,
+                                &DynamicState::none(),
+                                &self.pipeline_set,
+                                &()
                         );
+
                     }
                 },
                 None => break
             }
         }
-        //println!("draw_end() for command buffer");
-        let cmd_buffer_build = cmd_buffer_build.draw_end();
 
+        let cmd_buffer_build = cmd_buffer_build.draw_end();
         //println!("finalizing command buffer");
         let cmd_buffer = cmd_buffer_build.build();
 
         //println!("submitting command buffer");
         self.submissions.push(command_buffer::submit(&cmd_buffer, &self.queue).unwrap());
-
         //println!("presenting");
         self.swapchain.present(&self.queue, image_num).unwrap();
 

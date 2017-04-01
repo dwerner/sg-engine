@@ -40,11 +40,13 @@ fn main() {
 
         frame += 1;
         if frame % 60 == 0 {
-            println!(
-                "Sim time: {}, render time: {}",
-                sim_time.num_microseconds().unwrap(),
-                render_time.num_microseconds().unwrap()
-            );
+            if frame % 100 == 0 {
+                println!(
+                    "Sim time: {}, render time: {}",
+                    sim_time.num_microseconds().unwrap(),
+                    render_time.num_microseconds().unwrap()
+                );
+            }
             sim.check_update(&mut state);
             rendering.check_update(&mut state);
         }

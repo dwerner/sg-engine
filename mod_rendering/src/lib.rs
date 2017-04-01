@@ -8,26 +8,40 @@ use game_state::model::{ Model };
 use game_state::tree::{ Node };
 use game_state::state::{ SceneGraph };
 
+use cgmath::Matrix4;
+use cgmath::Vector3;
+use cgmath::Rad;
+
 
 #[no_mangle]
 pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
     assert!(s.render_layers.len() == 0);
     s.render_layers.push({
+
+        let mx = Matrix4::from_angle_x(Rad(0.0))
+                * Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0))
+                * Matrix4::from_scale(1.0);
+
         let root = Node::create(
-            Box::new(
-                Model::create("somefile", cgmath::Matrix4::from_translation(
-                    cgmath::Vector3::new(0.0,0.0,-1.0)) *
-                    cgmath::Matrix4::from_scale(3.0))
-            ), None
+            Box::new(Model::create("otherfile",mx)),
+            None
         );
-        let _child = Node::create(
-            Box::new(
-                Model::create("otherfile",
-                              cgmath::Matrix4::from_translation(
-                                  cgmath::Vector3::new(0.0,-1.0,1.0)) *
-                              cgmath::Matrix4::from_scale(2.0))
-            ),
+
+        let mx = Matrix4::from_angle_x(Rad(0.0))
+                * Matrix4::from_translation(Vector3::new(0.0, 0.0, -1.5))
+                * Matrix4::from_scale(2.0);
+        let child = Node::create(
+            Box::new(Model::create("otherfile",mx)),
             Some(root.clone())
+        );
+
+        let mx = Matrix4::from_angle_z(Rad(1.5))
+                * Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0))
+                * Matrix4::from_scale(1.0);
+
+        let _child = Node::create(
+            Box::new( Model::create("otherfile", mx )),
+            Some(child.clone())
         );
         let graph = SceneGraph {
             root: root
