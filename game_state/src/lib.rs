@@ -34,6 +34,10 @@ pub trait Identifyable {
 
 pub trait Renderable : Identifyable {
     fn get_mesh(&self) -> &Mesh;
-    fn get_view_matrix(&self) -> &Matrix4<f32>;
+
     fn get_world_matrix(&self) -> &Matrix4<f32>;
+    fn set_world_matrix(&mut self, mat: Matrix4<f32>);
+
+    fn get_model_matrix(&self) -> &Matrix4<f32>;
+    fn set_model_matrix(&mut self, mat: Matrix4<f32>);
 }

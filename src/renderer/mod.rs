@@ -110,7 +110,8 @@ pub struct VulkanRenderer {
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     pipeline_set: Arc<pipeline_layout::set0::Set>,
     uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vs::ty::Data>>,
-    buffer_cache: HashMap<usize, BufferItem>
+    buffer_cache: HashMap<usize, BufferItem>,
+    debug_world_rotation: f32,
 }
 
 pub struct BufferItem {
@@ -191,8 +192,8 @@ impl VulkanRenderer {
 
         // Vulkan uses right-handed coordinates, y positive is down
         let view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(0.5, -1.0, 1.0),   // eye
-            cgmath::Point3::new(0.0, 0.5, -1.0),  // center
+            cgmath::Point3::new(0.0, -2.0, -5.0),   // eye
+            cgmath::Point3::new(0.0, 0.0, 0.0),  // center
             cgmath::Vector3::new(0.0, 1.0, 0.0)  // up
         );
 
@@ -278,7 +279,8 @@ impl VulkanRenderer {
             render_layer_queue: VecDeque::new(),
             pipeline_set: pipeline_set,
             uniform_buffer: uniform_buffer,
-            buffer_cache: HashMap::new()
+            buffer_cache: HashMap::new(),
+            debug_world_rotation: 0f32,
 		}
 
 	}
@@ -342,47 +344,55 @@ impl VulkanRenderer {
                     depth: 1.0,
                 });
 
-        let mut rad = 0.00001;
-
         // TODO: do away with this renderable queue
         loop {
             match self.render_layer_queue.pop_front() {
                 Some(next_layer) => {
 
+                    // TODO: updating the world matrices from the parent * child's local matrix
                     let mut iterator = BreadthFirstIterator::new(next_layer.root.clone());
-                    for (id, rc_renderable) in iterator {
+                    for (id, rc) in iterator {
                         // println!("got renderable");
-                        let ref renderable = rc_renderable.borrow().data;
-                        let mesh = renderable.get_mesh();
+                        let mut node = &mut rc.borrow_mut();
 
-                        let view_mat = renderable.get_view_matrix();
-                        let world_mat = renderable.get_world_matrix();
-
-                        let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| {
-                            Vertex::from(*x)
-                        }).collect();
-
-                        let indices = &mesh.indices;
-
-                        {
-                            let mut buffer_content = self.uniform_buffer.write( Duration::new(1, 0) ).unwrap();
-                            rad += 0.02;
-                            let current_world: cgmath::Matrix4<f32> = buffer_content.world.into();
-                            let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(rad));
-                            let translation = cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.01,0.01,0.01));
-                            buffer_content.world = (
-                                current_world
-                                    * world_mat
-                                    * rotation
-                            //        * translation
-                            ).into();
+                        let model_mat = node.data.get_model_matrix().clone();
+                        match node.parent() {
+                            Some(parent) => {
+                                node.data.set_world_matrix(model_mat * parent.borrow().data.get_world_matrix());
+                            },
+                            None => {
+                                node.data.set_world_matrix(model_mat);
+                            }
                         }
 
+                        // Setup uniform buffer with world matrix of model
+                        if id == 0 {
+                            let mut buffer_content = self.uniform_buffer.write(Duration::new(1, 0)).unwrap();
+                            let world_mat = node.data.get_world_matrix();
+                            self.debug_world_rotation += 0.01;
+                            let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
+                            buffer_content.world = (world_mat * rotation).into();
+                            println!("{:?}", self.debug_world_rotation)
+                        }
+                        else {
+                            let mut buffer_content = self.uniform_buffer.write(Duration::new(1, 0)).unwrap();
+                            let world_mat = node.data.get_world_matrix();
+                            let translation = cgmath::Matrix4::from_translation(
+                                cgmath::Vector3::new(0.0, self.debug_world_rotation, 0.0)
+                            );
+                            buffer_content.world = (world_mat * translation).into();
+                        }
+
+                        let mesh = node.data.get_mesh();
+                        // grab a cached copy of the buffer for this model or create it
+                        // TODO: stop copying when it's not needed for vertices
                         let (v,i) = {
+                            let vertices: Vec<Vertex> =
+                                mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
                             let &BufferItem {
                                 vertices: ref vert_buffer,
                                 indices: ref index_buffer
-                            } = self.get_or_create_buffers(id, &vertices, indices);
+                            } = self.get_or_create_buffers(id, &vertices, &mesh.indices);
                             (vert_buffer.clone(), index_buffer.clone())
                         };
 
@@ -395,7 +405,7 @@ impl VulkanRenderer {
                         );
                     }
                 },
-                None => { break; }
+                None => break
             }
         }
         //println!("draw_end() for command buffer");

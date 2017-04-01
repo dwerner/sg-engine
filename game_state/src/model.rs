@@ -9,19 +9,19 @@ pub struct Material { }
 pub struct Model {
     pub filename: String,
     pub id: u64,
-    pub view_mat: Matrix4<f32>,
+    pub model_mat: Matrix4<f32>,
     pub world_mat: Matrix4<f32>,
     pub material: Material,
     pub mesh: Mesh,
 }
 
 impl Model {
-    pub fn create(filename: &str, world_mat: Matrix4<f32>) -> Self {
+    pub fn create(filename: &str, model_mat: Matrix4<f32>) -> Self {
         Model {
             filename: filename.to_string(),
             id: 0, // u64 id
-            view_mat: Matrix4::<f32>::identity(),
-            world_mat: world_mat,
+            model_mat: model_mat,
+            world_mat: Matrix4::<f32>::identity(),
             //mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
             mesh: Mesh::create(vec![
                 Vertex::from(Vector( 0.0, 0.0, 0.0),  Normal( 0.0, 0.0, -1.0)),
@@ -75,12 +75,19 @@ impl Mesh {
 impl Renderable for Model {
     fn get_mesh(&self) -> &Mesh { &self.mesh }
 
-    fn get_view_matrix(&self) -> &Matrix4<f32> {
-        &self.view_mat
-    }
-
     fn get_world_matrix(&self) -> &Matrix4<f32> {
         &self.world_mat
+    }
+
+    fn get_model_matrix(&self) -> &Matrix4<f32> {
+        &self.model_mat
+    }
+
+    fn set_world_matrix(&mut self, mat: Matrix4<f32>) {
+        self.world_mat = mat;
+    }
+    fn set_model_matrix(&mut self, mat: Matrix4<f32>) {
+        self.model_mat = mat;
     }
 }
 

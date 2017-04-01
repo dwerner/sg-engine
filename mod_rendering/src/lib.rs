@@ -15,12 +15,17 @@ pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
     s.render_layers.push({
         let root = Node::create(
             Box::new(
-                Model::create("somefile", cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0f32,0.0,0.0)))
+                Model::create("somefile", cgmath::Matrix4::from_translation(
+                    cgmath::Vector3::new(0.0,0.0,-1.0)) *
+                    cgmath::Matrix4::from_scale(3.0))
             ), None
         );
         let _child = Node::create(
             Box::new(
-                Model::create("otherfile", cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0,0.0,0.5)))
+                Model::create("otherfile",
+                              cgmath::Matrix4::from_translation(
+                                  cgmath::Vector3::new(0.0,-1.0,1.0)) *
+                              cgmath::Matrix4::from_scale(2.0))
             ),
             Some(root.clone())
         );
