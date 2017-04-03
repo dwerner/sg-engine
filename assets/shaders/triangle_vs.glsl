@@ -23,9 +23,12 @@ layout(set = 0, binding = 0) uniform Data {
     mat4 proj;
 } uniforms;
 
+layout(push_constant) uniform PushConstants {
+    mat4 model;
+} push_constants;
 
 void main() {
-    mat4 worldview = uniforms.view * uniforms.world;
+    mat4 worldview = uniforms.view * uniforms.world * push_constants.model;
     v_normal = transpose(inverse(mat3(worldview))) * normal;
     gl_Position = uniforms.proj * worldview * vec4(position, 1.0);
 }

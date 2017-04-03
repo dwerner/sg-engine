@@ -88,11 +88,16 @@ pub mod render_pass {
 
 pub mod pipeline_layout {
     pipeline_layout! {
+        push_constants:{
+            model: [[f32;4];4]
+        },
         set0: {
             uniforms: UniformBuffer<::renderer::vs::ty::Data>
         }
     }
 }
+
+
 
 pub struct VulkanRenderer {
 	instance: Arc<Instance>,
@@ -187,13 +192,13 @@ impl VulkanRenderer {
             cgmath::Rad(::std::f32::consts::FRAC_PI_2),
             { let d = images[0].dimensions(); d[0] as f32 / d[1] as f32 },
             0.01,
-            5.0
+            100.0 // depth used for culling!
         );
 
         // Vulkan uses right-handed coordinates, y positive is down
         let view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(-0.5, -0.5, -4.0),   // eye
-            cgmath::Point3::new(0.0, 0.5, 0.0),  // center
+            cgmath::Point3::new(0.0, 0.0, -4.0),   // eye
+            cgmath::Point3::new(0.0, 5.5, 0.0),  // center
             cgmath::Vector3::new(0.0, 1.0, 0.0)  // up
         );
 
@@ -306,10 +311,9 @@ impl VulkanRenderer {
 		&self.window.window()
 	}
 
-
-
-    pub fn get_or_create_buffers(&mut self, id: usize, vertices: &Vec<Vertex>, indices: &Vec<u16>) -> &BufferItem {
-        self.buffer_cache.entry(id).or_insert(
+    #[inline]
+    pub fn insert_buffer(&mut self, id: usize, vertices: &Vec<Vertex>, indices: &Vec<u16>) {
+        self.buffer_cache.insert(id,
             BufferItem{
                 vertices: CpuAccessibleBuffer::from_iter(
                     &self.device,
@@ -324,12 +328,10 @@ impl VulkanRenderer {
                     indices.iter().cloned()
                 ).expect("Unable to create buffer")
             }
-        )
+        );
     }
 
     fn render(&mut self) {
-
-        // TODO: create buffers for and setup draw calls
 
         self.submissions.retain(|s| s.destroying_would_block());
         let image_num = self.swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
@@ -352,43 +354,45 @@ impl VulkanRenderer {
                     // TODO: updating the world matrices from the parent * child's local matrix
                     let mut iterator = BreadthFirstIterator::new(next_layer.root.clone());
                     for (id, rc) in iterator {
-                        // println!("got renderable");
                         let mut node = &mut rc.borrow_mut();
 
                         let model_mat = node.data.get_model_matrix().clone();
+                        self.debug_world_rotation += 0.00001;
+                        let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
+                        let rot_model = model_mat * rotation;
                         match node.parent() {
                             Some(parent) => {
                                 let ref parent_model = parent.borrow().data;
-                                let global_mat = parent_model.get_world_matrix() * model_mat;
+                                let global_mat = parent_model.get_world_matrix() * rot_model;
                                 node.data.set_world_matrix(global_mat);
                             },
                             None => {
-                                self.debug_world_rotation += 0.01;
-                                let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
-                                node.data.set_world_matrix(model_mat * rotation);
+                                node.data.set_world_matrix(rot_model);
                             }
                         }
 
-                        // Setup uniform buffer with world matrix of model
-                        {
-                            let world_mat = node.data.get_world_matrix();
-                            let mut buffer_content = self.uniform_buffer.write(Duration::new(1, 0)).unwrap();
-                            buffer_content.world = world_mat.clone().into();
+                        let mesh = node.data.get_mesh();
+
+                        if !self.buffer_cache.contains_key(&id) {
+                            let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
+                            self.insert_buffer(
+                                id,
+                                &vertices,
+                                &mesh.indices
+                            );
                         }
 
-                        let mesh = node.data.get_mesh();
-                        // grab a cached copy of the buffer for this model or create it
-                        // TODO: stop copying when it's not needed for vertices
                         let (v,i) = {
-                            let vertices: Vec<Vertex> =
-                                mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
                             let &BufferItem {
                                 vertices: ref vert_buffer,
                                 indices: ref index_buffer
-                            } = self.get_or_create_buffers(id, &vertices, &mesh.indices);
+                            } = self.buffer_cache.get(&id).unwrap();
                             (vert_buffer.clone(), index_buffer.clone())
                         };
 
+                        let push = vs::ty::PushConstants {
+                            model: node.data.get_world_matrix().clone().into()
+                        };
                         // begin the command buffer
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
                                 &self.pipeline,
@@ -396,7 +400,7 @@ impl VulkanRenderer {
                                 &i,
                                 &DynamicState::none(),
                                 &self.pipeline_set,
-                                &()
+                                &push
                         );
 
                     }
@@ -425,10 +429,39 @@ impl VulkanRenderer {
 }
 
 impl Renderer for VulkanRenderer {
+
+    ///
+    /// load()
+    ///
+    /// provide a hook for a mod to notify the renderer that it is about to be used
+    ///
+    fn load(&mut self) {
+
+    }
+
+    ///
+    /// unload()
+    ///
+    /// This is called by a mod to notify the renderer to be done with any state.
+    ///
+    fn unload(&mut self) {
+        self.buffer_cache.clear();
+    }
+
+    ///
+    /// queue_render_layer()
+    ///
+    /// Set the renderer up with a queue of SceneGraphs
+    ///
     fn queue_render_layer(&mut self, layer: Arc<SceneGraph>) {
         self.render_layer_queue.push_back(layer);
     }
 
+    ///
+    /// present()
+    ///
+    /// Actually render the image, compositing render layers in the order they were queued
+    ///
     fn present(&mut self) {
         self.render();
     }

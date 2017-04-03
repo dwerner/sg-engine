@@ -24,7 +24,6 @@ impl Model {
             world_mat: Matrix4::<f32>::identity(),
             //mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
             mesh: Mesh::create(vec![
-                Vertex::from(Vector( 0.0, 0.0, 0.0),  Normal( 0.0, 0.0, -1.0)),
                 Vertex::from(Vector( 0.0, 0.9, 0.0),  Normal( 0.0, 0.0, -1.0)),
                 Vertex::from(Vector( 0.5, 0.0, 0.0),  Normal( 0.0, 0.0, -1.0)),
                 Vertex::from(Vector( 0.0, 0.0, 0.5),  Normal( 0.0, 0.0, -1.0)),
@@ -34,7 +33,6 @@ impl Model {
                 0u16, 1, 2,
                 0,1,3,
                 0,1,4,
-                0,1,5
             ]),
             material: Material {},
         }

@@ -16,44 +16,30 @@ use cgmath::Rad;
 #[no_mangle]
 pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
     assert!(s.render_layers.len() == 0);
-    s.render_layers.push({
+    s.render_layers.push(create_tentacle(-5.0, 0.0, 2.0, 400));
+    s.render_layers.push(create_tentacle(-2.5, 0.0, 1.0, 400));
+    s.render_layers.push(create_tentacle(0.0, 0.0, 0.0, 400));
+    s.render_layers.push(create_tentacle(2.5, 0.0, 1.0, 500));
+    s.render_layers.push(create_tentacle(5.0, 0.0, 2.0, 500));
 
-        let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0))
-                * Matrix4::from_scale(1.0);
+    for i in 0..s.renderers.len() {
+        s.renderers[i].load();
+    }
+}
 
-        let root = Node::create(
-            Box::new(Model::create("otherfile",mx)),
-            None
-        );
-
-        let mx = Matrix4::from_translation(Vector3::new(0.0, 0.5, -0.5))
-            * Matrix4::from_scale(1.0);
-        let mut child = Node::create(
-            Box::new(Model::create("otherfile",mx)),
-            Some(root.clone())
-        );
-
-        for i in 0..10 {
-            let mx = Matrix4::from_translation(Vector3::new(0.5, 0.5, -0.5))
-                * Matrix4::from_scale(1.0);
-
-            child = Node::create(
-                Box::new( Model::create("otherfile", mx )),
-                Some(child.clone())
-            );
-        }
-        let mx = Matrix4::from_translation(Vector3::new(0.0, 0.5, -0.5))
-            * Matrix4::from_scale(1.0);
-
-        let _child = Node::create(
-            Box::new( Model::create("otherfile", mx )),
-            Some(child.clone())
-        );
-        let graph = SceneGraph {
-            root: root
-        };
-        Arc::new(graph)
-    });
+fn create_tentacle(x:f32, y:f32, z:f32, count:u32) -> Arc<SceneGraph> {
+    let mx = Matrix4::from_translation(Vector3::new(x, y, z)) * Matrix4::from_scale(1.0);
+    let root = Node::create( Box::new(Model::create("otherfile",mx)), None );
+    let mx = Matrix4::from_translation(Vector3::new(0.0, 0.5, -0.5)) * Matrix4::from_scale(1.0);
+    let mut child = Node::create( Box::new(Model::create("otherfile",mx)), Some(root.clone()) );
+    for i in 0..count {
+        let mx = Matrix4::from_translation(Vector3::new(0.5, 0.5, -0.5)) * Matrix4::from_scale(1.0);
+        child = Node::create( Box::new( Model::create("otherfile", mx )), Some(child.clone()) );
+    }
+    let mx = Matrix4::from_translation(Vector3::new(0.0, 0.5, -0.5)) * Matrix4::from_scale(1.0);
+    let _child = Node::create( Box::new( Model::create("otherfile", mx )), Some(child.clone()) );
+    let graph = SceneGraph { root: root };
+    Arc::new(graph)
 }
 
 #[no_mangle]
@@ -70,4 +56,7 @@ pub extern "C" fn mod_rendering_tick(s: &mut state::State) {
 #[no_mangle]
 pub extern "C" fn mod_rendering_unload(s: &mut state::State ) {
     s.render_layers.clear();
+    for i in 0..s.renderers.len() {
+        s.renderers[i].unload();
+    }
 }

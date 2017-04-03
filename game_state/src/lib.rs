@@ -21,8 +21,8 @@ use state::SceneGraph;
 // but the impls for those traits can be in mods
 
 pub trait Renderer {
-    fn init(&mut self) {}
-    fn deinit(&mut self) {}
+    fn load(&mut self);
+    fn unload(&mut self);
 
     fn queue_render_layer(&mut self, layer: Arc<SceneGraph>);
     fn present(&mut self);

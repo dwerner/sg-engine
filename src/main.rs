@@ -18,8 +18,8 @@ use std::thread;
 fn main() {
 	let mut state = state::State::new(
 		vec![
-//            Box::new(VulkanRenderer::new("title", 320, 240)),
-            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480)),
+           // Box::new(VulkanRenderer::new("title", 320, 240)),
+            Box::new(VulkanRenderer::new("VulkanRenderer", 1920, 1080)),
         ]
     );
 
@@ -31,12 +31,18 @@ fn main() {
     rendering.check_update(&mut state);
 
 	let mut frame = 0;
+    let frame_budget = 16000;// for 60 fps
+
 	loop {
         // TODO: gather delta time instead
-		thread::sleep(Duration::from_millis(16));
 
 		let sim_time = sim.tick(&mut state);
 		let render_time = rendering.tick(&mut state);
+
+        let wait = (frame_budget - (sim_time.num_microseconds().unwrap() + render_time.num_microseconds().unwrap())) / 1000;
+        if wait > 0 {
+            thread::sleep(Duration::from_millis(wait as u64));
+        }
 
         frame += 1;
         if frame % 60 == 0 {

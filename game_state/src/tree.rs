@@ -79,7 +79,7 @@ impl <T> NodeVisitor<T> for BreadthFirstVisitor<T> {
 
 impl <T> Drop for Node<T> {
     fn drop(&mut self) {
-        println!("Dropping {}", self.id);
+        println!("Dropping node {}", self.id);
     }
 }
 
