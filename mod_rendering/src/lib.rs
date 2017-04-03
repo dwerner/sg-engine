@@ -18,8 +18,7 @@ pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
     assert!(s.render_layers.len() == 0);
     s.render_layers.push({
 
-        let mx = Matrix4::from_angle_x(Rad(0.0))
-                * Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0))
+        let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0))
                 * Matrix4::from_scale(1.0);
 
         let root = Node::create(
@@ -27,17 +26,24 @@ pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
             None
         );
 
-        let mx = Matrix4::from_angle_x(Rad(0.0))
-                * Matrix4::from_translation(Vector3::new(0.0, 0.0, -1.5))
-                * Matrix4::from_scale(2.0);
-        let child = Node::create(
+        let mx = Matrix4::from_translation(Vector3::new(0.0, 0.5, -0.5))
+            * Matrix4::from_scale(1.0);
+        let mut child = Node::create(
             Box::new(Model::create("otherfile",mx)),
             Some(root.clone())
         );
 
-        let mx = Matrix4::from_angle_z(Rad(1.5))
-                * Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0))
+        for i in 0..10 {
+            let mx = Matrix4::from_translation(Vector3::new(0.5, 0.5, -0.5))
                 * Matrix4::from_scale(1.0);
+
+            child = Node::create(
+                Box::new( Model::create("otherfile", mx )),
+                Some(child.clone())
+            );
+        }
+        let mx = Matrix4::from_translation(Vector3::new(0.0, 0.5, -0.5))
+            * Matrix4::from_scale(1.0);
 
         let _child = Node::create(
             Box::new( Model::create("otherfile", mx )),
