@@ -15,7 +15,7 @@ pub struct SoftwareRenderer {
 }
 impl SoftwareRenderer {
 
-    pub fn new(title: String, h: u32, w: u32) -> Self {
+    pub fn new(title: String, w: u32, h: u32) -> Self {
         SoftwareRenderer{
             w: w,
             h: h,

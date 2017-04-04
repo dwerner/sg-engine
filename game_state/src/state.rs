@@ -13,8 +13,6 @@ use model::Model;
 pub struct State {
     pub renderers: Vec<Box<Renderer>>,
     pub render_layers: Vec<Arc<SceneGraph>>,
-    //TODO: pub render_layers: Vec<RenderLayer>,
-
     pub input_state: InputState,
   //  pub ui_state: UIState,
 }

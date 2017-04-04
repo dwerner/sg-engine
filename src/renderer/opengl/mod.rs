@@ -1,3 +1,10 @@
+use glium::{
+    DisplayBuild,
+    Surface,
+};
+use glium::backend::glutin_backend::GlutinFacade;
+use glium::glutin;
+
 extern crate game_state;
 
 use game_state::state::SceneGraph;
@@ -8,6 +15,7 @@ use std::sync::Arc;
 use std::collections::VecDeque;
 
 pub struct OpenGLRenderer {
+    display: GlutinFacade,
     w:u32,
     h:u32,
     title: String,
@@ -15,11 +23,19 @@ pub struct OpenGLRenderer {
 }
 impl OpenGLRenderer {
 
-    pub fn new(title: String, h: u32, w: u32) -> Self {
+    pub fn new(title: &str, w: u32, h: u32) -> Self {
+        let display = glutin::WindowBuilder::new()
+            .with_vsync()
+            .with_title(title)
+            .with_dimensions(w,h)
+            .build_glium()
+            .unwrap();
+
         OpenGLRenderer{
+            display: display,
             w: w,
             h: h,
-            title: title,
+            title: title.to_string(),
             render_layer_queue: VecDeque::new()
         }
     }
