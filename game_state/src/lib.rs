@@ -21,10 +21,33 @@ use state::SceneGraph;
 // but the impls for those traits can be in mods
 
 pub trait Renderer {
+
+    ///
+    /// load()
+    ///
+    /// provide a hook for a mod to notify the renderer that it is about to be used
+    ///
     fn load(&mut self);
+
+    ///
+    /// unload()
+    ///
+    /// This is called by a mod to notify the renderer to be done with any state.
+    ///
     fn unload(&mut self);
 
+    ///
+    /// queue_render_layer()
+    ///
+    /// Set the renderer up with a queue of SceneGraphs
+    ///
     fn queue_render_layer(&mut self, layer: Arc<SceneGraph>);
+
+    ///
+    /// present()
+    ///
+    /// Actually render the image, compositing render layers in the order they were queued
+    ///
     fn present(&mut self);
 }
 

@@ -28,3 +28,7 @@ impl FPS {
 		self.frame_count as f32 / millis as f32 * 1000 as f32
 	}
 }
+
+//TODO tests??
+#[test] fn fps_counter() { }
+

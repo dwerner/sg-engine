@@ -18,9 +18,13 @@ libloading = "0.3"
 ansi_term = "0.9"
 time = "0.1"
 
-# Renderer
 cgmath = "0.12"
 sdl2 = "0.22"
+
+# OpenGL Renderer
+glium = "0.16"
+
+# Vulkan Renderer
 winit = "0.5"
 vulkano = "0.3"
 vulkano-win = "0.3"
