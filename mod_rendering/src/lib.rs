@@ -16,11 +16,11 @@ use cgmath::Rad;
 #[no_mangle]
 pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
     assert!(s.render_layers.len() == 0);
-    s.render_layers.push(create_tentacle(-5.0, 0.0, 2.0, 40));
-    s.render_layers.push(create_tentacle(-2.5, 0.0, 1.0, 40));
-    s.render_layers.push(create_tentacle(0.0, 0.0, 0.0, 40));
-    s.render_layers.push(create_tentacle(2.5, 0.0, 1.0, 50));
-    s.render_layers.push(create_tentacle(5.0, 0.0, 2.0, 50));
+    s.render_layers.push(create_tentacle(-5.0, 0.0, 2.0, 400));
+    s.render_layers.push(create_tentacle(-2.5, 0.0, 1.0, 400));
+    s.render_layers.push(create_tentacle(0.0, 0.0, 0.0, 400));
+    s.render_layers.push(create_tentacle(2.5, 0.0, 1.0, 500));
+    s.render_layers.push(create_tentacle(5.0, 0.0, 2.0, 500));
 
     for i in 0..s.renderers.len() {
         s.renderers[i].load();

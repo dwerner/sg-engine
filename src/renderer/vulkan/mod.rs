@@ -352,7 +352,8 @@ impl VulkanRenderer {
     fn render(&mut self) {
 
         while self.submissions.len() >= 4 {
-            self.submissions.remove(0);
+            let mut future = self.submissions.remove(0);
+            //future.cleanup_finished();
         }
 
         let (image_num, future) = self.swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
