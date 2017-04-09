@@ -7,9 +7,11 @@ extern crate cgmath;
 extern crate engine;
 
 use engine::renderer::{
-    VulkanRenderer,
     OpenGLRenderer,
 };
+
+use engine::renderer::vulkan::VulkanRenderer;
+
 use engine::libloader::LibLoader;
 
 extern crate game_state;
@@ -21,7 +23,6 @@ use std::thread;
 fn main() {
 	let mut state = state::State::new(
 		vec![
-            Box::new(OpenGLRenderer::new("title", 320, 240)),
             Box::new(VulkanRenderer::new("VulkanRenderer", 1920, 1080)),
         ]
     );
