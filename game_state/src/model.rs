@@ -1,11 +1,15 @@
 use Renderable;
 use Identifyable;
 
+use std::path::Path;
+
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
 
+#[derive(Debug)]
 pub struct Material { }
 
+#[derive(Debug)]
 pub struct Model {
     pub filename: String,
     pub id: u64,
@@ -15,33 +19,73 @@ pub struct Model {
     pub mesh: Mesh,
 }
 
+use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+static GLOBAL_MODEL_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+
 impl Model {
     pub fn create(filename: &str, model_mat: Matrix4<f32>) -> Self {
-        Model {
+/*
+        let vectors = o.vertices.windows(3);
+        let normals = o.normals.windows(3);
+
+        let data = if normals.len() > 0 {
+            vectors.zip(normals).map(|(v,n)| {
+                Vertex::from(Vector( v[0], v[1], v[2] ), Normal( n[0], n[1], n[2]))
+            }).collect::<Vec<_>>()
+        } else {
+            vectors.map(|v| {
+                Vertex::from(Vector( v[0], v[1], v[2] ), Normal(1.0, 1.0, 1.0))
+            }).collect::<Vec<_>>()
+        };
+
+        assert!(data.len() > 0);
+
+*/
+        let build = Model {
             filename: filename.to_string(),
-            id: 0, // u64 id
+            id: 0,//GLOBAL_MODEL_ID.fetch_add(1, Ordering::SeqCst) as u64,
             model_mat: model_mat,
             world_mat: Matrix4::<f32>::identity(),
             //mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
-            mesh: Mesh::create(vec![
-                Vertex::from(Vector( 0.0, 0.9, 0.0),  Normal( 0.0, 0.0, -1.0)),
-                Vertex::from(Vector( 0.5, 0.0, 0.0),  Normal( 0.0, 0.0, -1.0)),
-                Vertex::from(Vector( 0.0, 0.0, 0.5),  Normal( 0.0, 0.0, -1.0)),
-                Vertex::from(Vector( 0.0, 0.0, -0.5), Normal( 0.0, 0.0, -1.0)),
-                Vertex::from(Vector( -0.5, 0.0, 0.0), Normal( 0.0, 0.0, -1.0)),
-            ], vec![
-                0u16, 1, 2,
-                0,1,3,
-                0,1,4,
-            ]),
+            mesh: Mesh::create(Vec::new(), Vec::new()),//data, o.indices.iter().map(|x:&u32| *x as u16).collect::<Vec<_>>()),
             material: Material {},
-        }
+        };
+        println!("Loaded model: \n{:?}", build);
+        build
     }
 }
 
-#[derive(Copy, Clone)] pub struct Vector(pub f32,pub f32,pub f32);
-#[derive(Copy, Clone)] pub struct Normal(pub f32,pub f32,pub f32);
-#[derive(Copy, Clone)] pub struct Vertex {
+#[test]
+fn load_teapot_obj() {
+    let model = Model::create("teapot.obj", Matrix4::<f32>::identity());
+    assert_eq!(model.mesh.vertices.len(), 42);
+}
+
+#[test]
+fn slice_windows_learning() {
+
+    let vec1 = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let vec2 = [10,11,12,13,14,15,16,17,18,19];
+    let vec3 = [10,11,12,13,14,15,16];
+
+    let one = vec1.windows(3);
+    let two = vec2.windows(3);
+    let three = vec3.windows(2);
+
+    for ((a, b), c) in one.zip(two).zip(three) {
+        assert_eq!(a.len(), 3);
+        assert_eq!(b.len(), 3);
+        assert_eq!(c.len(), 2);
+    }
+
+
+    //let model = Model::create("assets/models/teapot.obj", Matrix4::<f32>::identity());
+
+}
+
+#[derive(Debug, Copy, Clone)] pub struct Vector(pub f32,pub f32,pub f32);
+#[derive(Debug, Copy, Clone)] pub struct Normal(pub f32,pub f32,pub f32);
+#[derive(Debug, Copy, Clone)] pub struct Vertex {
     pub position: Vector,
     pub normal: Normal
 }
@@ -59,6 +103,7 @@ impl Vertex {
     }
 }
 
+#[derive(Debug)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u16>,

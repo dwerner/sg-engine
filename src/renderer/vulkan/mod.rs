@@ -352,8 +352,7 @@ impl VulkanRenderer {
     fn render(&mut self) {
 
         while self.submissions.len() >= 4 {
-            let mut future = self.submissions.remove(0);
-            //future.cleanup_finished();
+            self.submissions.remove(0);
         }
 
         let (image_num, future) = self.swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
@@ -370,6 +369,7 @@ impl VulkanRenderer {
 
         // TODO: do away with this renderable queue
         loop {
+            self.debug_world_rotation += 0.01;
             match self.render_layer_queue.pop_front() {
                 Some(next_layer) => {
 
@@ -379,7 +379,6 @@ impl VulkanRenderer {
                         let mut node = &mut rc.borrow_mut();
 
                         let model_mat = node.data.get_model_matrix().clone();
-                        self.debug_world_rotation += 0.0001;
                         let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
                         let rot_model = model_mat * rotation;
                         match node.parent() {
@@ -395,10 +394,10 @@ impl VulkanRenderer {
 
                         let mesh = node.data.get_mesh();
 
-                        if !self.buffer_cache.contains_key(&id) {
+                        if !self.buffer_cache.contains_key(&(node.data.id as usize)) {
                             let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
                             self.insert_buffer(
-                                id,
+                                node.data.id as usize,
                                 &vertices,
                                 &mesh.indices
                             );
@@ -408,7 +407,7 @@ impl VulkanRenderer {
                             let &BufferItem {
                                 vertices: ref vert_buffer,
                                 indices: ref index_buffer
-                            } = self.buffer_cache.get(&id).unwrap();
+                            } = self.buffer_cache.get(&(node.data.id as usize)).unwrap();
                             (vert_buffer.clone(), index_buffer.clone())
                         };
 
