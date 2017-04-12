@@ -87,7 +87,7 @@ mod tests {
     }
 
     #[test] fn can_parse_normal_line() {
-        let vline = "vn -1.000000 -1.000000 1.000000 \r\n".as_bytes();
+        let vline = "vn -1.000000 -1.000000 1.000000  \r\n".as_bytes();
         let v = normal_line(vline);
         let (a,b) = v.unwrap();
         assert_eq!(b, ("vn".as_bytes(), -1.0, -1.0, 1.0));
