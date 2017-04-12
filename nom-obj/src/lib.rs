@@ -64,13 +64,20 @@ named!(float_pair< &[u8], (f32,f32) >, ws!(tuple!(float, float)));
 named!(vertex_line< &[u8], (&[u8], f32,f32,f32) >, ws!(tuple!(tag!("v"), float, float, float)));
 named!(normal_line< &[u8], (&[u8], f32,f32,f32) >, ws!(tuple!(tag!("vn"), float, float, float)));
 named!(texcoord_line< &[u8], (&[u8], f32,f32) >, ws!(tuple!(tag!("vt"), float, float)));
-//named!(face_line< &[u8], (&[u8], Vec<u32> ) >, tuple!(tag!("vt"), separated_list!(space,digit)));
+named!(face_line< &[u8], (&[u8], Vec<u32> ) >, tuple!(tag!("f"), separated_list!(space,digit) ));
 
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+
+    #[test] fn can_parse_face_index_singular() {
+        // TODO: actually read the obj spec, what is each number? vert/tex/norm?
+        // face indices are 1 based, not zero based
+        let something = float("1/11/4".as_bytes());
+        assert_eq!(something, IResult::Done(&b""[..], -0.00005));
+    }
 
     #[test] fn can_parse_texcoord_line() {
         let vline = "vt -1.000000 -1.000000 \r\n".as_bytes();
@@ -122,6 +129,7 @@ mod tests {
         let (a,b) = cmt.unwrap();
         assert_eq!(str::from_utf8(b).unwrap(), " a comment exists here ");
     }
+
 
     #[test] fn can_parse_signed_floats() {
         let something = float("-0.00005".as_bytes());
