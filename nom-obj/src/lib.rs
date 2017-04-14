@@ -2,11 +2,8 @@
 extern crate nom;
 use nom::{
     IResult,
-    InputLength,
     digit,
-    alphanumeric,
-    eol,
-    space
+    eol
 };
 
 use std::str;
@@ -21,15 +18,24 @@ impl ObjParser {
     }
 }
 
-pub enum ObjLine {
-    ObjectName(String),
-    MaterialLibrary(String),
-    Vertex(f32, f32, f32),
-    Normal(f32, f32, f32),
-    Face(u32,u32,u32),
-    TextureCoord(f32,f32),
-    Comment(String),
-}
+named!(whitespace, eat_separator!(&b" \t"[..]));
+macro_rules! sp (
+   ($i:expr, $($args:tt)*) => (
+     {
+       sep!($i, whitespace, $($args)*)
+     }
+   )
+ );
+
+named!(slashes, eat_separator!(&b"/"[..]));
+macro_rules! slash_sep (
+   ($i:expr, $($args:tt)*) => (
+     {
+       sep!($i, slashes, $($args)*)
+     }
+   )
+ );
+
 
 named!(end_of_line, alt!(eof!() | eol));
 
@@ -56,15 +62,73 @@ named!(float <f32>, map!(
    }
 ));
 
-named!(comment, delimited!(tag!("#"), take_until!("\n"), tag!("\n")) );
-named!(object_line, delimited!(tag!("o"), take_until!("\n"), tag!("\n")) );
-named!(mtllib_line, delimited!(tag!("mtllib"), take_until!("\n"), tag!("\n")) );
-named!(float_triple< &[u8], (f32,f32,f32) >, ws!(tuple!(float, float, float)));
-named!(float_pair< &[u8], (f32,f32) >, ws!(tuple!(float, float)));
-named!(vertex_line< &[u8], (&[u8], f32,f32,f32) >, ws!(tuple!(tag!("v"), float, float, float)));
-named!(normal_line< &[u8], (&[u8], f32,f32,f32) >, ws!(tuple!(tag!("vn"), float, float, float)));
-named!(texcoord_line< &[u8], (&[u8], f32,f32) >, ws!(tuple!(tag!("vt"), float, float)));
-named!(face_line< &[u8], (&[u8], Vec<u32> ) >, tuple!(tag!("f"), separated_list!(space,digit) ));
+named!(uint <u32>, map_res!(map_res!( recognize!( digit ), str::from_utf8 ), FromStr::from_str));
+
+
+named!( comment, delimited!(
+    tag!("#"),
+    take_until!("\n"),
+    end_of_line
+));
+named!( object_line, delimited!( tag!("o"), take_until!("\n"), end_of_line) );
+named!( mtllib_line, delimited!(tag!("mtllib"), take_until!("\n"), end_of_line) );
+named!( usemtl_line, delimited!(tag!("usemtl"), take_until!("\n"), end_of_line) );
+named!( s_line, delimited!(tag!("s"), take_until!("\n"), end_of_line) );
+
+named!( float_triple< &[u8], (f32,f32,f32) >, sp!(tuple!(float, float, float)));
+named!( float_pair< &[u8], (f32,f32) >,  sp!(tuple!(float, float)));
+
+named!( vertex_line< &[u8], (f32,f32,f32) >, sp!(
+    delimited!(
+        tag!("v"),
+        float_triple,
+        end_of_line
+    )
+));
+
+named!( normal_line< &[u8], (f32,f32,f32) >, sp!(
+    delimited!(
+        tag!("vn"),
+        float_triple,
+        end_of_line
+    )
+));
+named!( texcoord_line< &[u8], (f32,f32) >,   sp!(
+    delimited!(
+        tag!("vt"),
+        float_pair,
+        end_of_line
+    )
+));
+
+named!( face_triple< &[u8], (u32, Option<u32>, Option<u32>) >,
+    sp!(slash_sep!(
+        tuple!(uint, opt!(uint), opt!(uint))
+    ))
+);
+
+
+named!( face_line< &[u8], ((u32, Option<u32>, Option<u32>), (u32, Option<u32>, Option<u32>), (u32, Option<u32>, Option<u32>)) >, sp!(
+    delimited!(
+        tag!("f"),
+        tuple!(face_triple, face_triple, face_triple),
+        end_of_line
+    )
+));
+
+
+pub enum ObjLine {
+    Comment(&'a str),
+    ObjectName(&'a str),
+    MaterialLibrary(&'a str),
+    SLine(&'a str),
+    Vertex(f32, f32, f32),
+    Normal(f32, f32, f32),
+    Face(u32,u32,u32),
+    TextureCoord(f32,f32),
+}
+
+// TODO: tie parsers together into a single one that can chunk through a file
 
 
 #[cfg(test)]
@@ -72,25 +136,57 @@ mod tests {
 
     use super::*;
 
-    #[test] fn can_parse_face_index_singular() {
-        // TODO: actually read the obj spec, what is each number? vert/tex/norm?
-        // face indices are 1 based, not zero based
-        let something = float("1/11/4".as_bytes());
+    #[test] fn can_parse_face_triple() {
+        let ff = face_triple(" 1/11/4".as_bytes());
+        let (_,b) = ff.unwrap();
+        assert_eq!(b, (1, Some(11), Some(4)) );
+    }
+
+
+    #[test] fn can_parse_face_line() {
+        let ff = face_line("f 1/11/4  1/11/4 1/11/4  \n".as_bytes());
+        let (_,b) = ff.unwrap();
+        assert_eq!(b,
+            (
+                (1, Some(11), Some(4)),
+                (1, Some(11), Some(4)),
+                (1, Some(11), Some(4))
+            )
+        );
+    }
+
+    #[test] fn can_parse_signed_floats() {
+        let something = float("-0.00005".as_bytes());
         assert_eq!(something, IResult::Done(&b""[..], -0.00005));
     }
+
+    #[test]
+    fn can_parse_float_pair() {
+        let ff = float_pair("     -1.000001 7742.9 ".as_bytes());
+        let (_,b) = ff.unwrap();
+        assert_eq!(b, (-1.000001, 7742.9));
+    }
+
+    #[test]
+    fn can_parse_float_triple() {
+        let fff = float_triple("    0.95  -1.000001 42.9 ".as_bytes());
+        let (_,b) = fff.unwrap();
+        assert_eq!(b, (0.95, -1.000001, 42.9));
+    }
+
 
     #[test] fn can_parse_texcoord_line() {
         let vline = "vt -1.000000 -1.000000 \r\n".as_bytes();
         let v = texcoord_line(vline);
-        let (a,b) = v.unwrap();
-        assert_eq!(b, ("vt".as_bytes(), -1.0, -1.0));
+        let (_a,b) = v.unwrap();
+        assert_eq!(b, (-1.0, -1.0));
     }
 
     #[test] fn can_parse_normal_line() {
         let vline = "vn -1.000000 -1.000000 1.000000  \r\n".as_bytes();
         let v = normal_line(vline);
-        let (a,b) = v.unwrap();
-        assert_eq!(b, ("vn".as_bytes(), -1.0, -1.0, 1.0));
+        let (_,b) = v.unwrap();
+        assert_eq!(b, (-1.0, -1.0, 1.0));
     }
 
     #[test]
@@ -98,42 +194,46 @@ mod tests {
     fn can_parse_vertex_line_2() {
         let vline = "vZZ -1.000000 -1.000000 1.000000 \r\n".as_bytes();
         let v = vertex_line(vline);
-        let (a,b) = v.unwrap();
-        assert_eq!(b, ("v".as_bytes(), -1.0, -1.0, 1.0));
+        let (_,b) = v.unwrap();
+        assert_eq!(b, (-1.0, -1.0, 1.0));
     }
 
     #[test]
     fn can_parse_vertex_line() {
         let vline = "v -1.000000 -1.000000 1.000000 \r\n".as_bytes();
         let v = vertex_line(vline);
-        let (a,b) = v.unwrap();
-        assert_eq!(b, ("v".as_bytes(), -1.0, -1.0, 1.0));
+        let (_,b) = v.unwrap();
+        assert_eq!(b, (-1.0, -1.0, 1.0));
     }
 
-    #[test]
-    fn can_parse_float_pair() {
-        let ff = float_pair("     -1.000001 7742.9 ".as_bytes());
-        let (a,b) = ff.unwrap();
-        assert_eq!(b, (-1.000001, 7742.9));
+    #[test] fn can_parse_object_line() {
+        let cmt = object_line("o someobject.999asdf.7 \n".as_bytes());
+        let (_,b) = cmt.unwrap();
+        assert_eq!(str::from_utf8(b).unwrap(), " someobject.999asdf.7 ");
     }
 
-    #[test]
-    fn can_parse_float_triple() {
-        let fff = float_triple("    0.95  -1.000001 42.9 ".as_bytes());
-        let (a,b) = fff.unwrap();
-        assert_eq!(b, (0.95, -1.000001, 42.9));
+    #[test] fn can_parse_mtllib_line() {
+        let cmt = mtllib_line("mtllib somelib \n".as_bytes());
+        let (_,b) = cmt.unwrap();
+        assert_eq!(str::from_utf8(b).unwrap(), " somelib ");
+    }
+
+    #[test] fn can_parse_usemtl_line() {
+        let cmt = usemtl_line("usemtl SomeMaterial\n".as_bytes());
+        let (_,b) = cmt.unwrap();
+        assert_eq!(str::from_utf8(b).unwrap(), " SomeMaterial");
+    }
+
+    #[test] fn can_parse_s_line() {
+        let cmt = s_line("s off\n".as_bytes());
+        let (_,b) = cmt.unwrap();
+        assert_eq!(str::from_utf8(b).unwrap(), " off");
     }
 
     #[test] fn can_parse_comments() {
         let cmt = comment("# a comment exists here \n".as_bytes());
-        let (a,b) = cmt.unwrap();
+        let (_,b) = cmt.unwrap();
         assert_eq!(str::from_utf8(b).unwrap(), " a comment exists here ");
-    }
-
-
-    #[test] fn can_parse_signed_floats() {
-        let something = float("-0.00005".as_bytes());
-        assert_eq!(something, IResult::Done(&b""[..], -0.00005));
     }
 
     const CUBE_MODEL: &'static str = "
