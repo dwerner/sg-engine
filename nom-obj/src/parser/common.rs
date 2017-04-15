@@ -29,8 +29,31 @@ macro_rules! slash_sep (
    )
  );
 
+/// Meta macro, define parser for lines starting with $i, map to enum $tt type $ty
+/// Converts to &str and trims whitespace from line
+#[macro_export]
+macro_rules! def_string_line (
+   ($id:ident, $i:expr, $tt:tt, $ty:ident) => (
+       named!( $id< &[u8], $tt >, map!(
+           delimited!(tag!($i), take_until!("\n"), end_of_line),
+           |s| $tt :: $ty(str::from_utf8(s).unwrap().trim())
+       ));
+   )
+);
 
-named!(pub end_of_line, alt!(eof!() | eol));
+named!(pub comment, delimited!(
+    tag!("#"),
+    take_until!("\n"),
+    alt!( eof!() | eol )
+));
+
+named!(pub end_of_line, alt!(
+    eof!()
+    |
+    eol
+    |
+    comment  // handle end of line comments - these are not kept
+));
 
 named!(pub unsigned_float <f32>, map_res!(
   map_res!(
@@ -57,10 +80,13 @@ named!(pub float <f32>, map!(
 
 named!(pub uint <u32>, map_res!(map_res!( recognize!( digit ), str::from_utf8 ), FromStr::from_str));
 
-named!(pub comment, delimited!(
-    tag!("#"),
-    take_until!("\n"),
-    end_of_line
+
+named!(pub float_triple_opt_4th< &[u8], (f32,f32,f32,Option<f32>)>, sp!(
+    tuple!( float, float, float, opt!(float) )
+));
+
+named!(pub float_pair_opt_3rd< &[u8], (f32,f32,Option<f32>) >, sp!(
+    tuple!(float, float, opt!(float))
 ));
 
 named!(pub float_triple< &[u8], (f32,f32,f32) >, sp!(tuple!(float, float, float)));
