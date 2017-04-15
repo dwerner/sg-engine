@@ -1,6 +1,6 @@
 /// http://paulbourke.net/dataformats/obj/
 ///
-use common::*;
+use parser::common::*;
 
 use nom::{
    space

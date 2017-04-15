@@ -1,6 +1,6 @@
 /// http://paulbourke.net/dataformats/mtl/
 /// 
-use common::*;
+use parser::common::*;
 
 use nom::{
     space,
