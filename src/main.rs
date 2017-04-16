@@ -10,7 +10,10 @@ use engine::renderer::{
     OpenGLRenderer,
 };
 
-use engine::renderer::vulkan::VulkanRenderer;
+use engine::renderer::vulkan::{
+    VulkanRenderer,
+    DrawMode, // TODO: extract this to renderer::
+};
 
 use engine::libloader::LibLoader;
 
@@ -23,7 +26,9 @@ use std::thread;
 fn main() {
 	let mut state = state::State::new(
 		vec![
-            Box::new(VulkanRenderer::new("VulkanRenderer", 1920, 1080)),
+            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Wireframe )),
+            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Points)),
+            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Colored)),
         ]
     );
 

@@ -10,8 +10,8 @@ use parser::mtl::{
 };
 
 pub struct Obj {
-    comments: Vec<ObjLine>,
-    objects: Vec<ObjObject>,
+    pub comments: Vec<ObjLine>,
+    pub objects: Vec<ObjObject>,
 }
 impl Obj {
     pub fn create(filename: &'static str) -> Self {
@@ -37,7 +37,7 @@ impl Obj {
                 ObjLine::VertexParam(..) => object.vertex_params.push(line),
                 ObjLine::Face(..) => object.faces.push(line),
                 ObjLine::Normal(..) => object.normals.push(line),
-                ObjLine::TextureUVW(..) => object.normals.push(line),
+                ObjLine::TextureUVW(..) => object.texture_coords.push(line),
                 _ => {}
             }
         }
@@ -48,8 +48,8 @@ impl Obj {
 
 #[derive(Debug)]
 pub struct ObjObject {
-    name: Option<String>,
-    material: Option<String>,
+    pub name: Option<String>,
+    pub material: Option<String>,
     vertices: Vec<ObjLine>,
     normals: Vec<ObjLine>,
     texture_coords: Vec<ObjLine>,
@@ -77,27 +77,60 @@ impl ObjObject {
     pub fn name(&self) -> &Option<String> { &self.name }
     pub fn faces(&self) -> &Vec<ObjLine> { &self.faces }
 
+    #[inline]
+    fn get_v_tuple(&self, face_index: &FaceIndex) -> (f32,f32,f32,f32) {
+        let &FaceIndex(v, _, _) = face_index;
+        match &self.vertices[(v as usize) - 1] {
+            &ObjLine::Vertex(x,y,z,w) => (x,y,z,w.unwrap_or(1.0)),
+            _ => panic!("not a vertex")
+        }
+    }
+
+
+    #[inline]
+    fn get_vt_tuple(&self, face_index: &FaceIndex) -> (f32,f32,f32) {
+        let &FaceIndex(_, vt, _) = face_index;
+        match &self.texture_coords[(vt.unwrap() as usize) - 1] {
+            &ObjLine::TextureUVW(u,v,w) => (u,v,w.unwrap_or(0.0)),
+            _ => panic!("not a vertex")
+        }
+    }
+
+    #[inline]
+    fn get_vn_tuple(&self, face_index: &FaceIndex) -> (f32,f32,f32) {
+        let &FaceIndex(_, _, vn) = face_index;
+        match &self.normals[(vn.unwrap() as usize) - 1] {
+            &ObjLine::Normal(x,y,z) => (x,y,z),
+            _ => panic!("not a vertex")
+        }
+    }
+
+    #[inline]
+    fn interleave_tuples(&self, id: &FaceIndex) -> (
+        (f32, f32, f32, f32),
+        (f32, f32, f32),
+        (f32,f32,f32)
+    ) {
+        let vert = self.get_v_tuple(id);
+        let text = self.get_vt_tuple(id);
+        let norm = self.get_vn_tuple(id);
+        (vert, text, norm)
+    }
+
     pub fn interleaved(&self) -> Interleaved {
         let mut data = Interleaved{ v_vt_vn: Vec::new(), idx:Vec::new() };
-        for i in 0..&self.faces.len()-1 {
+        for i in 0usize..self.faces.len() {
+            println!("{}", i);
             match &self.faces[i] {
-                &ObjLine::Face(
-                    FaceIndex(v1, vt1, vn1),
-                    FaceIndex(v2, vt2, vn2),
-                    FaceIndex(v3, vt3, vn3)) => {
-
-                    let ref vert1 = self.vertices[v1 as usize];
-                    let ref norm1 = self.normals[vn1.unwrap() as usize];
-                    let ref text1 = self.texture_coords[vt1.unwrap() as usize];
-
-                    // TODO: finish the Interleaved transform. 
-                    /*
-                    data.v_vt_vn.push();
-                    data.idx.push()
-                    */
-
+                &ObjLine::Face(ref id1, ref id2, ref id3) => {
+                    data.idx.push((id1.0 as usize) - 1);
+                    data.idx.push((id2.0 as usize) - 1);
+                    data.idx.push((id3.0 as usize) - 1);
+                    data.v_vt_vn.push(self.interleave_tuples(id1));
+                    data.v_vt_vn.push(self.interleave_tuples(id2));
+                    data.v_vt_vn.push(self.interleave_tuples(id3));
                 }
-                _ => {}
+                _ => { panic!("Found something other than a ObjLine::Face in object.faces") }
             }
         }
         data
@@ -105,8 +138,8 @@ impl ObjObject {
 }
 
 pub struct Interleaved {
-    v_vt_vn: Vec<((f32, f32, f32, f32), (f32, f32, f32), (f32,f32,f32))>,
-    idx: Vec<usize>
+    pub v_vt_vn: Vec<((f32, f32, f32, f32), (f32, f32, f32), (f32,f32,f32))>,
+    pub idx: Vec<usize>
 }
 
 
@@ -114,6 +147,14 @@ pub struct Interleaved {
 mod tests {
 
     use super::*;
+
+    #[test] fn cube_format_interleaved() {
+        let obj = Obj::create("assets/cube.obj");
+        let interleaved = obj.objects[0].interleaved();
+        println!("{:?}", obj.objects[0].faces());
+        assert_eq!(obj.objects[0].faces().len(), 12);
+        assert_eq!(interleaved.v_vt_vn.len(), interleaved.idx.len());
+    }
 
     #[test] fn cube_obj_has_12_faces() { // Triangulated model, 12/2 = 6 quads
         let Obj{ objects: cube_objects, .. } = Obj::create("assets/cube.obj");

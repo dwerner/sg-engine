@@ -112,8 +112,21 @@ pub struct VulkanRenderer {
     debug_world_rotation: f32,
 }
 
+pub enum DrawMode {
+    Wireframe,
+    Points,
+    Colored
+}
+
 impl VulkanRenderer {
-	pub fn new(title: &str, h: u32, w: u32) -> Self {
+	pub fn new(title: &str, h: u32, w: u32, draw_mode: DrawMode) -> Self {
+
+        let topology = match draw_mode {
+            DrawMode::Colored => PrimitiveTopology::TriangleList,
+            DrawMode::Points  => PrimitiveTopology::PointList,
+            DrawMode::Wireframe => PrimitiveTopology::LineList
+        };
+
 		// Vulkan
 		let instance = {
 			let extensions = vulkano_win::required_extensions();
@@ -248,7 +261,7 @@ impl VulkanRenderer {
 			vertex_input: SingleBufferDefinition::new(),
 			vertex_shader: vs.main_entry_point(),
 			input_assembly: InputAssembly {
-				topology: PrimitiveTopology::TriangleList,
+				topology: topology,
 				primitive_restart_enable: false,
 			},
 			tessellation: None,
@@ -442,9 +455,6 @@ impl VulkanRenderer {
         future.flush().unwrap();
 
         self.submissions.push(Box::new(future) as Box<_>);
-        //println!("submitting command buffer");
-        //self.submissions.push(command_buffer::submit(&cmd_buffer, &self.queue).unwrap());
-        //println!("presenting");
 
         self.fps.update();
     }

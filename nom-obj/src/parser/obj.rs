@@ -139,12 +139,16 @@ impl Iterator for ObjParser {
                 match result {
                     IResult::Done(_, o) => { Some(o) },
                     IResult::Error(e) => { None },
-                    IResult::Incomplete(_) => { self.next() },
+                    IResult::Incomplete(_) => {
+                        self.next()
+                    },
                 }
             } else {
                 None
             },
-            Err(o) => None
+            Err(o) => {
+                None
+            }
         }
     }
 }

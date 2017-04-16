@@ -17,7 +17,7 @@ use cgmath::Rad;
 pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
     assert!(s.render_layers.len() == 0);
     let mx =  Matrix4::from_translation(Vector3::new(0.0, 5.0, 0.0)) * Matrix4::from_scale(1.0);
-    let root = Node::create( Box::new(Model::create("assets/models/cube.obj",mx)), None );
+    let root = Node::create( Box::new(Model::create("assets/models/cube.obj", mx)), None );
     s.render_layers.push(Arc::new(SceneGraph{root:root}));
 
     for i in 0..s.renderers.len() {
