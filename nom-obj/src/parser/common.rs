@@ -36,7 +36,7 @@ macro_rules! def_string_line (
    ($id:ident, $i:expr, $tt:tt, $ty:ident) => (
        named!( $id< &[u8], $tt >, map!(
            delimited!(tag!($i), take_until!("\n"), end_of_line),
-           |s| $tt :: $ty(str::from_utf8(s).unwrap().trim())
+           |s| $tt :: $ty(str::from_utf8(s).unwrap().trim().to_string())
        ));
    )
 );
@@ -59,8 +59,11 @@ named!(pub unsigned_float <f32>, map_res!(
   map_res!(
     recognize!(
       alt!(
-        delimited!(digit, tag!("."), opt!(digit)) |
-        delimited!(opt!(digit), tag!("."), digit)
+        delimited!(digit, complete!(tag!(".")), opt!(complete!(digit)))
+        |
+        delimited!(opt!(digit), complete!(tag!(".")), digit)
+        |
+        digit
       )
     ),
     str::from_utf8
@@ -119,5 +122,11 @@ mod tests {
         let cmt = comment("# a comment exists here \n".as_bytes());
         let (_,b) = cmt.unwrap();
         assert_eq!(str::from_utf8(b).unwrap(), " a comment exists here ");
+    }
+
+    #[test] fn can_parse_comments_2() {
+        let cmt = comment("# Blender v2.78 (sub 0) OBJ File: \'untitled.blend\'\n".as_bytes());
+        let (_,b) = cmt.unwrap();
+        assert_eq!(str::from_utf8(b).unwrap(), " Blender v2.78 (sub 0) OBJ File: \'untitled.blend\'");
     }
 }

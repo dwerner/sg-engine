@@ -3,23 +3,19 @@
 use parser::common::*;
 
 use nom::{
-    space,
-    not_line_ending
+    eol
 };
 
 use std::str;
 
 #[derive(PartialEq, Debug)]
-pub struct FaceIndex(u32, Option<u32>, Option<u32>);
-
-#[derive(PartialEq, Debug)]
-pub enum MtlLine<'a> {
-    Comment(&'a str),
-    NewMtl(&'a str),
-    AmbientMap(&'a str),
-    DiffuseMap(&'a str),
-    SpecularMap(&'a str),
-    BumpMap(&'a str),
+pub enum MtlLine {
+    Comment(String),
+    NewMtl(String),
+    AmbientMap(String),
+    DiffuseMap(String),
+    SpecularMap(String),
+    BumpMap(String),
 
     AmbientColor(f32, f32, f32),
     DiffuseColor(f32, f32, f32),
@@ -29,18 +25,19 @@ pub enum MtlLine<'a> {
     TransmissionFilter(f32,f32,f32),
 
     OpticalDensity(f32),
-    SpecularExponent(u32),
+    SpecularExponent(f32),
     TransparencyD(f32),
     TransparencyTr(f32),
     IlluminationModel(u32),
-    Sharpness(u32)
+    Sharpness(u32),
+    Blank
 }
 
 def_string_line!(newmtl_line, "newmtl", MtlLine, NewMtl);
-def_string_line!(ambient_texture_line, "map_Ka", MtlLine, AmbientMap);
-def_string_line!(diffuse_texture_line, "map_Kd", MtlLine, DiffuseMap);
-def_string_line!(specular_texture_line, "map_Ks", MtlLine, SpecularMap);
-def_string_line!(bump_texture_line, "map_bump", MtlLine, BumpMap);
+def_string_line!(ambient_map_line, "map_Ka", MtlLine, AmbientMap);
+def_string_line!(diffuse_map_line, "map_Kd", MtlLine, DiffuseMap);
+def_string_line!(specular_map_line, "map_Ks", MtlLine, SpecularMap);
+def_string_line!(bump_map_line, "map_bump", MtlLine, BumpMap);
 
 named!(pub ka_ambient_line< &[u8], MtlLine >, map!(
     delimited!(tag!("Ka"), float_triple, end_of_line), |(r,g,b)| MtlLine::AmbientColor(r,g,b)
@@ -83,31 +80,113 @@ named!(pub sharpness_line< &[u8], MtlLine >, map!(
 ));
 
 named!(pub specular_exponent_line< &[u8], MtlLine >, map!(
-    sp!(delimited!(tag!("Ns"), uint, end_of_line)), |t| MtlLine::SpecularExponent(t)
+    sp!(delimited!(tag!("Ns"), float, end_of_line)), |t| MtlLine::SpecularExponent(t)
 ));
+
+named!(comment_line< MtlLine >, map!(
+    sp!(comment),
+    |s| MtlLine::Comment(str::from_utf8(s).unwrap().trim().to_string())
+));
+
+named!(blank_line< MtlLine >, map!(
+    sp!( eol ),
+    |_| MtlLine::Blank
+));
+
+named!(parse_mtl_line< MtlLine >, alt!(
+    newmtl_line
+    | ambient_map_line
+    | diffuse_map_line
+    | specular_map_line
+    | bump_map_line
+    | ka_ambient_line
+    | kd_diffuse_line
+    | ks_specular_line
+    | ke_line
+    | transparency_line_d
+    | transparency_line_tr
+    | optical_density_line
+    | illum_line
+    | sharpness_line
+    | specular_exponent_line
+    | comment_line
+    | blank_line
+));
+
+
+use std::fs::File;
+use std::io::BufReader;
+pub struct MtlParser {
+    filename: &'static str,
+    reader: BufReader<File>,
+}
+
+impl MtlParser {
+    pub fn create(filename: &'static str) -> Self {
+        let reader = BufReader::new(File::open(filename).expect("Unable to open file"));
+        MtlParser{
+            filename: filename,
+            reader: reader,
+        }
+    }
+}
+
+impl Iterator for MtlParser {
+    type Item = MtlLine;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use nom::IResult;
+        use std::io::BufRead;
+        let mut line = String::new();
+        let read_result = self.reader.read_line(&mut line);
+        match read_result {
+            Ok(len) => if len > 0 {
+                println!("{:?}", line);
+                let result = parse_mtl_line(line.as_bytes());
+                match result {
+                    IResult::Done(_, o) => { Some(o) },
+                    IResult::Error(e) => {
+                        None
+                    },
+                    IResult::Incomplete(_) => { self.next() },
+                }
+            } else {
+                None
+            },
+            Err(o) => None
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test] fn mtl_parser_can_load_from_file() {
+        let parser = MtlParser::create("assets/transparent_blue_cube.mtl");
+        let parsed_lines = parser.collect::<Vec<_>>();
+        println!("{:?}", parsed_lines);
+        assert_eq!(parsed_lines.len(), 12);
+    }
+
     #[test] fn can_parse_newmtl_line() {
         let (_,b) = newmtl_line("newmtl material/name\n".as_bytes()).unwrap();
-        assert_eq!(b, MtlLine::NewMtl("material/name"));
+        assert_eq!(b, MtlLine::NewMtl("material/name".to_string()));
     }
 
-    #[test] fn can_parse_ambient_texture_line() {
-        let (_,b) = ambient_texture_line("map_Ka sometexture.png\n".as_bytes()).unwrap();
-        assert_eq!(b, MtlLine::AmbientMap("sometexture.png"));
+    #[test] fn can_parse_ambient_map_line() {
+        let (_,b) = ambient_map_line("map_Ka sometexture.png\n".as_bytes()).unwrap();
+        assert_eq!(b, MtlLine::AmbientMap("sometexture.png".to_string()));
     }
 
-    #[test] fn can_parse_diffuse_texture_line() {
-        let (_,b) = diffuse_texture_line("map_Kd sometexture.png\n".as_bytes()).unwrap();
-        assert_eq!(b, MtlLine::DiffuseMap("sometexture.png"));
+    #[test] fn can_parse_diffuse_map_line() {
+        let (_,b) = diffuse_map_line("map_Kd sometexture.png\n".as_bytes()).unwrap();
+        assert_eq!(b, MtlLine::DiffuseMap("sometexture.png".to_string()));
     }
 
-    #[test] fn can_parse_specular_texture_line() {
-        let (_,b) = specular_texture_line("map_Ks sometexture.png\n".as_bytes()).unwrap();
-        assert_eq!(b, MtlLine::SpecularMap("sometexture.png"));
+    #[test] fn can_parse_specular_map_line() {
+        let (_,b) = specular_map_line("map_Ks sometexture.png\n".as_bytes()).unwrap();
+        assert_eq!(b, MtlLine::SpecularMap("sometexture.png".to_string()));
     }
 
     #[test] fn can_parse_transparency_d_line() {
@@ -127,7 +206,7 @@ mod tests {
 
     #[test] fn can_parse_specular_exponent_line() {
         let (_,b) = specular_exponent_line("Ns 2\n".as_bytes()).unwrap();
-        assert_eq!(b, MtlLine::SpecularExponent(2));
+        assert_eq!(b, MtlLine::SpecularExponent(2.0));
     }
 
     #[test] fn can_parse_ka_ambient_line() {

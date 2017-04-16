@@ -9,23 +9,22 @@ use nom::{
 use std::str;
 
 #[derive(PartialEq, Debug)]
-pub struct FaceIndex(u32, Option<u32>, Option<u32>);
+pub struct FaceIndex(pub u32, pub Option<u32>, pub Option<u32>);
 
 #[derive(PartialEq, Debug)]
-pub enum ObjLine<'a> {
-    Comment(&'a str),
-    ObjectName(&'a str),
-    GroupName(&'a str),
-    MtlLib(&'a str),
-    UseMtl(&'a str),
-    SmoothShading(&'a str),
+pub enum ObjLine {
+    Comment(String),
+    ObjectName(String),
+    GroupName(String),
+    MtlLib(String),
+    UseMtl(String),
+    SmoothShading(String),
     Vertex(f32, f32, f32, Option<f32>), // x, y, z, then w defaults to 1.0
     VertexParam(f32, f32, f32),
     Normal(f32, f32, f32),
     Face(FaceIndex, FaceIndex, FaceIndex),
     TextureUVW(f32, f32, Option<f32>), // u,v, then w defaults to 0.0
 }
-
 
 def_string_line!(object_line, "o", ObjLine, ObjectName);
 def_string_line!(group_line, "g", ObjLine, GroupName);
@@ -89,34 +88,99 @@ named!( face_line< &[u8], ObjLine >, delimited!(
     )
 );
 
+named!(comment_line< ObjLine >, map!(
+    sp!(comment),
+    |s| ObjLine::Comment(str::from_utf8(s).unwrap().trim().to_string())
+));
 
+named!(parse_obj_line< ObjLine >, alt!(
+    vertex_line
+    | normal_line
+    | vertex_param_line
+    | texcoord_line
+    | face_line
+    | object_line
+    | group_line
+    | mtllib_line
+    | usemtl_line
+    | s_line
+    | comment_line
+));
+
+
+use std::fs::File;
+use std::io::BufReader;
 pub struct ObjParser {
+    filename: &'static str,
+    reader: BufReader<File>,
 }
 
 impl ObjParser {
-    pub fn new() -> Self {
-        ObjParser{}
+    pub fn create(filename: &'static str) -> Self {
+        let reader = BufReader::new(File::open(filename).expect("Unable to open file"));
+        ObjParser{
+            filename: filename,
+            reader: reader,
+        }
     }
 }
 
-// TODO: tie parsers together into a single one that can chunk through a file
+impl Iterator for ObjParser {
+    type Item = ObjLine;
 
+    fn next(&mut self) -> Option<Self::Item> {
+        use nom::IResult;
+        use std::io::BufRead;
+        let mut line = String::new();
+        let read_result = self.reader.read_line(&mut line);
+        match read_result {
+            Ok(len) => if len > 0 {
+                let result = parse_obj_line(line.as_bytes());
+                match result {
+                    IResult::Done(_, o) => { Some(o) },
+                    IResult::Error(e) => { None },
+                    IResult::Incomplete(_) => { self.next() },
+                }
+            } else {
+                None
+            },
+            Err(o) => None
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
 
+    #[test] fn parser_can_read_from_file() {
+        let parser = ObjParser::create("assets/cube.obj");
+        let parsed_lines = parser.collect::<Vec<_>>();
+        assert_eq!(parsed_lines.len(), 51);
+    }
+
+    #[test] fn can_parse_any_line() {
+        let result = parse_obj_line("f 1/11/4 1/3/4 1/11/4  #this is an important face \n".as_bytes());
+        let (_, line) = result.unwrap();
+        assert_eq!(line,
+            ObjLine::Face(
+                FaceIndex(1, Some(11), Some(4)),
+                FaceIndex(1, Some(3), Some(4)),
+                FaceIndex(1, Some(11), Some(4))
+            )
+        );
+    }
 
     #[test] fn can_ignore_comment_at_eol() {
         let ff = face_line("f 1/11/4 1/3/4 1/11/4  #this is an important face \n".as_bytes());
         let (_,b) = ff.unwrap();
         assert_eq!(b,
-        ObjLine::Face(
-            FaceIndex(1, Some(11), Some(4)),
-            FaceIndex(1, Some(3), Some(4)),
-            FaceIndex(1, Some(11), Some(4))
-        )
+            ObjLine::Face(
+                FaceIndex(1, Some(11), Some(4)),
+                FaceIndex(1, Some(3), Some(4)),
+                FaceIndex(1, Some(11), Some(4))
+            )
         );
     }
 
@@ -251,25 +315,25 @@ mod tests {
     #[test] fn can_parse_object_line() {
         let cmt = object_line("o someobject.999asdf.7 \n".as_bytes());
         let (_,b) = cmt.unwrap();
-        assert_eq!(b, ObjLine::ObjectName("someobject.999asdf.7"));
+        assert_eq!(b, ObjLine::ObjectName("someobject.999asdf.7".to_string()));
     }
 
     #[test] fn can_parse_mtllib_line() {
         let cmt = mtllib_line("mtllib somelib \n".as_bytes());
         let (_,b) = cmt.unwrap();
-        assert_eq!(b, ObjLine::MtlLib("somelib"));
+        assert_eq!(b, ObjLine::MtlLib("somelib".to_string()));
     }
 
     #[test] fn can_parse_usemtl_line() {
         let cmt = usemtl_line("usemtl SomeMaterial\n".as_bytes());
         let (_,b) = cmt.unwrap();
-        assert_eq!(b, ObjLine::UseMtl("SomeMaterial"));
+        assert_eq!(b, ObjLine::UseMtl("SomeMaterial".to_string()));
     }
 
     #[test] fn can_parse_s_line() {
         let cmt = s_line("s off\n".as_bytes());
         let (_,b) = cmt.unwrap();
-        assert_eq!(b, ObjLine::SmoothShading("off"));
+        assert_eq!(b, ObjLine::SmoothShading("off".to_string()));
     }
 
     const CUBE_MODEL: &'static str = "
