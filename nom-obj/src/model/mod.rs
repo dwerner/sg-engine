@@ -123,9 +123,9 @@ impl ObjObject {
             println!("{}", i);
             match &self.faces[i] {
                 &ObjLine::Face(ref id1, ref id2, ref id3) => {
-                    data.idx.push((id1.0 as usize) - 1);
-                    data.idx.push((id2.0 as usize) - 1);
-                    data.idx.push((id3.0 as usize) - 1);
+                    data.idx.push(i);
+                    data.idx.push(i+1);
+                    data.idx.push(i+2);
                     data.v_vt_vn.push(self.interleave_tuples(id1));
                     data.v_vt_vn.push(self.interleave_tuples(id2));
                     data.v_vt_vn.push(self.interleave_tuples(id3));
