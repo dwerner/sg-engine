@@ -8,7 +8,7 @@ pub mod event;
 
 
 extern crate cgmath;
-extern crate obj;
+extern crate nom_obj;
 
 use cgmath::Matrix4;
 

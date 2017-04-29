@@ -1,10 +1,13 @@
 use Renderable;
 use Identifyable;
 
-use std::path::Path;
-
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
+
+use nom_obj::model::{
+    Obj,
+    Interleaved
+};
 
 #[derive(Debug)]
 pub struct Material { }
@@ -23,31 +26,32 @@ use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 static GLOBAL_MODEL_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 impl Model {
-    pub fn create(filename: &str, model_mat: Matrix4<f32>) -> Self {
-/*
-        let vectors = o.vertices.windows(3);
-        let normals = o.normals.windows(3);
+    pub fn create(filename: &'static str, model_mat: Matrix4<f32>) -> Self {
 
-        let data = if normals.len() > 0 {
-            vectors.zip(normals).map(|(v,n)| {
-                Vertex::from(Vector( v[0], v[1], v[2] ), Normal( n[0], n[1], n[2]))
-            }).collect::<Vec<_>>()
-        } else {
-            vectors.map(|v| {
-                Vertex::from(Vector( v[0], v[1], v[2] ), Normal(1.0, 1.0, 1.0))
-            }).collect::<Vec<_>>()
-        };
+        let obj = Obj::create(filename);
+        let Interleaved{ v_vt_vn, idx } = obj.objects[0].interleaved();
 
-        assert!(data.len() > 0);
+        let verts = v_vt_vn.iter()
+            .map(|&(v,_vt,vn)| Vertex::create(v.0, v.1, v.2, vn.0, vn.1, vn.0) )
+            .collect::<Vec<_>>();
 
-*/
+        for vert in &verts {
+            println!("vert {:?}", vert);
+        }
+        assert!(verts.len() > 0);
+
+        let indices = idx.iter()
+            .map(|x:&usize| *x as u16)
+            .collect::<Vec<_>>();
+
+        println!("indices {:?}", indices);
+
         let build = Model {
             filename: filename.to_string(),
-            id: 0,//GLOBAL_MODEL_ID.fetch_add(1, Ordering::SeqCst) as u64,
+            id: GLOBAL_MODEL_ID.fetch_add(1, Ordering::SeqCst) as u64,
             model_mat: model_mat,
             world_mat: Matrix4::<f32>::identity(),
-            //mesh: Mesh::create(Vec::new(), Vec::new(), Vec::new()),
-            mesh: Mesh::create(Vec::new(), Vec::new()),//data, o.indices.iter().map(|x:&u32| *x as u16).collect::<Vec<_>>()),
+            mesh: Mesh::create(verts, indices),
             material: Material {},
         };
         println!("Loaded model: \n{:?}", build);
