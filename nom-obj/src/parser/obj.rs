@@ -2,10 +2,6 @@
 ///
 use parser::common::*;
 
-use nom::{
-   space
-};
-
 use std::str;
 
 #[derive(PartialEq, Debug)]
@@ -111,7 +107,7 @@ named!(parse_obj_line< ObjLine >, alt!(
 use std::fs::File;
 use std::io::BufReader;
 pub struct ObjParser {
-    filename: &'static str,
+    _filename: &'static str,
     reader: BufReader<File>,
 }
 
@@ -119,7 +115,7 @@ impl ObjParser {
     pub fn create(filename: &'static str) -> Self {
         let reader = BufReader::new(File::open(filename).expect("Unable to open file"));
         ObjParser{
-            filename: filename,
+            _filename: filename,
             reader: reader,
         }
     }
@@ -138,7 +134,7 @@ impl Iterator for ObjParser {
                 let result = parse_obj_line(line.as_bytes());
                 match result {
                     IResult::Done(_, o) => { Some(o) },
-                    IResult::Error(e) => { None },
+                    IResult::Error(_e) => { None },
                     IResult::Incomplete(_) => {
                         self.next()
                     },
@@ -146,7 +142,7 @@ impl Iterator for ObjParser {
             } else {
                 None
             },
-            Err(o) => {
+            Err(_o) => {
                 None
             }
         }

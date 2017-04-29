@@ -1,14 +1,11 @@
 use Renderable;
 use Identifyable;
 
-use std::path::Path;
-
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
 
 use nom_obj::model::{
     Obj,
-    ObjObject,
     Interleaved
 };
 
@@ -32,7 +29,7 @@ impl Model {
     pub fn create(filename: &'static str, model_mat: Matrix4<f32>) -> Self {
 
         let obj = Obj::create(filename);
-        let Interleaved{ v_vt_vn: v_vt_vn, idx: idx} = obj.objects[0].interleaved();
+        let Interleaved{ v_vt_vn, idx } = obj.objects[0].interleaved();
 
         let verts = v_vt_vn.iter()
             .map(|&(v,_vt,vn)| Vertex::create(v.0, v.1, v.2, vn.0, vn.1, vn.0) )
@@ -41,6 +38,7 @@ impl Model {
         for vert in &verts {
             println!("vert {:?}", vert);
         }
+        assert!(verts.len() > 0);
 
         let indices = idx.iter()
             .map(|x:&usize| *x as u16)
@@ -50,7 +48,7 @@ impl Model {
 
         let build = Model {
             filename: filename.to_string(),
-            id: 0,//GLOBAL_MODEL_ID.fetch_add(1, Ordering::SeqCst) as u64,
+            id: GLOBAL_MODEL_ID.fetch_add(1, Ordering::SeqCst) as u64,
             model_mat: model_mat,
             world_mat: Matrix4::<f32>::identity(),
             mesh: Mesh::create(verts, indices),

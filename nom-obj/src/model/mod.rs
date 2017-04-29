@@ -4,10 +4,7 @@ use parser::obj::{
     FaceIndex,
 };
 
-use parser::mtl::{
-    MtlLine,
-    MtlParser
-};
+// use parser::mtl::{ MtlLine, MtlParser };
 
 pub struct Obj {
     pub comments: Vec<ObjLine>,
@@ -90,18 +87,22 @@ impl ObjObject {
     #[inline]
     fn get_vt_tuple(&self, face_index: &FaceIndex) -> (f32,f32,f32) {
         let &FaceIndex(_, vt, _) = face_index;
-        match &self.texture_coords[(vt.unwrap() as usize) - 1] {
-            &ObjLine::TextureUVW(u,v,w) => (u,v,w.unwrap_or(0.0)),
-            _ => panic!("not a vertex")
+        if vt.is_none() { (0.0,0.0,0.0) } else {
+            match &self.texture_coords[(vt.unwrap() as usize) - 1] {
+                &ObjLine::TextureUVW(u, v, w) => (u, v, w.unwrap_or(0.0)),
+                _ => panic!("not a vertex")
+            }
         }
     }
 
     #[inline]
     fn get_vn_tuple(&self, face_index: &FaceIndex) -> (f32,f32,f32) {
         let &FaceIndex(_, _, vn) = face_index;
-        match &self.normals[(vn.unwrap() as usize) - 1] {
-            &ObjLine::Normal(x,y,z) => (x,y,z),
-            _ => panic!("not a vertex")
+        if vn.is_none() { (0.0,0.0,0.0) } else {
+            match &self.normals[(vn.unwrap() as usize) - 1] {
+                &ObjLine::Normal(x, y, z) => (x, y, z),
+                _ => panic!("not a vertex")
+            }
         }
     }
 
@@ -118,27 +119,42 @@ impl ObjObject {
     }
 
     pub fn interleaved(&self) -> Interleaved {
+        use std::collections::HashMap;
+
+        let mut vertex_map = HashMap::new();
+
         let mut data = Interleaved{ v_vt_vn: Vec::new(), idx:Vec::new() };
+
         for i in 0usize..self.faces.len() {
             println!("{}", i);
             match &self.faces[i] {
                 &ObjLine::Face(ref id1, ref id2, ref id3) => {
-                    data.idx.push(i);
-                    data.idx.push(i+1);
-                    data.idx.push(i+2);
-                    data.v_vt_vn.push(self.interleave_tuples(id1));
-                    data.v_vt_vn.push(self.interleave_tuples(id2));
-                    data.v_vt_vn.push(self.interleave_tuples(id3));
+
+                    let next_idx = (id1.0 as usize) - 1;
+                    data.idx.push(next_idx);
+                    vertex_map.entry(next_idx).or_insert(self.interleave_tuples(id1));
+
+                    let next_idx = (id2.0 as usize) - 1;
+                    data.idx.push(next_idx);
+                    vertex_map.entry(next_idx).or_insert(self.interleave_tuples(id2));
+
+                    let next_idx = (id3.0 as usize) - 1;
+                    data.idx.push(next_idx);
+                    vertex_map.entry(next_idx).or_insert(self.interleave_tuples(id3));
+
                 }
                 _ => { panic!("Found something other than a ObjLine::Face in object.faces") }
             }
+        }
+        for i in 0usize..vertex_map.len() {
+            data.v_vt_vn.push(vertex_map.remove(&i).unwrap());
         }
         data
     }
 }
 
 pub struct Interleaved {
-    pub v_vt_vn: Vec<((f32, f32, f32, f32), (f32, f32, f32), (f32,f32,f32))>,
+    pub v_vt_vn: Vec<((f32, f32, f32, f32), (f32, f32, f32), (f32, f32, f32))>,
     pub idx: Vec<usize>
 }
 

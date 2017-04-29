@@ -1,11 +1,14 @@
-use super::{ Renderer, Renderable }; //, Physical, Syncable, Identifyable };
+use super::{
+    Renderer,
+    //Renderable
+}; //, Physical, Syncable, Identifyable };
 
 use input::events::InputEvent;
 use ui::events::UIEvent;
-use ui::view::UIView;
+// use ui::view::UIView;
 
 use std::collections::VecDeque;
-use tree::{ Node, RcNode };
+use tree::{ RcNode };
 use std::sync::Arc;
 use input::screen::ScreenRect;
 use model::Model;

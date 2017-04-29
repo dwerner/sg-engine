@@ -33,8 +33,10 @@ use vulkano::swapchain::Swapchain;
 use vulkano::pipeline::input_assembly::PrimitiveTopology;
 use vulkano::image::{
     SwapchainImage,
-    ImageView,
+    ImageViewAccess,
+    Image
 };
+
 use vulkano::device::QueuesIter;
 use vulkano::device::Queue;
 use vulkano::sync::GpuFuture;
@@ -46,8 +48,6 @@ use vulkano::framebuffer::{
     RenderPassAbstract,
     FramebufferAbstract
 };
-
-use vulkano::image::IntoImageView;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -121,10 +121,10 @@ pub enum DrawMode {
 impl VulkanRenderer {
 	pub fn new(title: &str, h: u32, w: u32, draw_mode: DrawMode) -> Self {
 
-        let topology = match draw_mode {
-            DrawMode::Colored => PrimitiveTopology::TriangleList,
-            DrawMode::Points  => PrimitiveTopology::PointList,
-            DrawMode::Wireframe => PrimitiveTopology::LineList
+        let polygonmode = match draw_mode {
+            DrawMode::Colored => PolygonMode::Fill,
+            DrawMode::Points  => PolygonMode::Point,
+            DrawMode::Wireframe => PolygonMode::Line
         };
 
 		// Vulkan
@@ -158,7 +158,7 @@ impl VulkanRenderer {
 
 		let queue = queues.next().unwrap();
 
-		let (swapchain, images) = {
+		let (swapchain, images): (Arc<Swapchain>, Vec<Arc<SwapchainImage>>) = {
 			let caps = window.surface().get_capabilities(&physical).expect("Failed to get surface capabilities");
 			let dimensions = caps.current_extent.unwrap_or([1280, 800]);
 			let present = caps.present_modes.iter().next().unwrap();
@@ -184,10 +184,12 @@ impl VulkanRenderer {
 		let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
 		let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
 
-        let dimensions = images[0].dimensions();
         let proj = cgmath::perspective(
             cgmath::Rad(::std::f32::consts::FRAC_PI_2),
-            dimensions.width() as f32 / dimensions.height() as f32,
+            {
+               let d = Image::dimensions(&images[0]);
+               d.width() as f32 / d.height() as f32
+            },
             0.01,
             100.0 // depth used for culling!
         );
@@ -201,11 +203,11 @@ impl VulkanRenderer {
 
         let scale = cgmath::Matrix4::from_scale(1.0);
 
-        let depth_buffer = Arc::new(vulkano::image::attachment::AttachmentImage::transient(
+        let depth_buffer = Image::access(vulkano::image::attachment::AttachmentImage::transient(
             &device,
-            [dimensions.width(), dimensions.height()],
+            SwapchainImage::dimensions(&images[0]),
             vulkano::format::D16Unorm
-        ).unwrap().into_image_view());
+        ).unwrap());
 
         let uniform_buffer = CpuAccessibleBuffer::<vs::ty::Data>::from_data(
             &device,
@@ -224,13 +226,13 @@ impl VulkanRenderer {
                     color: {
                         load: Clear,
                         store: Store,
-                        format: images[0].format(),
+                        format: Image::format(&images[0]),
                         samples: 1,
                     },
                     depth: {
                         load: Clear,
                         store: DontCare,
-                        format: vulkano::image::Image::format(&depth_buffer),
+                        format: vulkano::image::ImageAccess::format(&depth_buffer),
                         samples: 1,
                     }
                 },
@@ -242,26 +244,43 @@ impl VulkanRenderer {
 
 
         let renderpass_arc = Arc::new(renderpass); //as Arc<RenderPassAbstract + Send + Sync>;
+        let depth_buffer = Arc::new(depth_buffer);
 
         let framebuffers = images.iter().map(|image| {
             let attachments = renderpass_arc.desc().start_attachments()
                 .color(image.clone()).depth(depth_buffer.clone());
-            let dimensions = [image.dimensions().width(), image.dimensions().height(), 1];
+            let dimensions = [Image::dimensions(image).width(), Image::dimensions(image).height(), 1];
             Framebuffer::new(
                 renderpass_arc.clone(),
                 dimensions,
                 vec![ // because we are using RenderPassAbstract, we have to pass the Vec<Arc<ImageView + Send + Sync>>
-                    image.clone() as Arc<ImageView + Send + Sync>,
-                    depth_buffer.clone() as Arc<ImageView + Send + Sync>
+                    image.clone() as Arc<ImageViewAccess + Send + Sync>,
+                    depth_buffer.clone() as Arc<ImageViewAccess + Send + Sync>
                 ]
             ).unwrap() as Arc<FramebufferAbstract + Send + Sync>
         }).collect::<Vec<_>>();
+
+        use vulkano::pipeline::raster::{
+            Rasterization,
+            PolygonMode,
+            CullMode,
+            FrontFace,
+            DepthBiasControl
+        };
+
+        let mut raster = Rasterization::default();
+        raster.cull_mode = CullMode::Front;
+        raster.polygon_mode = polygonmode;
+        //raster.depth_clamp = true;
+        raster.front_face = FrontFace::CounterClockwise;
+        raster.line_width = Some(2.0);
+        //raster.depth_bias = DepthBiasControl::Dynamic;
 
 		let pipeline = Arc::new(GraphicsPipeline::new(&device, GraphicsPipelineParams {
 			vertex_input: SingleBufferDefinition::new(),
 			vertex_shader: vs.main_entry_point(),
 			input_assembly: InputAssembly {
-				topology: topology,
+				topology: PrimitiveTopology::TriangleList,
 				primitive_restart_enable: false,
 			},
 			tessellation: None,
@@ -271,13 +290,13 @@ impl VulkanRenderer {
 					Viewport {
 						origin: [0.0, 0.0],
 						depth_range: 0.0 .. 1.0,
-						dimensions: [images[0].dimensions().width() as f32,
-						images[0].dimensions().height() as f32],
+						dimensions: [Image::dimensions(&images[0]).width() as f32,
+						Image::dimensions(&images[0]).height() as f32],
 					},
 					Scissor::irrelevant()
 				)],
 			},
-			raster: Default::default(),
+			raster: raster,
 			multisample: Multisample::disabled(),
 			fragment_shader: fs.main_entry_point(),
 			depth_stencil: DepthStencil::disabled(),
@@ -291,7 +310,7 @@ impl VulkanRenderer {
 
         let depth_buffer = vulkano::image::attachment::AttachmentImage::transient(
             &device,
-            [dimensions.width(), dimensions.height()],
+            SwapchainImage::dimensions(&images[0]),
             vulkano::format::D16Unorm
         ).unwrap();
 
@@ -378,7 +397,7 @@ impl VulkanRenderer {
                     vulkano::format::ClearValue::from([0.0,0.0,0.0,1.0]),
                     vulkano::format::ClearValue::Depth(1.0)
                 ]
-            );
+            ).expect("unable to begin renderpass");
 
         // TODO: do away with this renderable queue
         loop {
@@ -435,7 +454,7 @@ impl VulkanRenderer {
                                 i.clone(),
                                 self.pipeline_set.clone(),
                                 push
-                        );
+                        ).expect("Unable to add command");
 
                     }
                 },
@@ -445,7 +464,7 @@ impl VulkanRenderer {
 
         let cmd_buffer_build = cmd_buffer_build.end_render_pass();
         //println!("finalizing command buffer");
-        let cmd_buffer = cmd_buffer_build.build().unwrap();
+        let cmd_buffer = cmd_buffer_build.expect("unable to end renderpass").build().unwrap();
 
         let future = future
             .then_execute(self.queue.clone(), cmd_buffer)

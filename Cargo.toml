@@ -29,9 +29,9 @@ glium = "0.16"
 winit = "0.5"
 
 #vulkano = "0.3"
-vulkano = { git = "https://github.com/tomaka/vulkano", branch="incoming"}
-vulkano-win = { git = "https://github.com/tomaka/vulkano", branch="incoming"}
-vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="incoming"}
+vulkano = { git = "https://github.com/tomaka/vulkano", branch="master"}
+vulkano-win = { git = "https://github.com/tomaka/vulkano", branch="master"}
+vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="master"}
 glsl-to-spirv = "0.1"
 
 #TODO network
@@ -47,6 +47,6 @@ path = "game_state"
 # to get cargo to build them when the main project is built
 
 [build-dependencies]
-vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="incoming"}
+vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="master"}
 #vulkano-shaders = "0.3"
 
