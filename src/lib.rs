@@ -15,6 +15,7 @@ extern crate time;
 
 extern crate libloading;
 extern crate ansi_term;
+extern crate image;
 
 // our subproject
 extern crate game_state;

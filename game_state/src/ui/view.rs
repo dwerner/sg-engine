@@ -17,6 +17,7 @@ use Identifyable;
 
 use std::collections::HashMap;
 use ui::events::UIEvent;
+use image;
 
 pub struct UIView {
     pub uid: u64,
@@ -67,6 +68,9 @@ impl Renderable for UIView {
     }
     fn set_model_matrix(&mut self, mat: Matrix4<f32>) {
         panic!("nope");
+    }
+    fn get_diffuse_map(&self) -> &image::DynamicImage {
+        unimplemented!()
     }
 }
 

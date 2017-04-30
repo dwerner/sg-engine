@@ -33,6 +33,7 @@ vulkano = { git = "https://github.com/tomaka/vulkano", branch="master"}
 vulkano-win = { git = "https://github.com/tomaka/vulkano", branch="master"}
 vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="master"}
 glsl-to-spirv = "0.1"
+image = "0.13"
 
 #TODO network
 #serde = "0.9"

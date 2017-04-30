@@ -10,6 +10,9 @@ use time::PreciseTime;
 use time::Duration as TDuration;
 
 ///
+/// TODO: support a dynamically *defined* and dynamically loaded lib
+/// --> Load module definitions at runtime, even watch a mod folder and load them based on a def
+///
 /// Mods support:
 ///
 /// Mods need to be named mod_<mod-name>, and must be unique.

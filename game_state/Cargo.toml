@@ -13,6 +13,7 @@ crate-type=["rlib"]
 
 [dependencies]
 cgmath = "0.12"
+image = "0.13"
 
 [dependencies.nom-obj]
 path = "../nom-obj"

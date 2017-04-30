@@ -3,16 +3,17 @@ use Identifyable;
 
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
+use image;
 
 use nom_obj::model::{
     Obj,
     Interleaved
 };
 
-#[derive(Debug)]
-pub struct Material { }
+pub struct Material {
+    diffuse_map: image::DynamicImage
+}
 
-#[derive(Debug)]
 pub struct Model {
     pub filename: String,
     pub id: u64,
@@ -32,7 +33,7 @@ impl Model {
         let Interleaved{ v_vt_vn, idx } = obj.objects[0].interleaved();
 
         let verts = v_vt_vn.iter()
-            .map(|&(v,_vt,vn)| Vertex::create(v.0, v.1, v.2, vn.0, vn.1, vn.0) )
+            .map(|&(v,vt,vn)| Vertex::create(v.0, v.1, v.2, vt.0, vt.1, vt.2, vn.0, vn.1, vn.0) )
             .collect::<Vec<_>>();
 
         for vert in &verts {
@@ -46,15 +47,21 @@ impl Model {
 
         println!("indices {:?}", indices);
 
+        use std::path::Path;
+        let path_str = obj.get_mtl().diffuse_map.clone();
+        let material_path = Path::new(&path_str);
+        let diffuse_map = image::open(material_path).expect("unable to open image file from material");
+
         let build = Model {
             filename: filename.to_string(),
             id: GLOBAL_MODEL_ID.fetch_add(1, Ordering::SeqCst) as u64,
             model_mat: model_mat,
             world_mat: Matrix4::<f32>::identity(),
             mesh: Mesh::create(verts, indices),
-            material: Material {},
+            material: Material {
+                diffuse_map: diffuse_map
+            },
         };
-        println!("Loaded model: \n{:?}", build);
         build
     }
 }
@@ -88,22 +95,25 @@ fn slice_windows_learning() {
 }
 
 #[derive(Debug, Copy, Clone)] pub struct Vector(pub f32,pub f32,pub f32);
+#[derive(Debug, Copy, Clone)] pub struct UVW(pub f32,pub f32,pub f32);
 #[derive(Debug, Copy, Clone)] pub struct Normal(pub f32,pub f32,pub f32);
 #[derive(Debug, Copy, Clone)] pub struct Vertex {
     pub position: Vector,
+    pub uvw: UVW,
     pub normal: Normal
 }
 
 impl Vertex {
-    pub fn create(vx:f32, vy:f32, vz:f32, nx:f32, ny:f32, nz:f32) -> Self {
+    pub fn create(vx:f32, vy:f32, vz:f32, u:f32, v:f32, w:f32, nx:f32, ny:f32, nz:f32) -> Self {
         Vertex {
             position: Vector(vx,vy,vz),
+            uvw: UVW(u,v,w),
             normal: Normal(nx,ny,nz)
         }
     }
 
-    pub fn from(v: Vector, n: Normal) -> Self {
-        Vertex{ position:v, normal:n }
+    pub fn from(v: Vector, u:UVW, n: Normal) -> Self {
+        Vertex{ position: v, uvw: u, normal: n }
     }
 }
 
@@ -128,6 +138,9 @@ impl Renderable for Model {
 
     fn get_model_matrix(&self) -> &Matrix4<f32> {
         &self.model_mat
+    }
+    fn get_diffuse_map(&self) -> &image::DynamicImage {
+        &self.material.diffuse_map
     }
 
     fn set_world_matrix(&mut self, mat: Matrix4<f32>) {

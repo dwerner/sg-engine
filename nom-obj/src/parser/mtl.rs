@@ -117,15 +117,15 @@ named!(parse_mtl_line< MtlLine >, alt!(
 use std::fs::File;
 use std::io::BufReader;
 pub struct MtlParser {
-    _filename: &'static str,
+    _filename: String,
     reader: BufReader<File>,
 }
 
 impl MtlParser {
-    pub fn create(filename: &'static str) -> Self {
+    pub fn create(filename: &str) -> Self {
         let reader = BufReader::new(File::open(filename).expect("Unable to open file"));
         MtlParser{
-            _filename: filename,
+            _filename: filename.to_string(),
             reader: reader,
         }
     }
@@ -141,7 +141,6 @@ impl Iterator for MtlParser {
         let read_result = self.reader.read_line(&mut line);
         match read_result {
             Ok(len) => if len > 0 {
-                println!("{:?}", line);
                 let result = parse_mtl_line(line.as_bytes());
                 match result {
                     IResult::Done(_, o) => { Some(o) },

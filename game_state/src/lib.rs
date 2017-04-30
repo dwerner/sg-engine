@@ -9,6 +9,7 @@ pub mod event;
 
 extern crate cgmath;
 extern crate nom_obj;
+extern crate image;
 
 use cgmath::Matrix4;
 
@@ -56,6 +57,7 @@ pub trait Identifyable {
 pub trait Renderable : Identifyable {
     fn get_mesh(&self) -> &Mesh;
 
+    fn get_diffuse_map(&self) -> &image::DynamicImage;
     fn get_world_matrix(&self) -> &Matrix4<f32>;
     fn set_world_matrix(&mut self, mat: Matrix4<f32>);
 

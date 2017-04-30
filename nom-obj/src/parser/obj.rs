@@ -107,15 +107,15 @@ named!(parse_obj_line< ObjLine >, alt!(
 use std::fs::File;
 use std::io::BufReader;
 pub struct ObjParser {
-    _filename: &'static str,
+    filename: String,
     reader: BufReader<File>,
 }
 
 impl ObjParser {
-    pub fn create(filename: &'static str) -> Self {
+    pub fn create(filename: &str) -> Self {
         let reader = BufReader::new(File::open(filename).expect("Unable to open file"));
         ObjParser{
-            _filename: filename,
+            filename: filename.to_string(),
             reader: reader,
         }
     }
