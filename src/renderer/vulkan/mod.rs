@@ -231,7 +231,7 @@ impl VulkanRenderer {
                     },
                     depth: {
                         load: Clear,
-                        store: DontCare,
+                        store: Store,
                         format: vulkano::image::ImageAccess::format(&depth_buffer),
                         samples: 1,
                     }
@@ -269,12 +269,12 @@ impl VulkanRenderer {
         };
 
         let mut raster = Rasterization::default();
-        raster.cull_mode = CullMode::Front;
+        raster.cull_mode = CullMode::Back;
         raster.polygon_mode = polygonmode;
-        //raster.depth_clamp = true;
-        raster.front_face = FrontFace::CounterClockwise;
+        raster.depth_clamp = true;
+        raster.front_face = FrontFace::Clockwise;
         raster.line_width = Some(2.0);
-        //raster.depth_bias = DepthBiasControl::Dynamic;
+        raster.depth_bias = DepthBiasControl::Dynamic;
 
 		let pipeline = Arc::new(GraphicsPipeline::new(&device, GraphicsPipelineParams {
 			vertex_input: SingleBufferDefinition::new(),
@@ -299,7 +299,7 @@ impl VulkanRenderer {
 			raster: raster,
 			multisample: Multisample::disabled(),
 			fragment_shader: fs.main_entry_point(),
-			depth_stencil: DepthStencil::disabled(),
+			depth_stencil: DepthStencil::simple_depth_test(),
 			blend: Blend::pass_through(),
 			render_pass: Subpass::from(renderpass_arc.clone() as Arc<RenderPassAbstract + Send + Sync>, 0).unwrap(),
 		}).unwrap());
