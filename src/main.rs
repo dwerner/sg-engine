@@ -26,9 +26,9 @@ use std::thread;
 fn main() {
 	let mut state = state::State::new(
 		vec![
+            //TODO push rendering into mod_rendering
             Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Wireframe )),
-            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Points)),
-            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Colored)),
+            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Colored )),
         ]
     );
 
