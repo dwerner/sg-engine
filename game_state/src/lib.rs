@@ -64,3 +64,11 @@ pub trait Renderable : Identifyable {
     fn get_model_matrix(&self) -> &Matrix4<f32>;
     fn set_model_matrix(&mut self, mat: Matrix4<f32>);
 }
+
+pub trait Physical : Identifyable {
+    fn set_velocity(x:f32, y:f32, z:f32);
+}
+
+pub trait Simulated : Identifyable {
+
+}
