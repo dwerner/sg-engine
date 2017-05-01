@@ -16,8 +16,10 @@ fn main() {
 
 	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
 	let mut sim = load_mod!(simulation);
+    let mut assets = load_mod!(asset_loader);
 	let mut rendering = load_mod!(rendering);
 
+    assets.check_update(&mut state);
     sim.check_update(&mut state);
     rendering.check_update(&mut state);
 
@@ -27,10 +29,15 @@ fn main() {
 	loop {
         // TODO: gather delta time instead
 
+        let asset_time = assets.tick(&mut state);
 		let sim_time = sim.tick(&mut state);
 		let render_time = rendering.tick(&mut state);
 
-        let wait = (frame_budget - (sim_time.num_microseconds().unwrap() + render_time.num_microseconds().unwrap())) / 1000;
+        let wait = (frame_budget - (
+            asset_time.num_microseconds().unwrap() +
+                sim_time.num_microseconds().unwrap() +
+                render_time.num_microseconds().unwrap()
+            )) / 1000;
         if wait > 0 {
             thread::sleep(Duration::from_millis(wait as u64));
         }
@@ -39,11 +46,13 @@ fn main() {
         if frame % 60 == 0 {
             if frame % 100 == 0 {
                 println!(
-                    "Sim time: {}, render time: {}",
+                    "Asset time: {} Sim time: {}, render time: {}",
+                    asset_time.num_microseconds().unwrap(),
                     sim_time.num_microseconds().unwrap(),
                     render_time.num_microseconds().unwrap()
                 );
             }
+            assets.check_update(&mut state);
             sim.check_update(&mut state);
             rendering.check_update(&mut state);
         }
