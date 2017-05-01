@@ -18,36 +18,10 @@ libloading = "0.3"
 ansi_term = "0.9"
 time = "0.1"
 
-cgmath = "0.12"
-sdl2 = "0.29"
-
-
-# OpenGL Renderer
-glium = "0.16"
-
-# Vulkan Renderer
-winit = "0.5"
-
-#vulkano = "0.3"
-vulkano = { git = "https://github.com/tomaka/vulkano", branch="master"}
-vulkano-win = { git = "https://github.com/tomaka/vulkano", branch="master"}
-vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="master"}
-glsl-to-spirv = "0.1"
-image = "0.13"
-
-#TODO network
-#serde = "0.9"
-#bincode = "1.0.0-alpha"
-#nom ! esp for 3d format parsing
-
-
 [dependencies.game_state]
 path = "game_state"
 
 # mods don't need to be deps, but can be
 # to get cargo to build them when the main project is built
 
-[build-dependencies]
-vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="master"}
-#vulkano-shaders = "0.3"
 

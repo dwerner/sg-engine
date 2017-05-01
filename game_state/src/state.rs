@@ -21,9 +21,9 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(renderers: Vec<Box<Renderer>>) -> Self {
+    pub fn new() -> Self {
         State{
-            renderers: renderers,
+            renderers: Vec::new(),
             render_layers: Vec::new(),
             input_state: InputState {
                 pending_input_events: VecDeque::new()
