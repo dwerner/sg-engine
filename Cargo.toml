@@ -23,5 +23,8 @@ path = "game_state"
 
 # mods don't need to be deps, but can be
 # to get cargo to build them when the main project is built
-
+# this builds them and puts them in the target for the main output
+# mod_rendering = { path = "mod_rendering" }
+# mod_asset_loader = { path = "mod_asset_loader" }
+# mod_simulation = { path = "mod_simulation" }
 

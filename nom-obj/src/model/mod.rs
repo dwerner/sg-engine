@@ -68,7 +68,6 @@ impl Obj {
         let whole_path: PathBuf = Path::join(Path::new(parent), material);
         let material = whole_path.to_owned().to_str().unwrap().to_string();
 
-        println!("matlib {}", material);
         let parser = MtlParser::create(&material);
         for line in parser {
             match line {
@@ -179,7 +178,6 @@ impl ObjObject {
         let mut data = Interleaved{ v_vt_vn: Vec::new(), idx:Vec::new() };
 
         for i in 0usize..self.faces.len() {
-            println!("{}", i);
             match &self.faces[i] {
                 &ObjLine::Face(ref id1, ref id2, ref id3) => {
 

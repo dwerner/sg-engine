@@ -35,7 +35,7 @@ impl Model {
         let verts = v_vt_vn.iter()
             .map(|&(v,vt,vn)| Vertex::create(v.0, v.1, v.2, vt.0, vt.1, vt.2, vn.0, vn.1, vn.0) )
             .collect::<Vec<_>>();
-        
+
         assert!(verts.len() > 0);
 
         let indices = idx.iter()

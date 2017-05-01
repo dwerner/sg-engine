@@ -41,7 +41,6 @@ macro_rules! load_mod {
         } else {
             format!( "mod_{0}/target/debug/deps/libmod_{0}.so", name )
         };
-		println!("macro load {0} {0}", name);
 		LibLoader::new(&path, name)
 	}};
 }
