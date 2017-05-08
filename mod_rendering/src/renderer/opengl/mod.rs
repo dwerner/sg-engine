@@ -11,10 +11,14 @@ use game_state::state::SceneGraph;
 use game_state::Renderable;
 use game_state::Renderer;
 
+use game_state::input;
+
 use std::sync::Arc;
+use game_state::Identity;
 use std::collections::VecDeque;
 
 pub struct OpenGLRenderer {
+    id: Identity,
     display: GlutinFacade,
     w:u32,
     h:u32,
@@ -32,6 +36,7 @@ impl OpenGLRenderer {
             .unwrap();
 
         OpenGLRenderer{
+            id: game_state::create_next_identity(),
             display: display,
             w: w,
             h: h,
@@ -42,8 +47,13 @@ impl OpenGLRenderer {
     fn render(&mut self){}
 }
 
-impl Renderer for OpenGLRenderer {
+impl game_state::Identifyable for OpenGLRenderer {
+    fn identify(&self) -> Identity {
+        unimplemented!()
+    }
+}
 
+impl Renderer for OpenGLRenderer {
     fn load(&mut self) {
     }
 
@@ -56,5 +66,8 @@ impl Renderer for OpenGLRenderer {
 
     fn present(&mut self) {
         self.render();
+    }
+    fn get_input_events(&mut self) -> Vec<input::events::InputEvent> {
+        unimplemented!()
     }
 }

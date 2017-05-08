@@ -49,6 +49,9 @@ use vulkano::framebuffer::{
     FramebufferAbstract
 };
 
+// FIXME ju,k.u.m.[yu;j.7;i;.jk.7;.;;li
+// k66kj,ku,,777777777777777777777777777777777777
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -57,9 +60,11 @@ use std::collections::hash_map::HashMap;
 
 use ::renderer::utils::fps;
 
-use game_state::{Renderer, Renderable};
+use game_state;
+use game_state::{Identity, Identifyable, Renderer, Renderable};
 use game_state::tree::{ BreadthFirstIterator };
 use game_state::state::SceneGraph;
+
 use image;
 
 //TODO: compile these elsewhere, at build time?
@@ -75,6 +80,7 @@ pub struct BufferItem {
 }
 
 pub struct VulkanRenderer {
+    id: Identity,
 	instance: Arc<Instance>,
 	window: Window,
 	device: Arc<Device>,
@@ -122,6 +128,8 @@ pub struct VulkanRenderer {
     uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkan::vs::ty::Data>>,
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     buffer_cache: HashMap<usize, BufferItem>,
+
+    current_mouse_pos: ScreenPoint,
     debug_world_rotation: f32,
 }
 
@@ -132,6 +140,7 @@ pub enum DrawMode {
 }
 
 impl VulkanRenderer {
+
 	pub fn new(title: &str, h: u32, w: u32, draw_mode: DrawMode) -> Self {
 
         let polygonmode = match draw_mode {
@@ -344,6 +353,7 @@ impl VulkanRenderer {
 		let submissions: Vec<Box<GpuFuture>> = Vec::new();
 
 		VulkanRenderer {
+            id: game_state::create_next_identity(),
             instance: instance.clone(),
             window: window,
 			device: device,
@@ -362,6 +372,8 @@ impl VulkanRenderer {
             uniform_buffer: uniform_buffer,
             render_layer_queue: VecDeque::new(),
             buffer_cache: HashMap::new(),
+
+            current_mouse_pos: ScreenPoint{x: 0, y: 0},
             debug_world_rotation: 0f32,
 		}
 
@@ -387,6 +399,14 @@ impl VulkanRenderer {
 	pub fn native_window(&self) -> &winit::Window {
 		&self.window.window()
 	}
+
+    fn get_mouse_pos(&self) -> &ScreenPoint {
+        &self.current_mouse_pos
+    }
+
+    fn set_mouse_pos(&mut self, pos: ScreenPoint) {
+        self.current_mouse_pos = pos;
+    }
 
     #[inline]
     pub fn insert_buffer(&mut self, id: usize, vertices: &Vec<Vertex>, indices: &Vec<u16>, diffuse_map: &image::DynamicImage) {
@@ -481,10 +501,10 @@ impl VulkanRenderer {
 
                         let mesh = node.data.get_mesh();
 
-                        if !self.buffer_cache.contains_key(&(node.data.id as usize)) {
+                        if !self.buffer_cache.contains_key(&(node.data.identify() as usize)) {
                             let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
                             self.insert_buffer(
-                                node.data.id as usize,
+                                node.data.identify() as usize,
                                 &vertices,
                                 &mesh.indices,
                                 &node.data.get_diffuse_map()
@@ -496,7 +516,7 @@ impl VulkanRenderer {
                                 vertices: ref vert_buffer,
                                 indices: ref index_buffer,
                                 diffuse_map: ref diffuse_map,
-                            } = self.buffer_cache.get(&(node.data.id as usize)).unwrap();
+                            } = self.buffer_cache.get(&(node.data.identify() as usize)).unwrap();
                             (vert_buffer.clone(), index_buffer.clone(), diffuse_map.clone())
                         };
 
@@ -542,6 +562,24 @@ impl VulkanRenderer {
 
 }
 
+
+use game_state::input::events::{
+    InputEvent,
+    MouseButton,
+};
+
+use game_state::input::screen::{
+    ScreenPoint,
+    DeltaVector,
+};
+
+impl Identifyable for VulkanRenderer {
+    fn identify(&self) -> Identity {
+        self.id
+    }
+}
+
+
 impl Renderer for VulkanRenderer {
     fn load(&mut self) {
 
@@ -558,5 +596,24 @@ impl Renderer for VulkanRenderer {
     fn present(&mut self) {
         self.render();
     }
+
+    fn get_input_events(&mut self) -> Vec<InputEvent> {
+        use winit;
+        let current_mouse_pos = self.get_mouse_pos();
+
+        self.native_window().poll_events().map(|e| match e {
+        /*    winit::MouseButton::Left => Some(InputEvent::MouseDown(self.id, MouseButton::Left, ScreenPoint{})),
+            winit::MouseButton::Right => Some(InputEvent::MouseDown(self.id, MouseButton::Right, ScreenPoint{})),
+            winit::MouseButton::Middle => Some(InputEvent::MouseDown(self.id, MouseButton::Middle, ScreenPoint{})),
+            winit::Event::MouseMoved(x,y) => {
+                self.set_mouse_pos(ScreenPoint{x,y});
+                Some(InputEvent::MouseMove(self.id, ScreenPoint{x,y}, DeltaVector{delta_x: x, delta_y: y}))
+            },*/
+            _ => None
+        }).flat_map(|e| e).collect::<Vec<InputEvent>>()
+
+    }
+
+    // FIXME Ruby
 }
 

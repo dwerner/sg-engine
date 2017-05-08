@@ -46,7 +46,16 @@ pub extern "C" fn mod_rendering_tick(s: &mut state::State) {
             s.renderers[i].queue_render_layer(r.clone());
         }
         s.renderers[i].present();
+
+        // Renderers own the input event loop associated with their
+        // internals: i.e. the window manager window
+        // - get input events and convert them to our internal format
+        // and push them into the input events queue
+        
+        //let events = s.renderers[i].get_input_events();
+        //s.input_state.pending_input_events.append(events);
     }
+
 }
 
 
