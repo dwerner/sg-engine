@@ -12,7 +12,22 @@ name = "mod_rendering"
 crate-type=["dylib"]
 
 [dependencies]
+
+# OpenGL Renderer
+glium = "0.16"
+
+# Vulkan Renderer
+winit = "0.5"
 cgmath = "0.12"
+vulkano = { git = "https://github.com/tomaka/vulkano", branch="master"}
+vulkano-win = { git = "https://github.com/tomaka/vulkano", branch="master"}
+vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="master"}
+glsl-to-spirv = "0.1"
+image = "0.13"
+time = "0.1"
 
 [dependencies.game_state]
 path = "../game_state"
+
+[build-dependencies]
+vulkano-shaders = { git = "https://github.com/tomaka/vulkano", branch="master"}

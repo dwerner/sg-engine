@@ -1,1 +1,3 @@
-# This is just a dummy lib, showing how to have a multi-step simulation with separate libraries for each
+# mod_rendering
+
+this module is responsible for creating renderers, and adding them to the global GameState

@@ -1,36 +1,18 @@
-extern crate winit;
-extern crate vulkano;
 extern crate time;
-extern crate cgmath;
+
+extern crate game_state;
 
 #[macro_use]
 extern crate engine;
-
-use engine::renderer::{
-    OpenGLRenderer,
-};
-
-use engine::renderer::vulkan::{
-    VulkanRenderer,
-    DrawMode, // TODO: extract this to renderer::
-};
-
 use engine::libloader::LibLoader;
 
-extern crate game_state;
 use std::time::Duration;
 use game_state::state;
 
 use std::thread;
 
 fn main() {
-	let mut state = state::State::new(
-		vec![
-            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Wireframe )),
-            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Points)),
-            Box::new(VulkanRenderer::new("VulkanRenderer", 640, 480, DrawMode::Colored)),
-        ]
-    );
+	let mut state = state::State::new();
 
 	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
 	let mut sim = load_mod!(simulation);
