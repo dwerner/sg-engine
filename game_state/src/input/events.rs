@@ -1,7 +1,5 @@
 use Identity;
 
-
-
 use input::screen::{
     DeltaVector,
     ScreenPoint,
