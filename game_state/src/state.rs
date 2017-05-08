@@ -1,6 +1,6 @@
 use super::{
     Renderer,
-    //Renderable
+    Renderable
 }; //, Physical, Syncable, Identifyable };
 
 use input::events::InputEvent;
@@ -13,6 +13,9 @@ use std::sync::Arc;
 use input::screen::ScreenRect;
 use model::Model;
 
+///
+/// This is the central, and global, state passed to each mod during the main loop
+///
 pub struct State {
     pub renderers: Vec<Box<Renderer>>,
     pub render_layers: Vec<Arc<SceneGraph>>,
@@ -46,7 +49,7 @@ pub struct InputState {
 }
 
 pub struct SceneGraph {
-    pub root: RcNode<Box<Model>>,
+    pub root: RcNode<Box<Renderable>>,
 }
 
 pub struct UIState {

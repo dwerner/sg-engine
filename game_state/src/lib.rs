@@ -6,10 +6,10 @@ pub mod ui;
 pub mod input;
 pub mod event;
 
-
 extern crate cgmath;
 extern crate nom_obj;
 extern crate image;
+extern crate time;
 
 use cgmath::Matrix4;
 
@@ -18,11 +18,25 @@ use std::sync::Arc;
 
 use state::SceneGraph;
 
+use tree::RcNode;
+
 // Represents the public interface for mods
 // traits for implementing behavior of state objects should exist here
 // but the impls for those traits can be in mods
 
-pub trait Renderer {
+pub type Identity = u64;
+use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+static GLOBAL_IDENITY_CURSOR: AtomicUsize = ATOMIC_USIZE_INIT;
+
+pub fn create_next_identity() -> Identity {
+    GLOBAL_IDENITY_CURSOR.fetch_add(1, Ordering::SeqCst) as Identity
+}
+
+pub trait Identifyable {
+    fn identify(&self) -> Identity;
+}
+
+pub trait Renderer : Identifyable {
 
     /// load()
     /// provide a hook for a mod to notify the renderer that it is about to be used
@@ -40,18 +54,13 @@ pub trait Renderer {
     /// Actually render the image, compositing render layers in the order they were queued
     fn present(&mut self);
 
-    // force these to be implemented soon
     // get_input_events() <- renderer should be tracking input events
-    fn get_input_events(&self) -> Vec<input::events::InputEvent> {
-        Vec::new()
-    }
+    fn get_input_events(&mut self) -> Vec<input::events::InputEvent>;
+
 
     // Window handle
     fn set_title(&mut self, title: &str) {}
-}
 
-pub trait Identifyable {
-    fn identify(&self) -> u64;
 }
 
 pub trait Renderable : Identifyable {
@@ -63,12 +72,57 @@ pub trait Renderable : Identifyable {
 
     fn get_model_matrix(&self) -> &Matrix4<f32>;
     fn set_model_matrix(&mut self, mat: Matrix4<f32>);
+
+    // TODO fn get_graph_node(&self) -> tree::RcNode<_>;
 }
 
-pub trait Physical : Identifyable {
-    fn set_velocity(x:f32, y:f32, z:f32);
+pub struct PhysicalComponent {
+    pub mass: f32,
+    pub linear_velocity: model::Vector,
+    pub angular_velocity: model::Vector,
+    pub position: model::Vector,
 }
 
-pub trait Simulated : Identifyable {
+pub enum Shape {
+    Box { width: f32, height: f32, depth: f32 },
+    Cone { radius: f32, height: f32 },
+    Cylinder { radius: f32, height: f32 },
+    Sphere { radius: f32 },
+}
 
+pub trait PhysicalBody<T> {
+    fn set_position(&mut self, model::Vector);
+    fn get_position(&self) -> &model::Vector;
+
+    fn set_mass(&mut self, m: f32);
+    fn get_mass(&self) -> &model::Vector;
+
+    fn set_linear_velocity(&mut self, model::Vector);
+    fn get_linear_velocity(&self) -> &model::Vector;
+
+    fn set_angular_velocity(&mut self, model::Vector);
+    fn get_angular_velocity(&self) -> &model::Vector;
+
+    fn update(delta_time: &time::Duration);
+
+    fn get_body(&self) -> &Shape;
+    fn set_body(&mut self, shape: Shape);
+}
+
+pub trait Behavior {
+    fn update(delta_time: &time::Duration);
+}
+
+pub struct SceneGraphNode;
+pub struct PhysicalGraphNode;
+
+// Entity component system, Optional components?
+// WorldEntity
+// - renderable : strong reference to node in renderable tree
+// - body : strong reference to node in physical object tree
+// ? behavior?
+pub struct WorldEntity {
+    id: Identity,
+    renderable: Option< RcNode<SceneGraphNode> >,
+    body: Option< RcNode<PhysicalGraphNode> >,
 }

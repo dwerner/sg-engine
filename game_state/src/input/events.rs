@@ -1,3 +1,7 @@
+use Identity;
+
+
+
 use input::screen::{
     DeltaVector,
     ScreenPoint,
@@ -15,22 +19,23 @@ pub enum MouseButton {
 #[derive(Copy, Clone)]
 pub struct JoystickButton(u32);
 
+
 #[derive(Copy, Clone)]
 pub enum InputEvent {
     KeyDown(u8),
     KeyUp(u8),
 
-    MouseDown(MouseButton, ScreenPoint),
-    MouseUp(MouseButton, ScreenPoint),
-    MouseMove(ScreenPoint, DeltaVector),
+    MouseDown(Identity, MouseButton, ScreenPoint),
+    MouseUp(Identity, MouseButton, ScreenPoint),
+    MouseMove(Identity, ScreenPoint, DeltaVector),
 
-    JoystickMove(Device, DeltaVector),
-    JoystickButtonDown(Device, JoystickButton),
-    JoystickButtonUp(Device, JoystickButton),
+    JoystickMove(Identity, Device, DeltaVector),
+    JoystickButtonDown(Identity, Device, JoystickButton),
+    JoystickButtonUp(Identity, Device, JoystickButton),
 
-    WmQuit,
-    WmResize(ScreenRect),
-    WmMove(ScreenPoint)
+    WmQuit(Identity),
+    WmResize(Identity, ScreenRect),
+    WmMove(Identity, ScreenPoint)
 }
 
 

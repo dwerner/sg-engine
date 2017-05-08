@@ -1,5 +1,7 @@
 use Renderable;
+use Identity;
 use Identifyable;
+use create_next_identity;
 
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
@@ -16,15 +18,12 @@ pub struct Material {
 
 pub struct Model {
     pub filename: String,
-    pub id: u64,
+    pub id: Identity,
     pub model_mat: Matrix4<f32>,
     pub world_mat: Matrix4<f32>,
     pub material: Material,
     pub mesh: Mesh,
 }
-
-use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-static GLOBAL_MODEL_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 impl Model {
     pub fn create(filename: &'static str, model_mat: Matrix4<f32>) -> Self {
@@ -49,7 +48,7 @@ impl Model {
 
         let build = Model {
             filename: filename.to_string(),
-            id: GLOBAL_MODEL_ID.fetch_add(1, Ordering::SeqCst) as u64,
+            id: create_next_identity(),
             model_mat: model_mat,
             world_mat: Matrix4::<f32>::identity(),
             mesh: Mesh::create(verts, indices),
