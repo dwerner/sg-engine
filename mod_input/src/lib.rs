@@ -25,8 +25,8 @@ pub extern "C" fn mod_input_tick( state: &mut State ) {
         let mut events = state.renderers[i].get_input_events();
         if events.len() > 0 {
             println!("Renderer {} -> {:?}", state.renderers[i].identify(), events);
+            state.input_state.pending_input_events.append(&mut events);
         }
-        state.input_state.pending_input_events.append(&mut events);
     }
 }
 
