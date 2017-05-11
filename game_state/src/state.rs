@@ -45,7 +45,14 @@ impl State {
 }
 
 pub struct InputState {
-    pub pending_input_events: VecDeque<(String, InputEvent)>
+    pub pending_input_events: VecDeque<InputEvent>
+}
+
+impl InputState {
+    pub fn clear(&mut self) {
+        // TODO add any useful clearing of state here
+        self.pending_input_events.clear();
+    }
 }
 
 pub struct SceneGraph {

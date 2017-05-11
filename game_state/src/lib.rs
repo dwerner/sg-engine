@@ -15,6 +15,7 @@ use cgmath::Matrix4;
 
 use model::Mesh;
 use std::sync::Arc;
+use std::collections::VecDeque;
 
 use state::SceneGraph;
 
@@ -55,7 +56,7 @@ pub trait Renderer : Identifyable {
     fn present(&mut self);
 
     // get_input_events() <- renderer should be tracking input events
-    fn get_input_events(&mut self) -> Vec<input::events::InputEvent>;
+    fn get_input_events(&mut self) -> VecDeque<input::events::InputEvent>;
 
 
     // Window handle

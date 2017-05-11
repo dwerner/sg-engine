@@ -11,6 +11,9 @@ cd ..
 cd mod_rendering
 cargo build
 cd ..
+cd mod_input
+cargo build
+cd ..
 cd mod_asset_loader
 cargo build
 cd ..

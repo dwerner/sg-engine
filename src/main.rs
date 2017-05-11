@@ -18,10 +18,12 @@ fn main() {
 	let mut sim = load_mod!(simulation);
     let mut assets = load_mod!(asset_loader);
 	let mut rendering = load_mod!(rendering);
+    let mut input = load_mod!(input);
 
     assets.check_update(&mut state);
     sim.check_update(&mut state);
     rendering.check_update(&mut state);
+    input.check_update(&mut state);
 
 	let mut frame = 0;
     let frame_budget = 16000;// for 60 fps
@@ -32,10 +34,12 @@ fn main() {
         let asset_time = assets.tick(&mut state);
 		let sim_time = sim.tick(&mut state);
 		let render_time = rendering.tick(&mut state);
+        let input_time = input.tick(&mut state);
 
         let wait = (frame_budget - (
             asset_time.num_microseconds().unwrap() +
                 sim_time.num_microseconds().unwrap() +
+                input_time.num_microseconds().unwrap() +
                 render_time.num_microseconds().unwrap()
             )) / 1000;
         if wait > 0 {
@@ -46,15 +50,17 @@ fn main() {
         if frame % 60 == 0 {
             if frame % 100 == 0 {
                 println!(
-                    "Asset time: {} Sim time: {}, render time: {}",
-                    asset_time.num_microseconds().unwrap(),
-                    sim_time.num_microseconds().unwrap(),
-                    render_time.num_microseconds().unwrap()
+                    "asset_loader: {asset:<6}μs, simulation: {sim:<6}μs, rendering: {render:<6}μs, input: {input:<6}μs",
+                    asset = asset_time.num_microseconds().unwrap(),
+                    sim = sim_time.num_microseconds().unwrap(),
+                    render = render_time.num_microseconds().unwrap(),
+                    input = input_time.num_microseconds().unwrap()
                 );
             }
             assets.check_update(&mut state);
             sim.check_update(&mut state);
             rendering.check_update(&mut state);
+            input.check_update(&mut state);
         }
 	}
 }

@@ -1,0 +1,18 @@
+[package]
+name = "mod_input"
+version = "0.1.0"
+authors = ["Daniel Werner <dan.werner@gmail.com>"]
+
+[features]
+default = []
+dynamic_lib = []
+
+[lib]
+name = "mod_input"
+crate-type=["dylib"]
+
+[dependencies]
+cgmath = "0.12"
+
+[dependencies.game_state]
+path = "../game_state"

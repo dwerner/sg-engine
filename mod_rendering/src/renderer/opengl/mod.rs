@@ -67,7 +67,7 @@ impl Renderer for OpenGLRenderer {
     fn present(&mut self) {
         self.render();
     }
-    fn get_input_events(&mut self) -> Vec<input::events::InputEvent> {
+    fn get_input_events(&mut self) -> VecDeque<input::events::InputEvent> {
         unimplemented!()
     }
 }

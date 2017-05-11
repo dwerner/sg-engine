@@ -164,6 +164,7 @@ impl VulkanRenderer {
             .with_dimensions(w,h)
             .build_vk_surface(&instance).unwrap();
 
+
 		let queue = physical.queue_families().find(|q| {
 			q.supports_graphics() && window.surface().is_supported(q).unwrap_or(false)
 		}).expect("Couldn't find a graphical queue family.");
@@ -352,7 +353,6 @@ impl VulkanRenderer {
 
 
 		let submissions: Vec<Box<GpuFuture>> = Vec::new();
-
         // finish up by grabbing some initialization values for position and size
         let (x,y) = window.window().get_position().unwrap_or((0,0));
         let (w,h) = window.window().get_inner_size_pixels().unwrap_or((0,0));
@@ -618,12 +618,12 @@ impl Renderer for VulkanRenderer {
         self.render();
     }
 
-    fn get_input_events(&mut self) -> Vec<InputEvent> {
+    fn get_input_events(&mut self) -> VecDeque<InputEvent> {
         use winit;
 
-        let events: Vec<winit::Event> = self.native_window().poll_events().map(|e| e.clone() ).collect::<Vec<winit::Event>>();
+        let events = self.native_window().poll_events().map(|e| e.clone() ).collect::<VecDeque<winit::Event>>();
 
-        let mut converted_events = Vec::with_capacity(events.len());
+        let mut converted_events = VecDeque::with_capacity(events.len());
 
         for e in events {
             let event = match e {
@@ -692,8 +692,7 @@ impl Renderer for VulkanRenderer {
 
             };
             if event.is_some() {
-                println!("event {:?}", event);
-                converted_events.push(event.unwrap());
+                converted_events.push_back(event.unwrap());
             }
         }
         converted_events
@@ -706,7 +705,7 @@ impl Renderer for VulkanRenderer {
 mod tests {
 
     #[test]
-    fn flatten_vec_of_options(){
+    fn rando_test_flatten_vec_of_options(){
         let vals = vec![None, None, Some(1), None, Some(2), Some(3), None, None, None, Some(4)];
         let flat = vals.iter().enumerate().filter(|&(_, x)| x.is_some()).map(|(_, x)| x.unwrap()).collect::<Vec<u32>>();
         assert_eq!(flat, vec![1,2,3,4]);
