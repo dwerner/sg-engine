@@ -6,38 +6,46 @@ use input::screen::{
     ScreenRect,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum MouseButton {
     Left,
     Middle,
     Right,
-    ScrollWheel
+    Other(u8),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct JoystickButton(u32);
 
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum InputEvent {
-    KeyDown(u8),
-    KeyUp(u8),
+    KeyDown(Identity, u8),
+    KeyUp(Identity, u8),
 
     MouseDown(Identity, MouseButton, ScreenPoint),
     MouseUp(Identity, MouseButton, ScreenPoint),
     MouseMove(Identity, ScreenPoint, DeltaVector),
+    MouseWheel(Identity, ScreenPoint, DeltaVector),
 
+    MouseEntered(Identity),
+    MouseLeft(Identity),
+
+/* TODO at this level, joystick events make sense, however they can't be easily grabbed by say winit
     JoystickMove(Identity, Device, DeltaVector),
     JoystickButtonDown(Identity, Device, JoystickButton),
     JoystickButtonUp(Identity, Device, JoystickButton),
+*/
 
-    WmQuit(Identity),
-    WmResize(Identity, ScreenRect),
-    WmMove(Identity, ScreenPoint)
+    Closed(Identity),
+    Resized(Identity, ScreenRect),
+    GainedFocus(Identity),
+    LostFocus(Identity),
+    Moved(Identity, ScreenPoint)
 }
 
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Device {
     //id: u32,
 }

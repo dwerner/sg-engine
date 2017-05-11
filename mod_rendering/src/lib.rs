@@ -51,8 +51,9 @@ pub extern "C" fn mod_rendering_tick(s: &mut state::State) {
         // internals: i.e. the window manager window
         // - get input events and convert them to our internal format
         // and push them into the input events queue
-        
-        //let events = s.renderers[i].get_input_events();
+
+        // TODO mod_input should take care of this
+        let events = s.renderers[i].get_input_events();
         //s.input_state.pending_input_events.append(events);
     }
 

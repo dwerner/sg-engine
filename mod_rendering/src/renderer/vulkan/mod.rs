@@ -129,6 +129,7 @@ pub struct VulkanRenderer {
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     buffer_cache: HashMap<usize, BufferItem>,
 
+    rect: ScreenRect,
     current_mouse_pos: ScreenPoint,
     debug_world_rotation: f32,
 }
@@ -141,7 +142,7 @@ pub enum DrawMode {
 
 impl VulkanRenderer {
 
-	pub fn new(title: &str, h: u32, w: u32, draw_mode: DrawMode) -> Self {
+	pub fn new(title: &str, w: u32, h: u32, draw_mode: DrawMode) -> Self {
 
         let polygonmode = match draw_mode {
             DrawMode::Colored => PolygonMode::Fill,
@@ -158,9 +159,9 @@ impl VulkanRenderer {
 		let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
 			.next().expect("No device available.");
 
-		let window = winit::WindowBuilder::new()
+		let window: vulkano_win::Window  = winit::WindowBuilder::new()
             .with_title(title)
-            .with_dimensions(h,w)
+            .with_dimensions(w,h)
             .build_vk_surface(&instance).unwrap();
 
 		let queue = physical.queue_families().find(|q| {
@@ -352,6 +353,12 @@ impl VulkanRenderer {
 
 		let submissions: Vec<Box<GpuFuture>> = Vec::new();
 
+        // finish up by grabbing some initialization values for position and size
+        let (x,y) = window.window().get_position().unwrap_or((0,0));
+        let (w,h) = window.window().get_inner_size_pixels().unwrap_or((0,0));
+        // TODO: get actual mouse position... or does it matter at this point when we get it in the
+        // event loop instead
+
 		VulkanRenderer {
             id: game_state::create_next_identity(),
             instance: instance.clone(),
@@ -373,7 +380,9 @@ impl VulkanRenderer {
             render_layer_queue: VecDeque::new(),
             buffer_cache: HashMap::new(),
 
-            current_mouse_pos: ScreenPoint{x: 0, y: 0},
+
+            current_mouse_pos: ScreenPoint::new(0, 0),
+            rect: ScreenRect::new(x as i32, y as i32, w as i32, h as i32),
             debug_world_rotation: 0f32,
 		}
 
@@ -400,12 +409,23 @@ impl VulkanRenderer {
 		&self.window.window()
 	}
 
+    #[inline]
     fn get_mouse_pos(&self) -> &ScreenPoint {
         &self.current_mouse_pos
     }
 
     fn set_mouse_pos(&mut self, pos: ScreenPoint) {
         self.current_mouse_pos = pos;
+    }
+
+    fn get_rect(&self) -> &ScreenRect {
+        &self.rect
+    }
+
+    fn set_rect(&mut self, new_rect: ScreenRect) {
+        // TODO: determine a delta here?
+        // TODO: let the renderer know to change things up because we were resized?
+        self.rect = new_rect;
     }
 
     #[inline]
@@ -570,6 +590,7 @@ use game_state::input::events::{
 
 use game_state::input::screen::{
     ScreenPoint,
+    ScreenRect,
     DeltaVector,
 };
 
@@ -599,21 +620,96 @@ impl Renderer for VulkanRenderer {
 
     fn get_input_events(&mut self) -> Vec<InputEvent> {
         use winit;
-        let current_mouse_pos = self.get_mouse_pos();
 
-        self.native_window().poll_events().map(|e| match e {
-        /*    winit::MouseButton::Left => Some(InputEvent::MouseDown(self.id, MouseButton::Left, ScreenPoint{})),
-            winit::MouseButton::Right => Some(InputEvent::MouseDown(self.id, MouseButton::Right, ScreenPoint{})),
-            winit::MouseButton::Middle => Some(InputEvent::MouseDown(self.id, MouseButton::Middle, ScreenPoint{})),
-            winit::Event::MouseMoved(x,y) => {
-                self.set_mouse_pos(ScreenPoint{x,y});
-                Some(InputEvent::MouseMove(self.id, ScreenPoint{x,y}, DeltaVector{delta_x: x, delta_y: y}))
-            },*/
-            _ => None
-        }).flat_map(|e| e).collect::<Vec<InputEvent>>()
+        let events: Vec<winit::Event> = self.native_window().poll_events().map(|e| e.clone() ).collect::<Vec<winit::Event>>();
 
+        let mut converted_events = Vec::with_capacity(events.len());
+
+        for e in events {
+            let event = match e {
+                // Keyboard Events
+                winit::Event::KeyboardInput(state, scancode, maybe_virtual_keycode) => {
+                    let e = match state {
+                        winit::ElementState::Pressed => InputEvent::KeyDown(self.id, scancode),
+                        winit::ElementState::Released => InputEvent::KeyDown(self.id, scancode)
+                    };
+                    Some(e)
+                }
+
+                // Mouse Events
+
+                winit::Event::MouseMoved(x,y) => {
+                    let old_pos: ScreenPoint = self.get_mouse_pos().clone();
+                    let new_pos = ScreenPoint::new(x,y);
+                    let moved =
+                        InputEvent::MouseMove(self.id, new_pos.clone(), DeltaVector::from_points(&old_pos, &new_pos));
+                    self.set_mouse_pos(new_pos);
+                    Some(moved)
+                },
+                winit::Event::MouseInput(state, button) => {
+                    let b = match button {
+                        winit::MouseButton::Left => MouseButton::Left,
+                        winit::MouseButton::Right => MouseButton::Right,
+                        winit::MouseButton::Middle => MouseButton::Middle,
+                        winit::MouseButton::Other(n) => MouseButton::Other(n)
+                    };
+                    let e = match state {
+                        winit::ElementState::Pressed => InputEvent::MouseDown(self.id, b, self.get_mouse_pos().clone()),
+                        winit::ElementState::Released => InputEvent::MouseUp(self.id, b, self.get_mouse_pos().clone())
+                    };
+                    Some(e)
+                },
+
+                winit::Event::MouseWheel(delta, _phase) => {
+                    let e = match delta {
+                        winit::MouseScrollDelta::LineDelta(x,y) | winit::MouseScrollDelta::PixelDelta(x,y)  =>
+                            InputEvent::MouseWheel(self.id, self.get_mouse_pos().clone(), DeltaVector::new(x as i32, y as i32))
+                    };
+                    Some(e)
+                },
+
+                // Window Manager events
+
+                winit::Event::MouseEntered => Some(InputEvent::MouseEntered(self.id)),
+                winit::Event::MouseLeft => Some(InputEvent::MouseLeft(self.id)),
+                winit::Event::Closed => Some(InputEvent::Closed(self.id)),
+                winit::Event::Focused(f) => Some(if f { InputEvent::GainedFocus(self.id) } else { InputEvent::LostFocus(self.id) }),
+                winit::Event::Moved(x,y) => {
+                    let old_rect = self.rect;
+                    let new_rect = ScreenRect::new(x as i32, y as i32, old_rect.w, old_rect.h);
+                    let e = InputEvent::Moved(self.id, ScreenPoint::new(x as i32, y as i32));
+                    self.set_rect(new_rect);
+                    Some(e)
+                }
+                winit::Event::Resized(w, h) => {
+                    let old_rect = self.rect;
+                    let new_rect = ScreenRect::new(old_rect.x, old_rect.y, w as i32, h as i32);
+                    let e = InputEvent::Resized(self.id, new_rect.clone());
+                    self.set_rect(new_rect);
+                    Some(e)
+                },
+                _ => None
+
+            };
+            if event.is_some() {
+                println!("event {:?}", event);
+                converted_events.push(event.unwrap());
+            }
+        }
+        converted_events
     }
 
     // FIXME Ruby
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn flatten_vec_of_options(){
+        let vals = vec![None, None, Some(1), None, Some(2), Some(3), None, None, None, Some(4)];
+        let flat = vals.iter().enumerate().filter(|&(_, x)| x.is_some()).map(|(_, x)| x.unwrap()).collect::<Vec<u32>>();
+        assert_eq!(flat, vec![1,2,3,4]);
+    }
 }
 
