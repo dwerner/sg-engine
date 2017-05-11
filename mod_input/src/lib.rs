@@ -23,6 +23,7 @@ pub extern "C" fn mod_input_tick( state: &mut State ) {
     // Now we want to
     for i in 0 .. state.renderers.len() {
         let mut events = state.renderers[i].get_input_events();
+        println!("{}", events);
         state.input_state.pending_input_events.append(&mut events);
     }
 }
