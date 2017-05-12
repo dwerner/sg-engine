@@ -1,6 +1,8 @@
-#[derive(Copy, Clone)]
+use Identity;
+
+#[derive(Debug, Copy, Clone)]
 pub enum UIEvent {
-    Clicked,
-    Focus,
-    LeftFocus
+    Clicked(Identity),
+    GainedFocus(Identity),
+    LeftFocus(Identity),
 }

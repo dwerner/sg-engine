@@ -1,5 +1,13 @@
 pub mod events;
 pub mod screen;
 
+use Identifyable;
 
-// TODO: this module (input) has the potential of becoming a mod_ entry
+use std::collections::VecDeque;
+
+pub trait InputSource : Identifyable {
+    // get_input_events() <- renderer should be tracking input events
+    fn get_input_events(&mut self) -> VecDeque<events::InputEvent>;
+}
+
+

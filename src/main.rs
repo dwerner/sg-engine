@@ -14,6 +14,10 @@ use std::thread;
 fn main() {
 	let mut state = state::State::new();
 
+    // TODO mod_audio
+    // TODO mod_gui
+    // TODO mod_network
+
 	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
 	let mut sim = load_mod!(simulation);
     let mut assets = load_mod!(asset_loader);

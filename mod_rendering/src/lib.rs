@@ -1,8 +1,7 @@
 extern crate game_state;
 
-extern crate cgmath;
-
 // OpenGL Renderer
+extern crate cgmath;
 #[macro_use] extern crate glium;
 #[macro_use] extern crate vulkano;
 extern crate winit;
@@ -12,11 +11,13 @@ extern crate vulkano_shaders;
 extern crate time;
 extern crate image;
 
-use std::sync::Arc;
-
-use game_state::state;
-
 mod renderer;
+
+use std::sync::Arc;
+use game_state::state::{
+    State,
+    RenderAccess
+};
 
 use renderer::vulkan::{
     VulkanRenderer,
@@ -24,37 +25,28 @@ use renderer::vulkan::{
 };
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_load( s: &mut state::State ) {
-    assert!(s.renderers.len() == 0);
-    s.renderers.push(
+pub extern "C" fn mod_rendering_load( state: &mut State ) {
+    assert!(state.get_renderers().len() == 0);
+
+    state.add_renderer(
         Box::new(VulkanRenderer::new("Wireframe Renderer (vulkan)", 640, 480, DrawMode::Wireframe )),
     );
-    s.renderers.push(
+    state.add_renderer(
         Box::new(VulkanRenderer::new("Textured Renderer (vulkan)", 640, 480, DrawMode::Colored )),
     );
 
-    for i in 0..s.renderers.len() {
-        s.renderers[i].load();
-    }
+    state.on_render_load();
 }
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_tick(s: &mut state::State) {
+pub extern "C" fn mod_rendering_tick(state: &mut State) {
     // queue each existing render layers for rendering
-    for i in 0..s.renderers.len() {
-        for r in &s.render_layers {
-            s.renderers[i].queue_render_layer(r.clone());
-        }
-        s.renderers[i].present();
-    }
+    state.push_render_layers();
+    state.present_all();
 }
 
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_unload(s: &mut state::State ) {
-
-    for i in 0..s.renderers.len() {
-        s.renderers[i].unload();
-    }
-    s.renderers.clear();
+pub extern "C" fn mod_rendering_unload(state: &mut State ) {
+    state.on_render_unload();
 }

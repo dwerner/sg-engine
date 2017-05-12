@@ -53,6 +53,12 @@ impl game_state::Identifyable for OpenGLRenderer {
     }
 }
 
+impl game_state::input::InputSource for OpenGLRenderer {
+    fn get_input_events(&mut self) -> VecDeque<input::events::InputEvent> {
+        unimplemented!()
+    }
+}
+
 impl Renderer for OpenGLRenderer {
     fn load(&mut self) {
     }
@@ -66,8 +72,5 @@ impl Renderer for OpenGLRenderer {
 
     fn present(&mut self) {
         self.render();
-    }
-    fn get_input_events(&mut self) -> VecDeque<input::events::InputEvent> {
-        unimplemented!()
     }
 }

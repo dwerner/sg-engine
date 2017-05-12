@@ -21,6 +21,8 @@ use state::SceneGraph;
 
 use tree::RcNode;
 
+use input::InputSource;
+
 // Represents the public interface for mods
 // traits for implementing behavior of state objects should exist here
 // but the impls for those traits can be in mods
@@ -37,7 +39,7 @@ pub trait Identifyable {
     fn identify(&self) -> Identity;
 }
 
-pub trait Renderer : Identifyable {
+pub trait Renderer : Identifyable + InputSource {
 
     /// load()
     /// provide a hook for a mod to notify the renderer that it is about to be used
@@ -54,10 +56,6 @@ pub trait Renderer : Identifyable {
     /// present()
     /// Actually render the image, compositing render layers in the order they were queued
     fn present(&mut self);
-
-    // get_input_events() <- renderer should be tracking input events
-    fn get_input_events(&mut self) -> VecDeque<input::events::InputEvent>;
-
 
     // Window handle
     fn set_title(&mut self, title: &str) {}

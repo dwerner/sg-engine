@@ -1,7 +1,7 @@
 extern crate game_state;
 
 use game_state::state;
-// use game_state::{ Renderer, Renderable, Physical, Syncable, Identifyable };
+use game_state::state::SimulationAccess;
 
 
 #[no_mangle]

@@ -62,6 +62,7 @@ use ::renderer::utils::fps;
 
 use game_state;
 use game_state::{Identity, Identifyable, Renderer, Renderable};
+use game_state::input::InputSource;
 use game_state::tree::{ BreadthFirstIterator };
 use game_state::state::SceneGraph;
 
@@ -602,9 +603,7 @@ impl Identifyable for VulkanRenderer {
 
 
 impl Renderer for VulkanRenderer {
-    fn load(&mut self) {
-
-    }
+    fn load(&mut self) {}
 
     fn unload(&mut self) {
         self.buffer_cache.clear();
@@ -617,7 +616,9 @@ impl Renderer for VulkanRenderer {
     fn present(&mut self) {
         self.render();
     }
+}
 
+impl InputSource for VulkanRenderer {
     fn get_input_events(&mut self) -> VecDeque<InputEvent> {
         use winit;
 
@@ -697,7 +698,6 @@ impl Renderer for VulkanRenderer {
         }
         converted_events
     }
-
     // FIXME Ruby
 }
 
