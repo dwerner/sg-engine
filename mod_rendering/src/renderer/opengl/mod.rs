@@ -1,3 +1,5 @@
+
+
 use glium::{
     DisplayBuild,
     Surface,
@@ -72,5 +74,8 @@ impl Renderer for OpenGLRenderer {
 
     fn present(&mut self) {
         self.render();
+    }
+    fn set_title(&mut self, title: &str) {
+        unimplemented!()
     }
 }

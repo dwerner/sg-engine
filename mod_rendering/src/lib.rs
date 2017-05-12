@@ -1,8 +1,10 @@
 extern crate game_state;
 
 // OpenGL Renderer
+//#[macro_use]
+extern crate glium;
+
 extern crate cgmath;
-#[macro_use] extern crate glium;
 #[macro_use] extern crate vulkano;
 extern crate winit;
 extern crate vulkano_win;
@@ -13,7 +15,6 @@ extern crate image;
 
 mod renderer;
 
-use std::sync::Arc;
 use game_state::state::{
     State,
     RenderAccess

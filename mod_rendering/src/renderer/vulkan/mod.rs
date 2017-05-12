@@ -37,7 +37,7 @@ use vulkano::image::{
     Image
 };
 
-use vulkano::device::QueuesIter;
+//use vulkano::device::QueuesIter;
 use vulkano::device::Queue;
 use vulkano::sync::GpuFuture;
 use vulkano::descriptor::pipeline_layout::{
@@ -61,7 +61,7 @@ use std::collections::hash_map::HashMap;
 use ::renderer::utils::fps;
 
 use game_state;
-use game_state::{Identity, Identifyable, Renderer, Renderable};
+use game_state::{Identity, Identifyable, Renderer};
 use game_state::input::InputSource;
 use game_state::tree::{ BreadthFirstIterator };
 use game_state::state::SceneGraph;
@@ -82,13 +82,13 @@ pub struct BufferItem {
 
 pub struct VulkanRenderer {
     id: Identity,
-	instance: Arc<Instance>,
+	_instance: Arc<Instance>,
 	window: Window,
 	device: Arc<Device>,
-	queues: QueuesIter,
+	//queues: QueuesIter,
 	queue: Arc<Queue>,
 	swapchain: Arc<Swapchain>,
-	images: Vec<Arc<SwapchainImage>>,
+	_images: Vec<Arc<SwapchainImage>>,
 	submissions: Vec<Box<GpuFuture>>,
 	pipeline: Arc<
         GraphicsPipeline<
@@ -101,7 +101,7 @@ pub struct VulkanRenderer {
     texture: Arc<vulkano::image::ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
 	fps: fps::FPS,
 
-    renderpass: Arc<RenderPassAbstract + Send + Sync>,
+    _renderpass: Arc<RenderPassAbstract + Send + Sync>,
 
     // descriptor set
     pipeline_set: Arc<
@@ -126,7 +126,7 @@ pub struct VulkanRenderer {
         >
     >,//Arc<pipeline_layout::set0::Set>,
 
-    uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkan::vs::ty::Data>>,
+    _uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkan::vs::ty::Data>>,
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     buffer_cache: HashMap<usize, BufferItem>,
 
@@ -135,6 +135,7 @@ pub struct VulkanRenderer {
     debug_world_rotation: f32,
 }
 
+#[allow(dead_code)]
 pub enum DrawMode {
     Wireframe,
     Points,
@@ -246,6 +247,7 @@ impl VulkanRenderer {
 
         //let descriptor_pool = vulkano::descriptor::descriptor_set::DescriptorPool::new(&device);
 
+        #[allow(dead_code)]
         let renderpass = single_pass_renderpass!(device.clone(),
                 attachments: {
                     color: {
@@ -272,8 +274,8 @@ impl VulkanRenderer {
         let depth_buffer = Arc::new(depth_buffer);
 
         let framebuffers = images.iter().map(|image| {
-            let attachments = renderpass_arc.desc().start_attachments()
-                .color(image.clone()).depth(depth_buffer.clone());
+            //let attachments = renderpass_arc.desc().start_attachments()
+            //    .color(image.clone()).depth(depth_buffer.clone());
             let dimensions = [Image::dimensions(image).width(), Image::dimensions(image).height(), 1];
             Framebuffer::new(
                 renderpass_arc.clone(),
@@ -346,7 +348,7 @@ impl VulkanRenderer {
             uniforms: uniform_buffer.clone(),
         }));
 
-        let depth_buffer = vulkano::image::attachment::AttachmentImage::transient(
+        let _depth_buffer = vulkano::image::attachment::AttachmentImage::transient(
             &device,
             SwapchainImage::dimensions(&images[0]),
             vulkano::format::D16Unorm
@@ -362,22 +364,22 @@ impl VulkanRenderer {
 
 		VulkanRenderer {
             id: game_state::create_next_identity(),
-            instance: instance.clone(),
+            _instance: instance.clone(),
             window: window,
 			device: device,
-            queues: queues,
+            //queues: queues,
 			queue: queue,
 			swapchain: swapchain,
-            images: images,
+            _images: images,
 			submissions: submissions,
 			pipeline: pipeline,
 			framebuffers: framebuffers,
             texture: texture,
-            renderpass: renderpass_arc as Arc<RenderPassAbstract + Send + Sync>,
+            _renderpass: renderpass_arc as Arc<RenderPassAbstract + Send + Sync>,
             pipeline_set: pipeline_set,
 
             fps: fps::FPS::new(),
-            uniform_buffer: uniform_buffer,
+            _uniform_buffer: uniform_buffer,
             render_layer_queue: VecDeque::new(),
             buffer_cache: HashMap::new(),
 
@@ -390,39 +392,28 @@ impl VulkanRenderer {
 	}
 
 
-	pub fn instance(&self) -> Arc<Instance> {
-		self.instance.clone()
-	}
+	//pub fn instance(&self) -> Arc<Instance> { self.instance.clone() }
 
-	pub fn queues(&mut self) -> &mut QueuesIter {
-		&mut self.queues
-	}
+	//pub fn queues(&mut self) -> &mut QueuesIter {
+	//	&mut self.queues
+	//}
 
-	pub fn images(&mut self) -> &Vec<Arc<SwapchainImage>> {
-		&mut self.images
-	}
+	//pub fn images(&mut self) -> &Vec<Arc<SwapchainImage>> { &mut self.images }
 
-	pub fn window(&self) -> &vulkano_win::Window {
-		&self.window
-	}
+	//pub fn window(&self) -> &vulkano_win::Window { &self.window }
 
-	pub fn native_window(&self) -> &winit::Window {
-		&self.window.window()
-	}
+	pub fn native_window(&self) -> &winit::Window { &self.window.window() }
 
     #[inline]
-    fn get_mouse_pos(&self) -> &ScreenPoint {
-        &self.current_mouse_pos
-    }
+    fn get_mouse_pos(&self) -> &ScreenPoint { &self.current_mouse_pos }
 
-    fn set_mouse_pos(&mut self, pos: ScreenPoint) {
-        self.current_mouse_pos = pos;
-    }
+    #[inline]
+    fn set_mouse_pos(&mut self, pos: ScreenPoint) { self.current_mouse_pos = pos; }
 
-    fn get_rect(&self) -> &ScreenRect {
-        &self.rect
-    }
+    #[allow(dead_code)]
+    #[inline] fn get_rect(&self) -> &ScreenRect { &self.rect }
 
+    #[inline]
     fn set_rect(&mut self, new_rect: ScreenRect) {
         // TODO: determine a delta here?
         // TODO: let the renderer know to change things up because we were resized?
@@ -502,8 +493,8 @@ impl VulkanRenderer {
                 Some(next_layer) => {
 
                     // TODO: updating the world matrices from the parent * child's local matrix
-                    let mut iterator = BreadthFirstIterator::new(next_layer.root.clone());
-                    for (id, rc) in iterator {
+                    let iterator = BreadthFirstIterator::new(next_layer.root.clone());
+                    for (_node_id, rc) in iterator {
                         let mut node = &mut rc.borrow_mut();
 
                         let model_mat = node.data.get_model_matrix().clone();
@@ -533,12 +524,8 @@ impl VulkanRenderer {
                         }
 
                         let (v, i, _t) = {
-                            let &BufferItem {
-                                vertices: ref vert_buffer,
-                                indices: ref index_buffer,
-                                diffuse_map: ref diffuse_map,
-                            } = self.buffer_cache.get(&(node.data.identify() as usize)).unwrap();
-                            (vert_buffer.clone(), index_buffer.clone(), diffuse_map.clone())
+                            let item = self.buffer_cache.get(&(node.data.identify() as usize)).unwrap();
+                            (item.vertices.clone(), item.indices.clone(), item.diffuse_map.clone())
                         };
 
                         let push = vs::ty::PushConstants {
@@ -616,6 +603,10 @@ impl Renderer for VulkanRenderer {
     fn present(&mut self) {
         self.render();
     }
+
+    fn set_title(&mut self, title: &str) {
+        self.native_window().set_title(title);
+    }
 }
 
 impl InputSource for VulkanRenderer {
@@ -629,7 +620,7 @@ impl InputSource for VulkanRenderer {
         for e in events {
             let event = match e {
                 // Keyboard Events
-                winit::Event::KeyboardInput(state, scancode, maybe_virtual_keycode) => {
+                winit::Event::KeyboardInput(state, scancode, _maybe_virtual_keycode) => {
                     let e = match state {
                         winit::ElementState::Pressed => InputEvent::KeyDown(self.id, scancode),
                         winit::ElementState::Released => InputEvent::KeyDown(self.id, scancode)
@@ -676,15 +667,13 @@ impl InputSource for VulkanRenderer {
                 winit::Event::Closed => Some(InputEvent::Closed(self.id)),
                 winit::Event::Focused(f) => Some(if f { InputEvent::GainedFocus(self.id) } else { InputEvent::LostFocus(self.id) }),
                 winit::Event::Moved(x,y) => {
-                    let old_rect = self.rect;
-                    let new_rect = ScreenRect::new(x as i32, y as i32, old_rect.w, old_rect.h);
+                    let new_rect = ScreenRect::new(x as i32, y as i32, self.rect.w, self.rect.h);
                     let e = InputEvent::Moved(self.id, ScreenPoint::new(x as i32, y as i32));
                     self.set_rect(new_rect);
                     Some(e)
                 }
                 winit::Event::Resized(w, h) => {
-                    let old_rect = self.rect;
-                    let new_rect = ScreenRect::new(old_rect.x, old_rect.y, w as i32, h as i32);
+                    let new_rect = ScreenRect::new(self.rect.x, self.rect.y, w as i32, h as i32);
                     let e = InputEvent::Resized(self.id, new_rect.clone());
                     self.set_rect(new_rect);
                     Some(e)
