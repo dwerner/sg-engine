@@ -33,10 +33,13 @@ use vulkano::swapchain::SurfaceTransform;
 use vulkano::swapchain::Surface;
 use vulkano::swapchain::Swapchain;
 use vulkano::pipeline::input_assembly::PrimitiveTopology;
+
+use vulkano::image::attachment::AttachmentImage;
 use vulkano::image::{
+    ImmutableImage,
     SwapchainImage,
     ImageViewAccess,
-    Image
+    Image,
 };
 
 //use vulkano::device::QueuesIter;
@@ -49,6 +52,13 @@ use vulkano::descriptor::pipeline_layout::{
 use vulkano::framebuffer::{
     RenderPassAbstract,
     FramebufferAbstract
+};
+use vulkano::pipeline::raster::{
+    Rasterization,
+    PolygonMode,
+    CullMode,
+    FrontFace,
+    DepthBiasControl
 };
 
 // FIXME ju,k.u.m.[yu;j.7;i;.jk.7;.;;li
@@ -82,31 +92,7 @@ pub struct BufferItem {
     pub diffuse_map: Arc<CpuAccessibleBuffer<[[u8;4]]>>,
 }
 
-pub struct VulkanRenderer {
-    id: Identity,
-	_instance: Arc<Instance>,
-	window: Window,
-	device: Arc<Device>,
-	//queues: QueuesIter,
-	queue: Arc<Queue>,
-	swapchain: Arc<Swapchain>,
-	_images: Vec<Arc<SwapchainImage>>,
-	submissions: Vec<Box<GpuFuture>>,
-	pipeline: Arc<
-        GraphicsPipeline<
-            SingleBufferDefinition<Vertex>,
-            PipelineLayout<PipelineLayoutDescUnion<::renderer::vulkan::vs::Layout, ::renderer::vulkan::fs::Layout>>,
-            Arc<RenderPassAbstract+Send+Sync>
-        >
-    >,
-	framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,//Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
-    texture: Arc<vulkano::image::ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
-	fps: fps::FPS,
-
-    _renderpass: Arc<RenderPassAbstract + Send + Sync>,
-
-    // descriptor set TODO: move this to BufferItem, so it can be associated with a mesh?
-    pipeline_set: Arc<
+type ThisPipelineDescriptorSet = Arc<
         vulkano::descriptor::descriptor_set::SimpleDescriptorSet<
             (((),
               vulkano::descriptor::descriptor_set::SimpleDescriptorSetImg<
@@ -126,7 +112,35 @@ pub struct VulkanRenderer {
              >
             )
         >
-    >,//Arc<pipeline_layout::set0::Set>,
+    >;
+
+type ThisPipelineType = Arc<
+        GraphicsPipeline<
+            SingleBufferDefinition<Vertex>,
+            PipelineLayout<PipelineLayoutDescUnion<::renderer::vulkan::vs::Layout, ::renderer::vulkan::fs::Layout>>,
+            Arc<RenderPassAbstract+Send+Sync>
+        >
+    >;
+
+pub struct VulkanRenderer {
+    id: Identity,
+	_instance: Arc<Instance>,
+	window: Window,
+	device: Arc<Device>,
+	//queues: QueuesIter,
+	queue: Arc<Queue>,
+	swapchain: Arc<Swapchain>,
+	_images: Vec<Arc<SwapchainImage>>,
+	submissions: Vec<Box<GpuFuture>>,
+	pipeline: ThisPipelineType,
+	framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,//Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
+    texture: Arc<vulkano::image::ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
+	fps: fps::FPS,
+
+    _renderpass: Arc<RenderPassAbstract + Send + Sync>,
+
+    // descriptor set TODO: move this to BufferItem, so it can be associated with a mesh?
+    pipeline_set: ThisPipelineDescriptorSet,//Arc<pipeline_layout::set0::Set>,
 
     _uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkan::vs::ty::Data>>,
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
@@ -174,14 +188,30 @@ impl VulkanRenderer {
         ).expect("Failed to create swapchain.")
     }
 
+    fn create_descriptor_set(
+        texture: &Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
+        device: &Arc<Device>,
+        width: u32,
+        height: u32,
+        uniform_buffer: &Arc<CpuAccessibleBuffer<::renderer::vulkan::vs::ty::Data>>,
+        queue: &Arc<Queue>,
+        pipeline: &ThisPipelineType,
+    ) -> ThisPipelineDescriptorSet {
+
+        let sampler = vulkano::sampler::Sampler::new(&device, vulkano::sampler::Filter::Linear,
+                                                     vulkano::sampler::Filter::Linear, vulkano::sampler::MipmapMode::Nearest,
+                                                     vulkano::sampler::SamplerAddressMode::Repeat,
+                                                     vulkano::sampler::SamplerAddressMode::Repeat,
+                                                     vulkano::sampler::SamplerAddressMode::Repeat,
+                                                     0.0, 1.0, 0.0, 0.0).unwrap();
+
+        Arc::new(simple_descriptor_set!(pipeline.clone(), 0, {
+            tex: (texture.clone(), sampler.clone()),
+            uniforms: uniform_buffer.clone(),
+        }))
+    }
+
 	pub fn new(title: &str, w: u32, h: u32, draw_mode: DrawMode) -> Self {
-
-        let polygonmode = match draw_mode {
-            DrawMode::Colored => PolygonMode::Fill,
-            DrawMode::Points  => PolygonMode::Point,
-            DrawMode::Wireframe => PolygonMode::Line
-        };
-
 		// Vulkan
 		let instance = {
 			let extensions = vulkano_win::required_extensions();
@@ -195,7 +225,6 @@ impl VulkanRenderer {
             .with_title(title)
             .with_dimensions(w,h)
             .build_vk_surface(&instance).unwrap();
-
 
 		let queue = physical.queue_families().find(|q| {
 			q.supports_graphics() && window.surface().is_supported(q).unwrap_or(false)
@@ -215,9 +244,13 @@ impl VulkanRenderer {
 		let queue = queues.next().unwrap();
 		let (swapchain, images) = Self::create_swapchain(&window.surface(), &device, &queue, &physical);
 
+        // TODO: as part of asset_loader, we should be loading all the shaders we expect to use in a scene
 		let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
 		let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
 
+        /// ----------------------------------
+        /// Uniform buffer
+        // TODO: extract to the notion of a camera
         let proj = cgmath::perspective(
             cgmath::Rad(::std::f32::consts::FRAC_PI_2),
             {
@@ -237,12 +270,6 @@ impl VulkanRenderer {
 
         let scale = cgmath::Matrix4::from_scale(1.0);
 
-        let depth_buffer = Image::access(vulkano::image::attachment::AttachmentImage::transient(
-            &device,
-            SwapchainImage::dimensions(&images[0]),
-            vulkano::format::D16Unorm
-        ).unwrap());
-
         let uniform_buffer = CpuAccessibleBuffer::<vs::ty::Data>::from_data(
             &device,
             &vulkano::buffer::BufferUsage::all(),
@@ -252,8 +279,15 @@ impl VulkanRenderer {
                 view : (view * scale).into(),
                 proj : proj.into(),
             }).expect("failed to create buffer");
+        /// ----------------------------------
 
-        //let descriptor_pool = vulkano::descriptor::descriptor_set::DescriptorPool::new(&device);
+        let depth_buffer = Image::access(
+            AttachmentImage::transient(
+                &device,
+                SwapchainImage::dimensions(&images[0]),
+                vulkano::format::D16Unorm
+            ).unwrap()
+        );
 
         #[allow(dead_code)]
         let renderpass = single_pass_renderpass!(device.clone(),
@@ -295,12 +329,13 @@ impl VulkanRenderer {
             ).unwrap() as Arc<FramebufferAbstract + Send + Sync>
         }).collect::<Vec<_>>();
 
-        use vulkano::pipeline::raster::{
-            Rasterization,
-            PolygonMode,
-            CullMode,
-            FrontFace,
-            DepthBiasControl
+        // -----------------------------------------------
+        // Rendermodes, fill, lines, points
+
+        let polygonmode = match draw_mode {
+            DrawMode::Colored => PolygonMode::Fill,
+            DrawMode::Points  => PolygonMode::Point,
+            DrawMode::Wireframe => PolygonMode::Line
         };
 
         let mut raster = Rasterization::default();
@@ -310,6 +345,7 @@ impl VulkanRenderer {
         raster.front_face = FrontFace::Clockwise;
         raster.line_width = Some(2.0);
         raster.depth_bias = DepthBiasControl::Dynamic;
+        // -------------------------------------------------
 
 		let pipeline = Arc::new(GraphicsPipeline::new(&device, GraphicsPipelineParams {
 			vertex_input: SingleBufferDefinition::new(),
@@ -341,20 +377,13 @@ impl VulkanRenderer {
 
 
         // TODO: texture sizes?
-        let texture = vulkano::image::immutable::ImmutableImage::new(&device, vulkano::image::Dimensions::Dim2d { width: 2048, height: 2048 },
-                                                                     vulkano::format::R8G8B8A8Unorm, Some(queue.family())).unwrap();
 
-        let sampler = vulkano::sampler::Sampler::new(&device, vulkano::sampler::Filter::Linear,
-                                                     vulkano::sampler::Filter::Linear, vulkano::sampler::MipmapMode::Nearest,
-                                                     vulkano::sampler::SamplerAddressMode::Repeat,
-                                                     vulkano::sampler::SamplerAddressMode::Repeat,
-                                                     vulkano::sampler::SamplerAddressMode::Repeat,
-                                                     0.0, 1.0, 0.0, 0.0).unwrap();
+        let texture = ImmutableImage::new(&device, vulkano::image::Dimensions::Dim2d { width: 2048, height: 2048 },
+                                          vulkano::format::R8G8B8A8Unorm, Some(queue.family())).unwrap();
 
-        let pipeline_set = Arc::new(simple_descriptor_set!(pipeline.clone(), 0, {
-            tex: (texture.clone(), sampler.clone()),
-            uniforms: uniform_buffer.clone(),
-        }));
+        let pipeline_set = Self::create_descriptor_set(
+            &texture, &device, 2048, 2048, &uniform_buffer, &queue, &pipeline
+        );
 
 		let submissions: Vec<Box<GpuFuture>> = Vec::new();
         // finish up by grabbing some initialization values for position and size
