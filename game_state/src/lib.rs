@@ -15,7 +15,6 @@ use cgmath::Matrix4;
 
 use model::Mesh;
 use std::sync::Arc;
-use std::collections::VecDeque;
 
 use state::SceneGraph;
 
@@ -58,7 +57,7 @@ pub trait Renderer : Identifyable + InputSource {
     fn present(&mut self);
 
     // Window handle
-    fn set_title(&mut self, title: &str) {}
+    fn set_title(&mut self, title: &str);
 
 }
 
@@ -89,7 +88,7 @@ pub enum Shape {
     Sphere { radius: f32 },
 }
 
-pub trait PhysicalBody<T> {
+pub trait PhysicalBody {
     fn set_position(&mut self, model::Vector);
     fn get_position(&self) -> &model::Vector;
 
@@ -122,6 +121,22 @@ pub struct PhysicalGraphNode;
 // ? behavior?
 pub struct WorldEntity {
     id: Identity,
-    renderable: Option< RcNode<SceneGraphNode> >,
-    body: Option< RcNode<PhysicalGraphNode> >,
+    scene_node: Option< RcNode<SceneGraphNode> >,
+    physical_node: Option< RcNode<PhysicalGraphNode> >,
+}
+
+impl WorldEntity {
+    pub fn get_scene_node(&self) -> &Option<RcNode<SceneGraphNode>> {
+        &self.scene_node
+    }
+    pub fn get_body(&self) -> &Option<RcNode<PhysicalGraphNode>> {
+        &self.physical_node
+    }
+
+}
+
+impl Identifyable for WorldEntity {
+    fn identify(&self) -> Identity {
+        self.id
+    }
 }

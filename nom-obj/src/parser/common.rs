@@ -1,5 +1,4 @@
 use nom::{
-    IResult,
     digit,
     eol
 };

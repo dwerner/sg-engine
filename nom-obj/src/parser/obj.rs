@@ -119,6 +119,10 @@ impl ObjParser {
             reader: reader,
         }
     }
+
+    pub fn get_filename(&self) -> &str {
+        &self.filename
+    }
 }
 
 impl Iterator for ObjParser {

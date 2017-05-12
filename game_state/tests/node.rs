@@ -118,7 +118,8 @@ mod tests {
             current_node: Option<RcNode<T>>
         }
         impl NodeVisitor<u32> for SummingVisitor<u32> {
-            fn visit<F: FnMut(&u32)->()>(&mut self, mut func: F) {
+            fn visit<F: FnMut(&u32)->()>(&mut self, func: F) {
+                let mut func = func;
                 let (val, maybe_parent) = match self.current_node {
                     Some(ref n) => {
                         (n.borrow().data, n.borrow().parent())

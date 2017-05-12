@@ -66,10 +66,10 @@ impl Renderable for UIView {
         panic!("nope");
     }
 
-    fn set_world_matrix(&mut self, mat: Matrix4<f32>) {
+    fn set_world_matrix(&mut self, _mat: Matrix4<f32>) {
         panic!("nope");
     }
-    fn set_model_matrix(&mut self, mat: Matrix4<f32>) {
+    fn set_model_matrix(&mut self, _mat: Matrix4<f32>) {
         panic!("nope");
     }
     fn get_diffuse_map(&self) -> &image::DynamicImage {

@@ -9,7 +9,7 @@ pub type RcNode<T> = Rc<NodeMut<T>>;
 pub type WeakNode<T> = Weak<NodeMut<T>>;
 
 pub trait NodeVisitor<T> {
-    fn visit<F: FnMut(&T)->()>(&mut self, mut func: F);
+    fn visit<F: FnMut(&T)->()>(&mut self, func: F);
     fn has_next(&self) -> bool;
 }
 
@@ -61,7 +61,8 @@ impl <T> BreadthFirstVisitor <T> {
     }
 }
 impl <T> NodeVisitor<T> for BreadthFirstVisitor<T> {
-    fn visit<F: FnMut(&T)->()>(&mut self, mut func: F) {
+    fn visit<F: FnMut(&T)->()>(&mut self, func: F) {
+        let mut func = func;
         match self.queue.pop_front() {
             Some(ref n) => {
                 for child in n.borrow().children() {
