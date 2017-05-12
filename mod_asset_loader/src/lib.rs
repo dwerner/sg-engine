@@ -18,8 +18,8 @@ use cgmath::Rad;
 #[no_mangle]
 pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     assert!(state.get_render_layers().len() == 0);
-    let mx =  Matrix4::from_translation(Vector3::new(0.0, -7.0, 0.0)) * Matrix4::from_scale(0.8);
-    let ship = Box::new(Model::create("assets\\models\\pship.obj", mx));
+    let mx =  Matrix4::from_translation(Vector3::new(0.0, -7.0, 0.0)) * Matrix4::from_scale(2.5);
+    let ship = Box::new(Model::create("assets\\models\\textured_thing.obj", mx));
     let root = Node::create(ship as Box<Renderable>, None );
     state.add_render_layer(Arc::new(SceneGraph{root:root}));
 }

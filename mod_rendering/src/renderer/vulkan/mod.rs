@@ -333,7 +333,7 @@ impl VulkanRenderer {
 
 
         // TODO: texture sizes?
-        let texture = vulkano::image::immutable::ImmutableImage::new(&device, vulkano::image::Dimensions::Dim2d { width: 1024, height: 1024 },
+        let texture = vulkano::image::immutable::ImmutableImage::new(&device, vulkano::image::Dimensions::Dim2d { width: 2048, height: 2048 },
                                                                      vulkano::format::R8G8B8A8Unorm, Some(queue.family())).unwrap();
 
         let sampler = vulkano::sampler::Sampler::new(&device, vulkano::sampler::Filter::Linear,

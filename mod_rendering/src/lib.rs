@@ -17,7 +17,7 @@ mod renderer;
 
 use game_state::state::{
     State,
-    RenderAccess
+    RenderAccess,
 };
 
 use renderer::vulkan::{
