@@ -1,7 +1,7 @@
-# nom-obj - an obj/mtl file format parser written with nom
+# `nom-obj`
 
-This library *might* be suitable for extraction and open-source-ification at some point.
+An obj/mtl file format parser written with nom.
 
 TODO:
-
 - Support multiple material per mtl file
+- fixes paths to assets (probably only works on windows currently)
