@@ -18,6 +18,7 @@ use vulkano::device::Device;
 use vulkano::framebuffer::Framebuffer;
 use vulkano::framebuffer::Subpass;
 use vulkano::instance::Instance;
+use vulkano::instance::PhysicalDevice;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::GraphicsPipelineParams;
 use vulkano::pipeline::blend::Blend;
@@ -29,6 +30,7 @@ use vulkano::pipeline::viewport::ViewportsState;
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::viewport::Scissor;
 use vulkano::swapchain::SurfaceTransform;
+use vulkano::swapchain::Surface;
 use vulkano::swapchain::Swapchain;
 use vulkano::pipeline::input_assembly::PrimitiveTopology;
 use vulkano::image::{
@@ -103,7 +105,7 @@ pub struct VulkanRenderer {
 
     _renderpass: Arc<RenderPassAbstract + Send + Sync>,
 
-    // descriptor set
+    // descriptor set TODO: move this to BufferItem, so it can be associated with a mesh?
     pipeline_set: Arc<
         vulkano::descriptor::descriptor_set::SimpleDescriptorSet<
             (((),
@@ -144,6 +146,34 @@ pub enum DrawMode {
 
 impl VulkanRenderer {
 
+    fn create_swapchain(
+        surface: &Arc<Surface>,
+        device: &Arc<Device>,
+        queue: &Arc<Queue>,
+        physical: &PhysicalDevice
+    ) -> (Arc<Swapchain>, Vec<Arc<SwapchainImage>>) {
+        let caps = surface.get_capabilities(physical).expect("Failed to get surface capabilities");
+        let dimensions = caps.current_extent.unwrap_or([1280, 800]);
+        let present = caps.present_modes.iter().next().unwrap();
+        let alpha = caps.supported_composite_alpha.iter().next().unwrap();
+        let format = caps.supported_formats[0].0;
+        Swapchain::new(
+            device,
+            surface,
+            2,
+            format,
+            dimensions,
+            1,
+            &caps.supported_usage_flags,
+            queue,
+            SurfaceTransform::Identity,
+            alpha,
+            present,
+            true,
+            None
+        ).expect("Failed to create swapchain.")
+    }
+
 	pub fn new(title: &str, w: u32, h: u32, draw_mode: DrawMode) -> Self {
 
         let polygonmode = match draw_mode {
@@ -183,29 +213,7 @@ impl VulkanRenderer {
 		};
 
 		let queue = queues.next().unwrap();
-
-		let (swapchain, images): (Arc<Swapchain>, Vec<Arc<SwapchainImage>>) = {
-			let caps = window.surface().get_capabilities(&physical).expect("Failed to get surface capabilities");
-			let dimensions = caps.current_extent.unwrap_or([1280, 800]);
-			let present = caps.present_modes.iter().next().unwrap();
-			let alpha = caps.supported_composite_alpha.iter().next().unwrap();
-			let format = caps.supported_formats[0].0;
-			Swapchain::new(
-				&device,
-				&window.surface(),
-				2,
-				format,
-				dimensions,
-				1,
-				&caps.supported_usage_flags,
-				&queue,
-				SurfaceTransform::Identity,
-				alpha,
-				present,
-				true,
-				None
-			).expect("Failed to create swapchain.")
-		};
+		let (swapchain, images) = Self::create_swapchain(&window.surface(), &device, &queue, &physical);
 
 		let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
 		let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
@@ -348,13 +356,6 @@ impl VulkanRenderer {
             uniforms: uniform_buffer.clone(),
         }));
 
-        let _depth_buffer = vulkano::image::attachment::AttachmentImage::transient(
-            &device,
-            SwapchainImage::dimensions(&images[0]),
-            vulkano::format::D16Unorm
-        ).unwrap();
-
-
 		let submissions: Vec<Box<GpuFuture>> = Vec::new();
         // finish up by grabbing some initialization values for position and size
         let (x,y) = window.window().get_position().unwrap_or((0,0));
@@ -464,6 +465,9 @@ impl VulkanRenderer {
         let (image_num, future) = self.swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
 
         // todo: how are passes organized if textures must be uploaded first?
+        // FIXME: use an initialization step rather than this quick hack
+        // FIXME: that might look like a new method on Renderer - reload_buffers?
+
         let mut cmd_buffer_build = AutoCommandBufferBuilder::new(self.device.clone(), self.queue.family()).unwrap(); // catch oom error here
         {
             let maybe_buffer = self.buffer_cache.get(&0usize);
@@ -486,13 +490,21 @@ impl VulkanRenderer {
             ]
         ).expect("unable to begin renderpass");
 
-        // TODO: do away with this renderable queue
         loop {
+
+            // TODO: implement a notion of a camera
+            // TODO: that might be best done through the uniform_buffer, as it's what owns the
+            // TODO: projection matrix at this point
+
             self.debug_world_rotation += 0.01;
             match self.render_layer_queue.pop_front() {
                 Some(next_layer) => {
 
-                    // TODO: updating the world matrices from the parent * child's local matrix
+                    // TODO: load assets through mod_asset_loader, put into State
+                    // TODO: refactor this to use asset lookups
+                    // TODO: refactor this to use WorldEntity collection -> SceneGraph Rc types
+                    // TODO: asset lookups should store DescriptorSets with associated textures
+
                     let iterator = BreadthFirstIterator::new(next_layer.root.clone());
                     for (_node_id, rc) in iterator {
                         let mut node = &mut rc.borrow_mut();
@@ -500,6 +512,7 @@ impl VulkanRenderer {
                         let model_mat = node.data.get_model_matrix().clone();
                         let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
                         let rot_model = model_mat * rotation;
+                        // TODO: updating the world matrices from the parent * child's local matrix
                         match node.parent() {
                             Some(parent) => {
                                 let ref parent_model = parent.borrow().data;
@@ -528,6 +541,7 @@ impl VulkanRenderer {
                             (item.vertices.clone(), item.indices.clone(), item.diffuse_map.clone())
                         };
 
+                        // Push constants are leveraged here to send per-model matrices into the shaders
                         let push = vs::ty::PushConstants {
                             model: node.data.get_world_matrix().clone().into()
                         };
