@@ -14,7 +14,7 @@ use std::thread;
 use game_state::state::WindowAccess;
 
 fn main() {
-	let mut state = state::State::new();
+    let mut state = state::State::new();
 
     state.add_window(640, 480, "Main Window".to_string());
 
@@ -22,10 +22,10 @@ fn main() {
     // TODO mod_gui
     // TODO mod_network
 
-	// because of #[no_mangle], each library needs it's own unique method name as well... sigh
-	let mut sim = load_mod!(simulation);
+    // because of #[no_mangle], each library needs it's own unique method name as well... sigh
+    let mut sim = load_mod!(simulation);
     let mut assets = load_mod!(asset_loader);
-	let mut rendering = load_mod!(rendering);
+    let mut rendering = load_mod!(rendering);
     let mut input = load_mod!(input);
 
     assets.check_update(&mut state);
@@ -33,15 +33,15 @@ fn main() {
     rendering.check_update(&mut state);
     input.check_update(&mut state);
 
-	let mut frame = 0;
+    let mut frame = 0;
     let frame_budget = 16000;// for 60 fps
 
-	loop {
+    loop {
         // TODO: gather delta time instead
 
         let asset_time = assets.tick(&mut state);
-		let sim_time = sim.tick(&mut state);
-		let render_time = rendering.tick(&mut state);
+        let sim_time = sim.tick(&mut state);
+        let render_time = rendering.tick(&mut state);
         let input_time = input.tick(&mut state);
 
         let wait = (frame_budget - (
@@ -70,6 +70,6 @@ fn main() {
             rendering.check_update(&mut state);
             input.check_update(&mut state);
         }
-	}
+    }
 }
 

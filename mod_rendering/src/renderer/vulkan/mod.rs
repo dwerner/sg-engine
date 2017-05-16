@@ -126,19 +126,19 @@ type ThisPipelineType = Arc<
 
 pub struct VulkanRenderer {
     id: Identity,
-	_instance: Arc<Instance>,
-	window: WindowRef,
+    _instance: Arc<Instance>,
+    window: WindowRef,
     events_loop: Arc<Mutex<winit::EventsLoop>>,
-	device: Arc<Device>,
-	//queues: QueuesIter,
-	queue: Arc<Queue>,
-	swapchain: Arc<Swapchain>,
-	_images: Vec<Arc<SwapchainImage>>,
-	submissions: Vec<Box<GpuFuture>>,
-	pipeline: ThisPipelineType,
-	framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,//Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
+    device: Arc<Device>,
+    //queues: QueuesIter,
+    queue: Arc<Queue>,
+    swapchain: Arc<Swapchain>,
+    _images: Vec<Arc<SwapchainImage>>,
+    submissions: Vec<Box<GpuFuture>>,
+    pipeline: ThisPipelineType,
+    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,//Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
     texture: Arc<vulkano::image::ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
-	fps: fps::FPS,
+    fps: fps::FPS,
 
     _renderpass: Arc<RenderPassAbstract + Send + Sync>,
 
@@ -215,48 +215,48 @@ impl VulkanRenderer {
     }
 
     // FIXME don't pass a tuple, rather a new struct type that composes these
-	pub fn new(
+    pub fn new(
         window_pair: (Arc<Mutex<winit::Window>>, Arc<Mutex<winit::EventsLoop>>),
         draw_mode: DrawMode
     ) -> Self {
 
-		// Vulkan
-		let instance = {
+        // Vulkan
+        let instance = {
             use vulkano::instance::ApplicationInfo;
-			let extensions = vulkano_win::required_extensions();
+            let extensions = vulkano_win::required_extensions();
             let app_info = ApplicationInfo::from_cargo_toml();
-			let i = Instance::new(Some(&app_info), &extensions, None).expect("Failed to create Vulkan instance. ");
+            let i = Instance::new(Some(&app_info), &extensions, None).expect("Failed to create Vulkan instance. ");
             i
-		};
+        };
 
-		let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
-			.next().expect("No device available.");
+        let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
+            .next().expect("No device available.");
 
-		let window: vulkano_win::WindowRef = window_pair.0.into_vk_win(&instance).expect("unable to create vk win");
+        let window: vulkano_win::WindowRef = window_pair.0.into_vk_win(&instance).expect("unable to create vk win");
 
         println!("getting queue");
-		let queue = physical.queue_families().find(|q| {
-			q.supports_graphics() && window.surface().is_supported(q).unwrap_or(false)
-		}).expect("Couldn't find a graphical queue family.");
+        let queue = physical.queue_families().find(|q| {
+            q.supports_graphics() && window.surface().is_supported(q).unwrap_or(false)
+        }).expect("Couldn't find a graphical queue family.");
 
         println!("getting device");
-		let (device, mut queues) = {
-			let device_ext = vulkano::device::DeviceExtensions {
-				khr_swapchain: true,
-				.. vulkano::device::DeviceExtensions::none()
-			};
+        let (device, mut queues) = {
+            let device_ext = vulkano::device::DeviceExtensions {
+                khr_swapchain: true,
+                .. vulkano::device::DeviceExtensions::none()
+            };
 
-			Device::new(&physical, physical.supported_features(), &device_ext,
-				[(queue, 0.5)].iter().cloned()
-			).expect("Failed to create device.")
-		};
+            Device::new(&physical, physical.supported_features(), &device_ext,
+                [(queue, 0.5)].iter().cloned()
+            ).expect("Failed to create device.")
+        };
 
-		let queue = queues.next().unwrap();
-		let (swapchain, images) = Self::create_swapchain(&window.surface(), &device, &queue, &physical);
+        let queue = queues.next().unwrap();
+        let (swapchain, images) = Self::create_swapchain(&window.surface(), &device, &queue, &physical);
 
         // TODO: as part of asset_loader, we should be loading all the shaders we expect to use in a scene
-		let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
-		let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
+        let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
+        let fs = fs::Shader::load(&device).expect("failed to create fs shader module");
 
         /// ----------------------------------
         /// Uniform buffer
@@ -357,33 +357,33 @@ impl VulkanRenderer {
         raster.depth_bias = DepthBiasControl::Dynamic;
         // -------------------------------------------------
 
-		let pipeline = Arc::new(GraphicsPipeline::new(&device, GraphicsPipelineParams {
-			vertex_input: SingleBufferDefinition::new(),
-			vertex_shader: vs.main_entry_point(),
-			input_assembly: InputAssembly {
-				topology: PrimitiveTopology::TriangleList,
-				primitive_restart_enable: false,
-			},
-			tessellation: None,
-			geometry_shader: None, //&geometry_shader,
-			viewport: ViewportsState::Fixed {
-				data: vec![(
-					Viewport {
-						origin: [0.0, 0.0],
-						depth_range: 0.0 .. 1.0,
-						dimensions: [Image::dimensions(&images[0]).width() as f32,
-						Image::dimensions(&images[0]).height() as f32],
-					},
-					Scissor::irrelevant()
-				)],
-			},
-			raster: raster,
-			multisample: Multisample::disabled(),
-			fragment_shader: fs.main_entry_point(),
-			depth_stencil: DepthStencil::simple_depth_test(),
-			blend: Blend::pass_through(),
-			render_pass: Subpass::from(renderpass_arc.clone() as Arc<RenderPassAbstract + Send + Sync>, 0).unwrap(),
-		}).unwrap());
+        let pipeline = Arc::new(GraphicsPipeline::new(&device, GraphicsPipelineParams {
+            vertex_input: SingleBufferDefinition::new(),
+            vertex_shader: vs.main_entry_point(),
+            input_assembly: InputAssembly {
+                topology: PrimitiveTopology::TriangleList,
+                primitive_restart_enable: false,
+            },
+            tessellation: None,
+            geometry_shader: None, //&geometry_shader,
+            viewport: ViewportsState::Fixed {
+                data: vec![(
+                    Viewport {
+                        origin: [0.0, 0.0],
+                        depth_range: 0.0 .. 1.0,
+                        dimensions: [Image::dimensions(&images[0]).width() as f32,
+                        Image::dimensions(&images[0]).height() as f32],
+                    },
+                    Scissor::irrelevant()
+                )],
+            },
+            raster: raster,
+            multisample: Multisample::disabled(),
+            fragment_shader: fs.main_entry_point(),
+            depth_stencil: DepthStencil::simple_depth_test(),
+            blend: Blend::pass_through(),
+            render_pass: Subpass::from(renderpass_arc.clone() as Arc<RenderPassAbstract + Send + Sync>, 0).unwrap(),
+        }).unwrap());
 
 
         // TODO: texture sizes?
@@ -395,26 +395,26 @@ impl VulkanRenderer {
             &texture, &device, 2048, 2048, &uniform_buffer, &queue, &pipeline
         );
 
-		let submissions: Vec<Box<GpuFuture>> = Vec::new();
+        let submissions: Vec<Box<GpuFuture>> = Vec::new();
         // finish up by grabbing some initialization values for position and size
         let (x,y) = window.window().lock().unwrap().get_position().unwrap_or((0,0));
         let (w,h) = window.window().lock().unwrap().get_inner_size_pixels().unwrap_or((0,0));
         // TODO: get actual mouse position... or does it matter at this point when we get it in the
         // event loop instead
 
-		VulkanRenderer {
+        VulkanRenderer {
             id: game_state::create_next_identity(),
             _instance: instance.clone(),
             window: window,
             events_loop: window_pair.1.clone(),
-			device: device,
+            device: device,
             //queues: queues,
-			queue: queue,
-			swapchain: swapchain,
+            queue: queue,
+            swapchain: swapchain,
             _images: images,
-			submissions: submissions,
-			pipeline: pipeline,
-			framebuffers: framebuffers,
+            submissions: submissions,
+            pipeline: pipeline,
+            framebuffers: framebuffers,
             texture: texture,
             _renderpass: renderpass_arc as Arc<RenderPassAbstract + Send + Sync>,
             pipeline_set: pipeline_set,
@@ -428,9 +428,9 @@ impl VulkanRenderer {
             current_mouse_pos: ScreenPoint::new(0, 0),
             rect: ScreenRect::new(x as i32, y as i32, w as i32, h as i32),
             debug_world_rotation: 0f32,
-		}
+        }
 
-	}
+    }
 
     #[inline]
     fn get_mouse_pos(&self) -> &ScreenPoint { &self.current_mouse_pos }

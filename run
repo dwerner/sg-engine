@@ -2,6 +2,7 @@
 # shortcut to recompile both game_state and mod_rendering, in case of working on rendering innards
 export RUST_BACKTRACE=1
 set -e
+#boop
 cd nom-obj
 cargo build
 cd ..
