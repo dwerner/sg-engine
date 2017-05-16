@@ -5,6 +5,7 @@ use super::{
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use input::InputSource;
 use input::events::InputEvent;
@@ -16,8 +17,17 @@ use state::{
     State,
     SimulationLayer,
     SceneGraph,
-
 };
+
+use winit::Window;
+use winit::EventsLoop;
+use winit::WindowBuilder;
+
+pub trait WindowAccess {
+    fn add_window(&mut self, w: u32, h: u32, title: String);
+    fn get_events_loop(&self) -> &Arc<Mutex<EventsLoop>>;
+    fn get_windows(&mut self) -> &Vec<Arc<Mutex<Window>>>;
+}
 
 // Accessor trait for State by topic
 pub trait RenderAccess {
@@ -66,6 +76,27 @@ pub trait UIAccess {
     fn on_ui_unload(&mut self);
 }
 
+impl WindowAccess for State {
+    fn add_window(&mut self, w: u32, h: u32, title: String) {
+        let window: Window  = {
+            let maybe_window = WindowBuilder::new();
+            let maybe_window = maybe_window.with_title(title);
+            let maybe_window = maybe_window.with_dimensions(w,h);
+            maybe_window.build(&self.events_loop.lock().unwrap())
+        }.expect("unable to create window");
+        self.windows.push(
+            Arc::new(Mutex::new(window))
+        );
+    }
+
+    fn get_events_loop(&self) -> &Arc<Mutex<EventsLoop>> {
+        &self.events_loop
+    }
+
+    fn get_windows(&mut self) -> &Vec<Arc<Mutex<Window>>> {
+        &self.windows
+    }
+}
 
 impl RenderLayerAccess for State {
 
@@ -104,18 +135,17 @@ impl RenderAccess for State {
         }
     }
 
-
     fn on_render_load(&mut self) {
         for i in 0..self.renderers.len() {
             self.renderers[i].load();
         }
-        self.push_render_layers();
     }
 
     fn on_render_unload(&mut self) {
         for i in 0..self.renderers.len() {
             self.renderers[i].unload();
         }
+        println!("RenderAccess::on_render_unload");
         self.renderers.clear();
     }
 

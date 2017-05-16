@@ -11,8 +11,12 @@ use game_state::state;
 
 use std::thread;
 
+use game_state::state::WindowAccess;
+
 fn main() {
 	let mut state = state::State::new();
+
+    state.add_window(640, 480, "Main Window".to_string());
 
     // TODO mod_audio
     // TODO mod_gui

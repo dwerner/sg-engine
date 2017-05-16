@@ -10,6 +10,7 @@ extern crate cgmath;
 extern crate nom_obj;
 extern crate image;
 extern crate time;
+extern crate winit;
 
 use cgmath::Matrix4;
 
@@ -27,6 +28,7 @@ use input::InputSource;
 // but the impls for those traits can be in mods
 
 pub type Identity = u64;
+
 use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 static GLOBAL_IDENITY_CURSOR: AtomicUsize = ATOMIC_USIZE_INIT;
 

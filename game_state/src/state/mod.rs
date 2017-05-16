@@ -11,18 +11,27 @@ use input::events::InputEvent;
 use ui::events::UIEvent;
 use input::InputSource;
 
+use winit::EventsLoop;
+
 mod access;
 pub use state::access::{
+    WindowAccess,
     RenderAccess,
     RenderLayerAccess,
     InputAccess,
     SimulationAccess
 };
 
+use winit::Window;
+
+use std::sync::Mutex;
+
 ///
 /// This is the central, and global, state passed to each mod during the main loop
 ///
 pub struct State {
+    events_loop: Arc<Mutex<EventsLoop>>,
+    windows: Vec<Arc<Mutex<Window>>>,
     renderers: Vec<Box<Renderer>>,
     render_layers: Vec<Arc<SceneGraph>>,
 
@@ -36,6 +45,8 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         State{
+            events_loop: Arc::new(Mutex::new(EventsLoop::new())), // app-wide wm events loop
+            windows: Vec::new(),
             renderers: Vec::new(),
             render_layers: Vec::new(),
             input_state: InputState {
