@@ -34,11 +34,6 @@ use renderer::vulkan::{
 #[no_mangle]
 pub extern "C" fn mod_rendering_load( state: &mut State ) {
     assert!(state.get_renderers().len() == 0);
-    /*
-    state.add_renderer(
-        Box::new(VulkanRenderer::new("Wireframe Renderer (vulkan)", 640, 480, DrawMode::Wireframe )),
-    );
-    */
     let events_loop = state.get_events_loop().clone();
     let windows = state.get_windows().iter().map(|x| x.clone()).collect::<Vec<Arc<_>>>();
 
