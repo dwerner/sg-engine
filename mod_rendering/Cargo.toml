@@ -19,10 +19,10 @@ glium = "0.16"
 # Vulkan Renderer
 winit = "0.6"
 cgmath = "0.12"
-vulkano = { git = "https://github.com/dwerner/vulkano", branch="master"}
-vulkano-win = { git = "https://github.com/dwerner/vulkano", branch="master"}
-vulkano-shaders = { git = "https://github.com/dwerner/vulkano", branch="master"}
-glsl-to-spirv = { git = "https://github.com/dwerner/vulkano", branch="master"}
+vulkano = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
+vulkano-win = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
+vulkano-shaders = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
+glsl-to-spirv = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
 image = "0.13"
 time = "0.1"
 
@@ -30,4 +30,4 @@ time = "0.1"
 path = "../game_state"
 
 [build-dependencies]
-vulkano-shaders = { git = "https://github.com/dwerner/vulkano", branch="master"}
+vulkano-shaders = { git = "https://github.com/dwerner/vulkano", rev="931366d"}

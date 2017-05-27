@@ -591,10 +591,9 @@ impl VulkanRenderer {
         let cmd_buffer_build = cmd_buffer_build.end_render_pass();
         let cmd_buffer = cmd_buffer_build.expect("unable to end renderpass ").build().unwrap();
 
-        let future = future
-            .then_execute(self.queue.clone(), cmd_buffer)
-            .then_swapchain_present(self.queue.clone(), self.swapchain.clone(), image_num)
-            .then_signal_fence();
+        let future = future.then_execute(self.queue.clone(), cmd_buffer);//.unwrap();
+        let future = future.then_swapchain_present(self.queue.clone(), self.swapchain.clone(), image_num);
+        let future = future.then_signal_fence();
 
         future.flush().unwrap();
 

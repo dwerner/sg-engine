@@ -34,6 +34,7 @@ use renderer::vulkan::{
 #[no_mangle]
 pub extern "C" fn mod_rendering_load( state: &mut State ) {
     assert!(state.get_renderers().len() == 0);
+
     let events_loop = state.get_events_loop().clone();
     let windows = state.get_windows().iter().map(|x| x.clone()).collect::<Vec<Arc<_>>>();
 

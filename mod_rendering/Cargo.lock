@@ -5,12 +5,12 @@ dependencies = [
  "cgmath 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "game_state 0.1.0",
  "glium 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "glsl-to-spirv 0.1.2 (git+https://github.com/dwerner/vulkano)",
+ "glsl-to-spirv 0.1.2 (git+https://github.com/dwerner/vulkano?rev=931366d)",
  "image 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "vulkano 0.3.2 (git+https://github.com/dwerner/vulkano)",
- "vulkano-shaders 0.3.2 (git+https://github.com/dwerner/vulkano)",
- "vulkano-win 0.3.2 (git+https://github.com/dwerner/vulkano)",
+ "vulkano 0.3.2 (git+https://github.com/dwerner/vulkano?rev=931366d)",
+ "vulkano-shaders 0.3.2 (git+https://github.com/dwerner/vulkano?rev=931366d)",
+ "vulkano-win 0.3.2 (git+https://github.com/dwerner/vulkano?rev=931366d)",
  "winit 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -337,7 +337,7 @@ dependencies = [
 [[package]]
 name = "glsl-to-spirv"
 version = "0.1.2"
-source = "git+https://github.com/dwerner/vulkano#931366d972fc59d12b84e12d5972ae6544e9afcd"
+source = "git+https://github.com/dwerner/vulkano?rev=931366d#931366d972fc59d12b84e12d5972ae6544e9afcd"
 dependencies = [
  "cmake 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -818,7 +818,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "vk-sys"
 version = "0.2.2"
-source = "git+https://github.com/dwerner/vulkano#931366d972fc59d12b84e12d5972ae6544e9afcd"
+source = "git+https://github.com/dwerner/vulkano?rev=931366d#931366d972fc59d12b84e12d5972ae6544e9afcd"
 
 [[package]]
 name = "void"
@@ -828,30 +828,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "vulkano"
 version = "0.3.2"
-source = "git+https://github.com/dwerner/vulkano#931366d972fc59d12b84e12d5972ae6544e9afcd"
+source = "git+https://github.com/dwerner/vulkano?rev=931366d#931366d972fc59d12b84e12d5972ae6544e9afcd"
 dependencies = [
  "crossbeam 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "shared_library 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "vk-sys 0.2.2 (git+https://github.com/dwerner/vulkano)",
+ "vk-sys 0.2.2 (git+https://github.com/dwerner/vulkano?rev=931366d)",
 ]
 
 [[package]]
 name = "vulkano-shaders"
 version = "0.3.2"
-source = "git+https://github.com/dwerner/vulkano#931366d972fc59d12b84e12d5972ae6544e9afcd"
+source = "git+https://github.com/dwerner/vulkano?rev=931366d#931366d972fc59d12b84e12d5972ae6544e9afcd"
 dependencies = [
- "glsl-to-spirv 0.1.2 (git+https://github.com/dwerner/vulkano)",
+ "glsl-to-spirv 0.1.2 (git+https://github.com/dwerner/vulkano?rev=931366d)",
 ]
 
 [[package]]
 name = "vulkano-win"
 version = "0.3.2"
-source = "git+https://github.com/dwerner/vulkano#931366d972fc59d12b84e12d5972ae6544e9afcd"
+source = "git+https://github.com/dwerner/vulkano?rev=931366d#931366d972fc59d12b84e12d5972ae6544e9afcd"
 dependencies = [
- "vulkano 0.3.2 (git+https://github.com/dwerner/vulkano)",
+ "vulkano 0.3.2 (git+https://github.com/dwerner/vulkano?rev=931366d)",
  "winit 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1075,7 +1075,7 @@ dependencies = [
 "checksum gleam 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)" = "9590e0e578d528a080c5abac678e7efbe349a73c7316faafd4073edf5f462d01"
 "checksum gleam 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a86944a6a4d7f54507f8ee930192d971f18a7b1da526ff529b7a0d4043935380"
 "checksum glium 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7c468bf7855f25954a1140f066ebacc1ad5342fd33bf96be28e184c084176f11"
-"checksum glsl-to-spirv 0.1.2 (git+https://github.com/dwerner/vulkano)" = "<none>"
+"checksum glsl-to-spirv 0.1.2 (git+https://github.com/dwerner/vulkano?rev=931366d)" = "<none>"
 "checksum glutin 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)" = "1f95cc9a8363627259b4a25db878eb5b1a159857bc41f525412302fa9de0f12b"
 "checksum image 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1c3f4f5ea213ed9899eca760a8a14091d4b82d33e27cf8ced336ff730e9f6da8"
 "checksum inflate 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d1238524675af3938a7c74980899535854b88ba07907bb1c944abe5b8fc437e5"
@@ -1134,11 +1134,11 @@ dependencies = [
 "checksum unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1f2ae5ddb18e1c92664717616dd9549dde73f539f01bd7b77c2edb2446bdff91"
 "checksum user32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6717129de5ac253f5642fc78a51d0c7de6f9f53d617fc94e9bae7f6e71cf5504"
 "checksum utf8-ranges 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "662fab6525a98beff2921d7f61a39e7d59e0b425ebc7d0d9e66d316e55124122"
-"checksum vk-sys 0.2.2 (git+https://github.com/dwerner/vulkano)" = "<none>"
+"checksum vk-sys 0.2.2 (git+https://github.com/dwerner/vulkano?rev=931366d)" = "<none>"
 "checksum void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
-"checksum vulkano 0.3.2 (git+https://github.com/dwerner/vulkano)" = "<none>"
-"checksum vulkano-shaders 0.3.2 (git+https://github.com/dwerner/vulkano)" = "<none>"
-"checksum vulkano-win 0.3.2 (git+https://github.com/dwerner/vulkano)" = "<none>"
+"checksum vulkano 0.3.2 (git+https://github.com/dwerner/vulkano?rev=931366d)" = "<none>"
+"checksum vulkano-shaders 0.3.2 (git+https://github.com/dwerner/vulkano?rev=931366d)" = "<none>"
+"checksum vulkano-win 0.3.2 (git+https://github.com/dwerner/vulkano?rev=931366d)" = "<none>"
 "checksum wayland-client 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)" = "a4b2b9876c6c97ece4f1ac699b5172550df443f36942fdcdcc27768c8f1437b4"
 "checksum wayland-client 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)" = "88b06e2fe73033b5396173ce6d186bf8be1298130320c3c8d94a3ce1a41a7745"
 "checksum wayland-kbd 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2b4b69d43d6cce82d95a2c5e81605abd1fa4783bf49d09cd85aa092f16081ef1"
