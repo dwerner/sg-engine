@@ -5,39 +5,39 @@ use std::path::Path;
 use std::path::PathBuf;
 
 fn main() {
-	let pwd = std::env::current_dir();
+    let pwd = std::env::current_dir();
 
-	// from aow-rust
-	let root_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    // from aow-rust
+    let root_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 
-	let dest_dir = get_out_path(&root_dir, "assets/");
-	let asset_source_path = Path::new(&root_dir).join("assets");
+    let dest_dir = get_out_path(&root_dir, "assets/");
+    let asset_source_path = Path::new(&root_dir).join("assets");
 
-	println!("Copying assets from: {}", asset_source_path.display());
+    println!("Copying assets from: {}", asset_source_path.display());
 
-	let paths = fs::read_dir(asset_source_path).unwrap();
+    let paths = fs::read_dir(asset_source_path).unwrap();
 
-	if !dest_dir.exists() {
-		fs::create_dir(dest_dir).expect("unable to create dir");
-	}
+    if !dest_dir.exists() {
+        fs::create_dir(dest_dir).expect("unable to create dir");
+    }
 
-	for entry in paths {
-		let path = entry.unwrap().path();
-		if path.is_dir() {
-			// TODO: implement recursive copy
-		} else {
-			let assets = "assets/".to_owned();
-			let file_name = assets + path.file_name().unwrap().to_str().unwrap();
-			println!("Filename: {}", file_name);
-			let dest = get_out_path(&root_dir, &file_name);
-			println!("Destionation Path: {}", dest.display());
-			match fs::copy(&path, dest) {
-				Ok(s) => println!("Copied: {}", s),
-				Err(err) => println!("Error: {}", err),
-			}
-		}
+    for entry in paths {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            // TODO: implement recursive copy
+        } else {
+            let assets = "assets/".to_owned();
+            let file_name = assets + path.file_name().unwrap().to_str().unwrap();
+            println!("Filename: {}", file_name);
+            let dest = get_out_path(&root_dir, &file_name);
+            println!("Destionation Path: {}", dest.display());
+            match fs::copy(&path, dest) {
+                Ok(s) => println!("Copied: {}", s),
+                Err(err) => println!("Error: {}", err),
+            }
+        }
 
-	}
+    }
 }
 
 fn get_out_path(out_dir: &str, file_name: &str) -> PathBuf {
