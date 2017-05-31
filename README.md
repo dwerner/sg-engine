@@ -1,4 +1,4 @@
-# something_good (no name yet) 
+# SG Engine (not in an operational state)
 
 This project is intended to be my first stab at a complete game engine. The main ideas around architecture are:
 

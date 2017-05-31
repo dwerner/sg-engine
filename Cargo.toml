@@ -1,5 +1,5 @@
 [package]
-name = "something_good"
+name = "sg_engine"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
 publish = false
