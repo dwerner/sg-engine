@@ -16,6 +16,4 @@ cgmath = "0.12"
 image = "0.13"
 time = "0.1"
 winit = "0.6"
-
-[dependencies.nom-obj]
-path = "../nom-obj"
+nom-obj = "0.1"

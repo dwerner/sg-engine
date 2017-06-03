@@ -3,23 +3,10 @@
 export RUST_BACKTRACE=1
 set -e
 #boop
-cd nom-obj
-cargo build
-cd ..
-cd game_state
-cargo build
-cd ..
-cd mod_rendering
-cargo build
-cd ..
-cd mod_input
-cargo build
-cd ..
-cd mod_asset_loader
-cargo build
-cd ..
-cd mod_simulation
-cargo build
-cd ..
+(cd game_state && cargo build)
+(cd mod_rendering && cargo build)
+(cd mod_input && cargo build)
+(cd mod_asset_loader && cargo build)
+(cd mod_simulation && cargo build)
 cargo run
 
