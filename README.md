@@ -2,7 +2,7 @@
 
 For now, this is just a toy engine, with many missing features, and breaks every 3 minutes.
 
-[![June 2017 Demo]](https://img.youtube.com/vi/w3Lk4ceiyVk/0.jpg)](https://www.youtube.com/watch?v=w3Lk4ceiyVk)
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=w3Lk4ceiyVk " target="_blank"><img src="http://img.youtube.com/vi/w3Lk4ceiyVk/0.jpg" alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 This project is intended to be my first stab at a complete game engine. The main ideas around architecture are:
 
