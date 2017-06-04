@@ -13,6 +13,11 @@ extern crate image;
 extern crate time;
 extern crate winit;
 
+#[macro_use]
+extern crate serde_derive;
+extern crate bincode;
+extern crate serde_json;
+
 use cgmath::Matrix4;
 
 use model::Mesh;
