@@ -5,7 +5,6 @@ set -e
 #boop
 (cd game_state && cargo build)
 (cd mod_rendering_opengl && cargo build)
-(cd mod_rendering_softare && cargo build)
 (cd mod_rendering_vulkan && cargo build)
 (cd mod_input && cargo build)
 (cd mod_asset_loader && cargo build)
