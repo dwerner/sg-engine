@@ -72,13 +72,13 @@ use std::time::Duration;
 use std::collections::VecDeque;
 use std::collections::hash_map::HashMap;
 
-use ::renderer::utils::fps;
-
 use game_state;
+use game_state::utils::fps;
 use game_state::{Identity, Identifyable, Renderer};
 use game_state::input::InputSource;
 use game_state::tree::{ BreadthFirstIterator };
 use game_state::state::SceneGraph;
+use game_state::state::DrawMode;
 
 use image;
 
@@ -108,7 +108,7 @@ type ThisPipelineDescriptorSet = Arc<
              vulkano::descriptor::descriptor_set::SimpleDescriptorSetBuf<
                  Arc<
                      vulkano::buffer::CpuAccessibleBuffer<
-                         ::renderer::vulkan::vs::ty::Data
+                         ::renderer::vulkano::vs::ty::Data
                      >
                  >
              >
@@ -119,12 +119,12 @@ type ThisPipelineDescriptorSet = Arc<
 type ThisPipelineType = Arc<
         GraphicsPipeline<
             SingleBufferDefinition<Vertex>,
-            PipelineLayout<PipelineLayoutDescUnion<::renderer::vulkan::vs::Layout, ::renderer::vulkan::fs::Layout>>,
+            PipelineLayout<PipelineLayoutDescUnion<::renderer::vulkano::vs::Layout, ::renderer::vulkano::fs::Layout>>,
             Arc<RenderPassAbstract+Send+Sync>
         >
     >;
 
-pub struct VulkanRenderer {
+pub struct VulkanoRenderer {
     id: Identity,
     _instance: Arc<Instance>,
     window: WindowRef,
@@ -145,7 +145,7 @@ pub struct VulkanRenderer {
     // descriptor set TODO: move this to BufferItem, so it can be associated with a mesh?
     pipeline_set: ThisPipelineDescriptorSet,//Arc<pipeline_layout::set0::Set>,
 
-    _uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkan::vs::ty::Data>>,
+    _uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkano::vs::ty::Data>>,
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     buffer_cache: HashMap<usize, BufferItem>,
 
@@ -154,14 +154,7 @@ pub struct VulkanRenderer {
     debug_world_rotation: f32,
 }
 
-#[allow(dead_code)]
-pub enum DrawMode {
-    Wireframe,
-    Points,
-    Colored
-}
-
-impl VulkanRenderer {
+impl VulkanoRenderer {
 
     fn create_swapchain(
         surface: &Arc<Surface>,
@@ -196,7 +189,7 @@ impl VulkanRenderer {
         device: &Arc<Device>,
         width: u32,
         height: u32,
-        uniform_buffer: &Arc<CpuAccessibleBuffer<::renderer::vulkan::vs::ty::Data>>,
+        uniform_buffer: &Arc<CpuAccessibleBuffer<::renderer::vulkano::vs::ty::Data>>,
         queue: &Arc<Queue>,
         pipeline: &ThisPipelineType,
     ) -> ThisPipelineDescriptorSet {
@@ -402,7 +395,7 @@ impl VulkanRenderer {
         // TODO: get actual mouse position... or does it matter at this point when we get it in the
         // event loop instead
 
-        VulkanRenderer {
+        VulkanoRenderer {
             id: game_state::create_next_identity(),
             _instance: instance.clone(),
             window: window,
@@ -621,13 +614,13 @@ use game_state::input::screen::{
     DeltaVector,
 };
 
-impl Identifyable for VulkanRenderer {
+impl Identifyable for VulkanoRenderer {
     fn identify(&self) -> Identity {
         self.id
     }
 }
 
-impl Renderer for VulkanRenderer {
+impl Renderer for VulkanoRenderer {
     fn load(&mut self) {
     }
 
@@ -649,13 +642,13 @@ impl Renderer for VulkanRenderer {
     }
 }
 
-impl Drop for VulkanRenderer {
+impl Drop for VulkanoRenderer {
     fn drop(&mut self) {
         println!("VulkanRenderer drop");
     }
 }
 
-impl InputSource for VulkanRenderer {
+impl InputSource for VulkanoRenderer {
     fn get_input_events(&mut self) -> VecDeque<InputEvent> {
         use winit;
 

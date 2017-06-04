@@ -1,5 +1,5 @@
 [package]
-name = "mod_rendering"
+name = "mod_rendering_vulkan"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
 
@@ -8,15 +8,13 @@ default = []
 dynamic_lib = []
 
 [lib]
-name = "mod_rendering"
+name = "mod_rendering_vulkan"
 crate-type=["dylib"]
 
 [dependencies]
 
-# OpenGL Renderer
-glium = "0.16"
 
-# Vulkan Renderer
+# Vulkano Renderer
 winit = "0.6"
 cgmath = "0.12"
 vulkano = { git = "https://github.com/dwerner/vulkano", rev="931366d"}

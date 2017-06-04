@@ -5,8 +5,6 @@ use std::path::Path;
 use std::path::PathBuf;
 
 fn main() {
-    let pwd = std::env::current_dir();
-
     // from aow-rust
     let root_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 

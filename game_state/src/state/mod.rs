@@ -26,6 +26,13 @@ use winit::Window;
 
 use std::sync::Mutex;
 
+#[allow(dead_code)]
+pub enum DrawMode {
+    Wireframe,
+    Points,
+    Colored
+}
+
 ///
 /// This is the central, and global, state passed to each mod during the main loop
 ///
