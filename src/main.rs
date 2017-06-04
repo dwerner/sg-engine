@@ -16,7 +16,7 @@ use game_state::state::WindowAccess;
 fn main() {
     let mut state = state::State::new();
 
-    state.add_window(640, 480, "Main Window".to_string());
+    state.add_window(640, 800, "sg".to_string());
 
     // TODO mod_audio
     // TODO mod_gui
@@ -29,7 +29,6 @@ fn main() {
     mods.push(load_mod!(asset_loader));
     mods.push(load_mod!(rendering_vulkan));
     //mods.push(load_mod!(rendering_opengl));
-    //mods.push(load_mod!(rendering_software));
     mods.push(load_mod!(input));
 
     for mut m in mods.iter_mut() {
@@ -57,7 +56,7 @@ fn main() {
         frame += 1;
         if frame % 60 == 0 {
             if frame % 100 == 0 {
-                println!( "frame time: {total_time:<6}μs", total_time=total_time );
+                //println!( "frame time: {total_time:<6}μs", total_time=total_time );
             }
 
             for mut m in mods.iter_mut() {

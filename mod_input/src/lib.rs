@@ -21,7 +21,7 @@ pub extern "C" fn mod_input_tick( state: &mut State ) {
 
     state.gather_input_events();
     if state.has_pending_input_events() {
-        println!("mod_input pending events -> {:?}", state.get_input_events());
+        //println!("mod_input pending events -> {:?}", state.get_input_events());
     }
 }
 

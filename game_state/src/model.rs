@@ -12,10 +12,12 @@ use nom_obj::model::{
     Interleaved
 };
 
+#[derive(Clone)]
 pub struct Material {
     diffuse_map: image::DynamicImage
 }
 
+#[derive(Clone)]
 pub struct Model {
     pub filename: String,
     pub id: Identity,
@@ -111,7 +113,7 @@ impl Vertex {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u16>,

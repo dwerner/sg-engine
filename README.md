@@ -1,4 +1,8 @@
-# SG Engine (not in an operational state)
+# SG Engine (toy engine)
+
+For now, this is just a toy engine, with many missing features, and breaks every 3 minutes.
+
+[![June 2017 Demo]](https://img.youtube.com/vi/w3Lk4ceiyVk/0.jpg)](https://www.youtube.com/watch?v=w3Lk4ceiyVk)
 
 This project is intended to be my first stab at a complete game engine. The main ideas around architecture are:
 
