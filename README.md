@@ -2,12 +2,41 @@
 
 For now, this is just a toy engine, with many missing features, and breaks every 3 minutes.
 
+
+### Demo
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=w3Lk4ceiyVk " target="_blank"><img src="http://img.youtube.com/vi/w3Lk4ceiyVk/0.jpg" alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
-This project is intended to be my first stab at a complete game engine. The main ideas around architecture are:
+This project is intended to be my first stab at a complete game engine - but it is by no means complete yet. The main ideas around architecture are:
 
 - Modular system design - allowing hot code loading
 - composition over inheritance (but it's Rust so of course)
+
+## What works:
+- Vulkan rendering using [vulkano](https://github.com/tomaka/vulkano)
+- Scene graph (Rc-based ADG) and push-constants 
+- Loading obj models using [nom-obj](https://github.com/dwerner/nom-obj)
+- Diffuse textures, UVW coordinates
+
+## What doesn't work:
+- Multiple textures
+- Extremely inefficient shaders (per-vertex matrix operations, for no good reason)
+- pretty much anything else... 
+
+As I said, this is very much a work in progress, but I'd love input or PRs or criticism.
+
+## My *opinionated architecture
+
+*We all have our opinions. :)
+
+## Hot loading
+
+To me, on any project that I work on, I like to move quickly, iterate and try ideas fast. I'm a monkey coder, I bash on 
+this part and that until I get things to work, and as such, I don't want to wait for a full-compile cycle to try out
+a new idea... So a lot of my effort is spent in this library to optimize for that case. I have to give credit to others,
+in particular [null program](http://nullprogram.com/blog/2014/12/23/) and therefore indirectly 
+[handmade hero](https://handmadehero.org/). I should really get around to watching those videos.
+
+
 
 ## `game_state`
  
@@ -67,7 +96,6 @@ Renderer Status:
 
 - VulkanRenderer - model and texture loading, needs work to expand asset pipeline support
 - OpenGLRenderer - Stubbed, little more
-- SoftwareRenderer - Stubbed
 
 Access Traits Used: 
 - `RenderAccess`
