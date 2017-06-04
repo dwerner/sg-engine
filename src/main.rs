@@ -23,33 +23,33 @@ fn main() {
     // TODO mod_network
 
     // because of #[no_mangle], each library needs it's own unique method name as well... sigh
-    let mut sim = load_mod!(simulation);
-    let mut assets = load_mod!(asset_loader);
-    let mut rendering = load_mod!(rendering);
-    let mut input = load_mod!(input);
 
-    assets.check_update(&mut state);
-    sim.check_update(&mut state);
-    rendering.check_update(&mut state);
-    input.check_update(&mut state);
+    let mut mods = Vec::new();
+    mods.push(load_mod!(simulation));
+    mods.push(load_mod!(asset_loader));
+    mods.push(load_mod!(rendering_vulkan));
+    //mods.push(load_mod!(rendering_opengl));
+    //mods.push(load_mod!(rendering_software));
+    mods.push(load_mod!(input));
+
+    for mut m in mods.iter_mut() {
+        m.check_update(&mut state);
+    }
 
     let mut frame = 0;
-    let frame_budget = 16000;// for 60 fps
+    let frame_budget = 16000i64;// for 60 fps
 
     loop {
         // TODO: gather delta time instead
 
-        let asset_time = assets.tick(&mut state);
-        let sim_time = sim.tick(&mut state);
-        let render_time = rendering.tick(&mut state);
-        let input_time = input.tick(&mut state);
+        let mut total_time = 0i64;
+        for m in mods.iter() {
+            let duration: time::Duration = m.tick(&mut state);
+            total_time += duration.num_microseconds().unwrap_or(0);
+        }
 
-        let wait = (frame_budget - (
-            asset_time.num_microseconds().unwrap() +
-                sim_time.num_microseconds().unwrap() +
-                input_time.num_microseconds().unwrap() +
-                render_time.num_microseconds().unwrap()
-            )) / 1000;
+
+        let wait = (frame_budget - total_time) / 1000;
         if wait > 0 {
             thread::sleep(Duration::from_millis(wait as u64));
         }
@@ -57,18 +57,12 @@ fn main() {
         frame += 1;
         if frame % 60 == 0 {
             if frame % 100 == 0 {
-                println!(
-                    "asset_loader: {asset:<6}μs, simulation: {sim:<6}μs, rendering: {render:<6}μs, input: {input:<6}μs",
-                    asset = asset_time.num_microseconds().unwrap(),
-                    sim = sim_time.num_microseconds().unwrap(),
-                    render = render_time.num_microseconds().unwrap(),
-                    input = input_time.num_microseconds().unwrap()
-                );
+                println!( "frame time: {total_time:<6}μs", total_time=total_time );
             }
-            assets.check_update(&mut state);
-            sim.check_update(&mut state);
-            rendering.check_update(&mut state);
-            input.check_update(&mut state);
+
+            for mut m in mods.iter_mut() {
+                m.check_update(&mut state);
+            }
         }
     }
 }

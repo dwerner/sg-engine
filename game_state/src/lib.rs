@@ -5,6 +5,7 @@ pub mod model;
 pub mod ui;
 pub mod input;
 pub mod event;
+pub mod utils;
 
 extern crate cgmath;
 extern crate nom_obj;

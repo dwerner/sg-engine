@@ -1,15 +1,10 @@
 extern crate game_state;
 
 // OpenGL Renderer
-//#[macro_use]
+#[macro_use]
 extern crate glium;
 
 extern crate cgmath;
-#[macro_use] extern crate vulkano;
-extern crate winit;
-extern crate vulkano_win;
-extern crate glsl_to_spirv;
-extern crate vulkano_shaders;
 extern crate time;
 extern crate image;
 
@@ -24,25 +19,24 @@ use game_state::state::{
     State,
     RenderAccess,
     WindowAccess,
+    DrawMode
 };
 
-use renderer::vulkan::{
-    VulkanRenderer,
-    DrawMode, // TODO: extract this to renderer::
+use renderer::opengl::{
+    OpenGLRenderer,
 };
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_load( state: &mut State ) {
+pub extern "C" fn mod_rendering_opengl_load( state: &mut State ) {
     assert!(state.get_renderers().len() == 0);
 
     let events_loop = state.get_events_loop().clone();
     let windows = state.get_windows().iter().map(|x| x.clone()).collect::<Vec<Arc<_>>>();
 
     for w in windows {
-        println!("Adding renderer for window provided.");
         state.add_renderer(
             Box::new(
-                VulkanRenderer::new((w, events_loop.clone()), DrawMode::Colored)
+                OpenGLRenderer::new("title", 640, 480)
             ),
         );
     }
@@ -51,7 +45,7 @@ pub extern "C" fn mod_rendering_load( state: &mut State ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_tick(state: &mut State) {
+pub extern "C" fn mod_rendering_opengl_tick(state: &mut State) {
     // queue each existing render layers for rendering
     state.push_render_layers();
     state.present_all();
@@ -59,7 +53,7 @@ pub extern "C" fn mod_rendering_tick(state: &mut State) {
 
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_unload(state: &mut State ) {
+pub extern "C" fn mod_rendering_opengl_unload(state: &mut State ) {
 
     state.on_render_unload();
 }

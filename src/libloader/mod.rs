@@ -65,6 +65,13 @@ pub struct LibLoader {
 impl LibLoader {
 
     ///
+    /// Returns the defined name of the module
+    ///
+    pub fn get_name(&self) -> &str {
+        &self.mod_name
+    }
+
+    ///
     /// Construct a new wrapper for a dynamically loaded mod
     ///
     pub fn new(filename: &str, mod_name: &str) -> Self {

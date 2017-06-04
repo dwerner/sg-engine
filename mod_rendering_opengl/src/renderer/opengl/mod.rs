@@ -1,5 +1,3 @@
-
-
 use glium::{
     DisplayBuild,
     Surface,
@@ -7,8 +5,7 @@ use glium::{
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::glutin;
 
-extern crate game_state;
-
+use game_state;
 use game_state::state::SceneGraph;
 use game_state::Renderable;
 use game_state::Renderer;
@@ -51,21 +48,23 @@ impl OpenGLRenderer {
 
 impl game_state::Identifyable for OpenGLRenderer {
     fn identify(&self) -> Identity {
-        unimplemented!()
+        self.id
     }
 }
 
 impl game_state::input::InputSource for OpenGLRenderer {
     fn get_input_events(&mut self) -> VecDeque<input::events::InputEvent> {
-        unimplemented!()
+        VecDeque::new()
     }
 }
 
 impl Renderer for OpenGLRenderer {
     fn load(&mut self) {
+        println!("Opengl renderer load");
     }
 
     fn unload(&mut self) {
+        println!("Opengl renderer unload")
     }
 
     fn queue_render_layer(&mut self, layer: Arc<SceneGraph>) {
@@ -75,7 +74,7 @@ impl Renderer for OpenGLRenderer {
     fn present(&mut self) {
         self.render();
     }
+
     fn set_title(&mut self, title: &str) {
-        unimplemented!()
     }
 }

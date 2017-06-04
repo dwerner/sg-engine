@@ -31,6 +31,7 @@ layout(location = 1) out vec2 v_uv;
 
 
 void main() {
+// TODO : this is extremely wasteful of GPU time, and should be done once on the CPU per model instead
     mat4 worldview = uniforms.view * uniforms.world * push_constants.model;
     v_normal = transpose(inverse(mat3(worldview))) * normal;
     gl_Position = uniforms.proj * worldview * vec4(position, 1.0);
