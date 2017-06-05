@@ -4,6 +4,8 @@ use game_state::state::State;
 
 //use game_state::input::events::InputEvent;
 use game_state::state::InputAccess;
+use game_state::time;
+use game_state::time::Duration;
 
 
 // this module's purpose is to turn input events into meaningful application input
@@ -16,7 +18,7 @@ pub extern "C" fn mod_input_load( state: &mut State ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_input_tick( state: &mut State ) {
+pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
     state.clear_input_events();
 
     state.gather_input_events();

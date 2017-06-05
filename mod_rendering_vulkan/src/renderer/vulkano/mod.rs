@@ -5,7 +5,7 @@ use self::vertex::Vertex;
 use vulkano_win;
 use vulkano;
 use cgmath;
-use winit;
+use game_state::winit;
 
 use vulkano_win::IntoVkWindowRef;
 use vulkano_win::WindowRef;

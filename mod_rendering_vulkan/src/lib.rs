@@ -6,8 +6,11 @@ extern crate winit;
 extern crate vulkano_win;
 extern crate glsl_to_spirv;
 extern crate vulkano_shaders;
-extern crate time;
 extern crate image;
+
+use game_state::time;
+
+use game_state::time::Duration;
 
 use std::sync::{
     Arc,
@@ -47,7 +50,7 @@ pub extern "C" fn mod_rendering_vulkan_load( state: &mut State ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_vulkan_tick(state: &mut State) {
+pub extern "C" fn mod_rendering_vulkan_update(state: &mut State, dt: &Duration) {
     // queue each existing render layers for rendering
     state.push_render_layers();
     state.present_all();

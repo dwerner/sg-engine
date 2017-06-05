@@ -12,10 +12,8 @@ name = "mod_rendering_opengl"
 crate-type=["dylib"]
 
 [dependencies]
-
 glium = "0.16"
 image = "0.13"
-time = "0.1"
 cgmath = "0.12"
 
 [dependencies.game_state]

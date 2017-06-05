@@ -12,17 +12,13 @@ name = "mod_rendering_vulkan"
 crate-type=["dylib"]
 
 [dependencies]
-
-
 # Vulkano Renderer
-winit = "0.6"
 cgmath = "0.12"
 vulkano = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
 vulkano-win = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
 vulkano-shaders = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
 glsl-to-spirv = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
 image = "0.13"
-time = "0.1"
 
 [dependencies.game_state]
 path = "../game_state"

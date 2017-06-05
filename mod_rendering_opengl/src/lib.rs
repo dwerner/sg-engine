@@ -5,8 +5,10 @@ extern crate game_state;
 extern crate glium;
 
 extern crate cgmath;
-extern crate time;
 extern crate image;
+
+use game_state::time;
+use game_state::time::Duration;
 
 use std::sync::{
     Arc,
@@ -45,7 +47,7 @@ pub extern "C" fn mod_rendering_opengl_load( state: &mut State ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_opengl_tick(state: &mut State) {
+pub extern "C" fn mod_rendering_opengl_update(state: &mut State, dt: &Duration) {
     // queue each existing render layers for rendering
     state.push_render_layers();
     state.present_all();
