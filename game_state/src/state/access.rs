@@ -84,7 +84,7 @@ impl WindowAccess for State {
             let maybe_window = maybe_window.with_dimensions(w,h);
             maybe_window.build(&self.events_loop.lock().unwrap())
         }.expect("unable to create window");
-        self.windows.push(
+        self.render_state.windows.push(
             Arc::new(Mutex::new(window))
         );
     }
@@ -94,77 +94,77 @@ impl WindowAccess for State {
     }
 
     fn get_windows(&mut self) -> &Vec<Arc<Mutex<Window>>> {
-        &self.windows
+        &self.render_state.windows
     }
 }
 
 impl RenderLayerAccess for State {
 
     fn get_render_layers(&mut self) -> &Vec<Arc<SceneGraph>> {
-        &mut self.render_layers
+        &mut self.render_state.render_layers
     }
 
     fn add_render_layer(&mut self, layer: Arc<SceneGraph>) {
-        self.render_layers.push(layer);
+        self.render_state.render_layers.push(layer);
     }
 
     fn clear_render_layers(&mut self) {
-        self.render_layers.clear();
+        self.render_state.render_layers.clear();
     }
 
 }
 
 impl RenderAccess for State {
     fn get_renderers(&mut self) -> &Vec<Box<Renderer>> {
-        &self.renderers
+        &self.render_state.renderers
     }
 
     fn add_renderer(&mut self, renderer: Box<Renderer>) {
-        self.renderers.push(renderer);
+        self.render_state.renderers.push(renderer);
     }
 
     fn remove_renderer(&mut self, id: Identity) {
         let mut found = None;
-        for i in 0..self.renderers.len() {
-            if self.renderers[i].identify() == id {
+        for i in 0..self.render_state.renderers.len() {
+            if self.render_state.renderers[i].identify() == id {
                 found = Some(i as usize);
             }
         }
         if found.is_some() {
-            self.renderers.remove(found.unwrap());
+            self.render_state.renderers.remove(found.unwrap());
         }
     }
 
     fn on_render_load(&mut self) {
-        for i in 0..self.renderers.len() {
-            self.renderers[i].load();
+        for i in 0..self.render_state.renderers.len() {
+            self.render_state.renderers[i].load();
         }
     }
 
     fn on_render_unload(&mut self) {
-        for i in 0..self.renderers.len() {
-            self.renderers[i].unload();
+        for i in 0..self.render_state.renderers.len() {
+            self.render_state.renderers[i].unload();
         }
         println!("RenderAccess::on_render_unload");
-        self.renderers.clear();
+        self.render_state.renderers.clear();
     }
 
     fn clear_renderers(&mut self) {
-        self.renderers.clear();
+        self.render_state.renderers.clear();
     }
 
     fn push_render_layers(&mut self) {
         // queue each existing render layers for rendering
-        for i in 0..self.renderers.len() {
-            for r in &self.render_layers {
-                self.renderers[i].queue_render_layer(r.clone());
+        for i in 0..self.render_state.renderers.len() {
+            for r in &self.render_state.render_layers {
+                self.render_state.renderers[i].queue_render_layer(r.clone());
             }
         }
     }
 
     fn present_all(&mut self) {
-        for i in 0..self.renderers.len() {
-            self.renderers[i].present();
+        for i in 0..self.render_state.renderers.len() {
+            self.render_state.renderers[i].present();
         }
     }
 }
@@ -196,8 +196,8 @@ impl InputAccess for State {
         // we want to clear that queue each tick, regardless of if we dealt with the events
 
         // Now we want to
-        for i in 0 .. self.renderers.len() {
-            let mut events = self.renderers[i].get_input_events();
+        for i in 0 .. self.render_state.renderers.len() {
+            let mut events = self.render_state.renderers[i].get_input_events();
             if events.len() > 0 {
                 self.input_state.pending_input_events.append(&mut events);
             }
@@ -237,7 +237,7 @@ impl InputAccess for State {
 
 impl SimulationAccess for State {
     fn get_sim_layers(&mut self) -> &Vec<SimulationLayer> {
-        &self.simulation_state.layers
+        &self.simulation_state.layers()
     }
 
     fn on_sim_load(&mut self) {
@@ -250,11 +250,11 @@ impl SimulationAccess for State {
 
 impl UIAccess for State {
     fn pending_ui_events(&mut self) -> &VecDeque<UIEvent> {
-        &self.gui_state.pending_ui_events
+        &self.ui_state.pending_ui_events
     }
 
     fn queue_ui_event(&mut self, event: UIEvent) {
-        self.gui_state.pending_ui_events.push_back(event);
+        self.ui_state.pending_ui_events.push_back(event);
     }
 
     fn on_ui_load(&mut self) {

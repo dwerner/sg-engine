@@ -1,25 +1,40 @@
 use super::{
     Renderer,
-    Renderable
 }; //, Physical, Syncable, Identifyable };
 
 use std::sync::Arc;
 use std::collections::VecDeque;
-use tree::{ RcNode };
-
-use input::events::InputEvent;
-use ui::events::UIEvent;
-use input::InputSource;
 
 use winit::EventsLoop;
 
+mod ui_state;
+use self::ui_state::{
+    UIState
+};
+
+mod input_state;
+pub use self::input_state::{
+    InputState,
+};
+
 mod access;
-pub use state::access::{
+pub use self::access::{
     WindowAccess,
     RenderAccess,
     RenderLayerAccess,
     InputAccess,
     SimulationAccess
+};
+
+mod simulation_state;
+use self::simulation_state::{
+    Simulation,
+    SimulationLayer,
+};
+
+mod render_state;
+pub use self::render_state::{
+    SceneGraph,
 };
 
 use winit::Window;
@@ -33,19 +48,29 @@ pub enum DrawMode {
     Colored
 }
 
+pub struct RenderState {
+    windows: Vec<Arc<Mutex<Window>>>,
+    renderers: Vec<Box<Renderer>>,
+    render_layers: Vec<Arc<SceneGraph>>,
+}
+impl RenderState {
+    pub fn new() -> Self {
+        RenderState{
+            windows: Vec::new(),
+            renderers: Vec::new(),
+            render_layers: Vec::new()
+        }
+    }
+}
 ///
 /// This is the central, and global, state passed to each mod during the main loop
 ///
 pub struct State {
     events_loop: Arc<Mutex<EventsLoop>>,
-    windows: Vec<Arc<Mutex<Window>>>,
-    renderers: Vec<Box<Renderer>>,
-    render_layers: Vec<Arc<SceneGraph>>,
-
+    render_state: RenderState,
     input_state: InputState,
-    gui_state: UIState,
+    ui_state: UIState,
     // simulation state
-    _syncable_state: SyncState, // stub for a struct atm, networking state?
     simulation_state: Simulation,
 }
 
@@ -53,54 +78,16 @@ impl State {
     pub fn new() -> Self {
         State{
             events_loop: Arc::new(Mutex::new(EventsLoop::new())), // app-wide wm events loop
-            windows: Vec::new(),
-            renderers: Vec::new(),
-            render_layers: Vec::new(),
+            render_state: RenderState::new(),
             input_state: InputState {
                 pending_input_events: VecDeque::new(),
                 other_input_sources: Vec::new() // input sources added at runtime
             },
-            gui_state: UIState {
-                pending_ui_events: VecDeque::new(),
-            },
-            _syncable_state: SyncState,
+            ui_state: UIState::new(),
             simulation_state: Simulation::new(),
         }
     }
 }
 
-// All global state for simulation
-pub struct Simulation {
-    layers: Vec<SimulationLayer>
-}
 
-impl Simulation {
-    pub fn new() -> Self{
-        Simulation{layers:Vec::new()}
-    }
-}
 
-pub struct SimulationLayer{}
-
-pub struct SyncState; // Stub type for now
-
-pub struct InputState {
-    pub pending_input_events: VecDeque<InputEvent>,
-    pub other_input_sources: Vec<Box<InputSource>>,
-}
-
-impl InputState {
-    pub fn clear(&mut self) {
-        // TODO add any useful clearing of state here
-        self.pending_input_events.clear();
-    }
-}
-
-pub struct SceneGraph {
-    pub root: RcNode<Box<Renderable>>,
-}
-
-pub struct UIState {
-    pub pending_ui_events: VecDeque<UIEvent>,
-    //pub scene: SceneGraph
-}
