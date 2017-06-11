@@ -25,11 +25,11 @@ fn main() {
     // because of #[no_mangle], each library needs it's own unique method name as well... sigh
 
     let mut mods = Vec::new();
-    mods.push(load_mod!(simulation));
-    mods.push(load_mod!(asset_loader));
-    mods.push(load_mod!(rendering_vulkan));
-    //mods.push(load_mod!(rendering_opengl));
     mods.push(load_mod!(input));
+    mods.push(load_mod!(simulation));
+    //mods.push(load_mod!(rendering_vulkan));
+    mods.push(load_mod!(rendering_opengl));
+    mods.push(load_mod!(asset_loader));
 
     for mut m in mods.iter_mut() {
         m.check_update(&mut state);
@@ -37,32 +37,38 @@ fn main() {
 
     let mut frame = 0;
     let frame_budget = 16000i64;// for 60 fps
+    let mut last_update = time::now();
 
     loop {
         // TODO: gather delta time instead
 
         let mut total_time = 0i64;
         for m in mods.iter() {
-            let duration: time::Duration = m.tick(&mut state);
+            let mut start_update = time::now();
+            let duration: time::Duration = m.update(&mut state, &(start_update - last_update));
+            if frame % 300 == 0 {
+                print!(
+                    "|> {}: {total_time:>6} μs ",
+                    name=m.get_name(),
+                    total_time=duration.num_microseconds().unwrap_or(0)
+                );
+            }
             total_time += duration.num_microseconds().unwrap_or(0);
         }
-
+        last_update = time::now();
+        if frame % 300 == 0 {
+            println!( "|>= total time: {total_time:>6} μs", total_time=total_time );
+            for mut m in mods.iter_mut() {
+                m.check_update(&mut state);
+            }
+        }
+        frame += 1;
 
         let wait = (frame_budget - total_time) / 1000;
         if wait > 0 {
             thread::sleep(Duration::from_millis(wait as u64));
         }
 
-        frame += 1;
-        if frame % 60 == 0 {
-            if frame % 100 == 0 {
-                //println!( "frame time: {total_time:<6}μs", total_time=total_time );
-            }
-
-            for mut m in mods.iter_mut() {
-                m.check_update(&mut state);
-            }
-        }
     }
 }
 

@@ -155,15 +155,16 @@ impl LibLoader {
     }
 
     ///
-    /// tick()
+    /// update()
     ///
-    /// Call to the mod to update the state with the "tick" normative lifecycle event
+    /// Call to the mod to update the state with the "update" normative lifecycle event
     ///
     // External interface prefers time::Duration (TDuration)
-    pub fn tick(&self, state: &mut state::State) -> TDuration {
-        let method_name = format!("mod_{}_tick", self.mod_name);
+    pub fn update(&self, state: &mut state::State, delta_time: &TDuration) -> TDuration {
+        let method_name = format!("mod_{}_update", self.mod_name);
+        // todo:
         let start_time = PreciseTime::now();
-        self.call(&method_name, state);
+        self.call_update(&method_name, state, delta_time);
         start_time.to(PreciseTime::now())
     }
 
@@ -208,10 +209,25 @@ impl LibLoader {
     }
 
     ///
-    /// call()
+    /// call_update()
     ///
-    /// call a method in the module by name, passing &mut State
+    /// call a method in the module by name, passing &mut State and a delta_time duration
     ///
+    fn call_update(&self, method_name: &str, state: &mut state::State, delta_time: &TDuration) {
+        match self.lib {
+            Some(ref lib) => {
+                unsafe {
+                    let method = method_name.as_bytes();
+                    let func: Symbol<unsafe extern fn(&mut state::State, &TDuration)> =
+                        lib.get(method).expect("unable to find symbol");
+                    func(state, delta_time);
+
+                }
+            },
+            None => println!("Cannot call method {} - lib not found", method_name)
+        }
+    }
+
     fn call(&self, method_name: &str, state: &mut state::State) {
         match self.lib {
             Some(ref lib) => {

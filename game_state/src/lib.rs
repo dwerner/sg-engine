@@ -10,8 +10,9 @@ pub mod utils;
 extern crate cgmath;
 extern crate nom_obj;
 extern crate image;
-extern crate time;
-extern crate winit;
+
+pub extern crate time;
+pub extern crate winit;
 
 #[macro_use]
 extern crate serde_derive;

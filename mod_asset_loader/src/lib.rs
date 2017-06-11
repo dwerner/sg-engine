@@ -9,6 +9,8 @@ use game_state::model::{ Model };
 use game_state::tree::{ Node };
 use game_state::state::{ SceneGraph };
 
+use game_state::time::Duration;
+
 use std::sync::Arc;
 
 use cgmath::Matrix4;
@@ -40,7 +42,7 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_asset_loader_tick( _state: &mut State ) {
+pub extern "C" fn mod_asset_loader_update( _state: &mut State, dt: &Duration ) {
     //
     // this module might look for unused assets, or requests for loading new ones?
     // for instance, instead of blindly loading an asset and pushing it into state, we COULD be loading files
