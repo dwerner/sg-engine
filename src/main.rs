@@ -27,8 +27,8 @@ fn main() {
     let mut mods = Vec::new();
     mods.push(load_mod!(input));
     mods.push(load_mod!(simulation));
-    //mods.push(load_mod!(rendering_vulkan));
-    mods.push(load_mod!(rendering_opengl));
+    mods.push(load_mod!(rendering_vulkan));
+    //mods.push(load_mod!(rendering_opengl));
     mods.push(load_mod!(asset_loader));
 
     for mut m in mods.iter_mut() {

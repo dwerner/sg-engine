@@ -1,8 +1,9 @@
 extern crate game_state;
+use game_state::winit;
 
 extern crate cgmath;
 #[macro_use] extern crate vulkano;
-extern crate winit;
+
 extern crate vulkano_win;
 extern crate glsl_to_spirv;
 extern crate vulkano_shaders;

@@ -8,6 +8,7 @@ use std::fs;
 
 use time::PreciseTime;
 use time::Duration as TDuration;
+use std::io::Error;
 
 ///
 /// TODO: support a dynamically *defined* and dynamically loaded lib
@@ -218,9 +219,16 @@ impl LibLoader {
             Some(ref lib) => {
                 unsafe {
                     let method = method_name.as_bytes();
-                    let func: Symbol<unsafe extern fn(&mut state::State, &TDuration)> =
-                        lib.get(method).expect("unable to find symbol");
-                    func(state, delta_time);
+
+                    let maybe_func: Result<
+                        Symbol<unsafe extern fn(&mut state::State, &TDuration)>,
+                        Error
+                    > = lib.get(method);
+
+                    match maybe_func {
+                        Ok(func) => func(state, delta_time),
+                        Err(e) => println!("Unable to call function: {} - method does not exist in lib: {:?}", method_name, lib)
+                    }
 
                 }
             },
@@ -233,10 +241,16 @@ impl LibLoader {
             Some(ref lib) => {
                 unsafe {
                     let method = method_name.as_bytes();
-                    let func: Symbol<unsafe extern fn(&mut state::State)> =
-                        lib.get(method).expect("unable to find symbol");
-                    func(state);
 
+                    let maybe_func: Result<
+                        Symbol<unsafe extern fn(&mut state::State)>,
+                        Error
+                    > = lib.get(method);
+
+                    match maybe_func {
+                        Ok(func) => func(state),
+                        Err(e) => println!("Unable to call function: {} - method does not exist in lib: {:?}", method_name, lib)
+                    }
                 }
             },
             None => println!("Cannot call method {} - lib not found", method_name)
