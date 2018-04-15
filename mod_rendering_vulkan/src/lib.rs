@@ -43,7 +43,7 @@ pub extern "C" fn mod_rendering_vulkan_load( state: &mut State ) {
         state.add_renderer(
             Box::new(
                 VulkanoRenderer::new((w, events_loop.clone()), DrawMode::Colored)
-            ),
+            )
         );
     }
 

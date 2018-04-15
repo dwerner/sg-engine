@@ -12,11 +12,11 @@ name = "mod_asset_loader"
 crate-type=["dylib"]
 
 [dependencies]
-cgmath = "0.12"
+cgmath = "0.12" #0.16
+bincode = "0.8" # 1.0
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-bincode = "0.8"
 
 [dependencies.game_state]
 path = "../game_state"

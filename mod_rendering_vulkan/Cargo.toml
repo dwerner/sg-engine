@@ -13,15 +13,21 @@ crate-type=["dylib"]
 
 [dependencies]
 # Vulkano Renderer
-cgmath = "0.12"
-vulkano = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
+cgmath = "0.12" #0.16
+#vulkano = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
 vulkano-win = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
-vulkano-shaders = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
-glsl-to-spirv = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
-image = "0.13"
+#vulkano-shaders = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
+
+vulkano = "0.4.4"
+#vulkano-win = "0.4.4"
+vulkano-shaders = "0.4.4"
+glsl-to-spirv = "0.1.3"
+
+image = "0.13" # 0.18
 
 [dependencies.game_state]
 path = "../game_state"
 
 [build-dependencies]
-vulkano-shaders = { git = "https://github.com/dwerner/vulkano", rev="931366d"}
+vulkano-shaders = "0.4.4"
+#vulkano-shaders = { git = "https://github.com/dwerner/vulkano", rev="931366d"}

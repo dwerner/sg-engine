@@ -157,9 +157,9 @@ pub struct VulkanoRenderer {
 impl VulkanoRenderer {
 
     fn create_swapchain(
-        surface: &Arc<Surface>,
-        device: &Arc<Device>,
-        queue: &Arc<Queue>,
+        surface: Arc<Surface>,
+        device: Arc<Device>,
+        queue: Arc<Queue>,
         physical: &PhysicalDevice
     ) -> (Arc<Swapchain>, Vec<Arc<SwapchainImage>>) {
         let caps = surface.get_capabilities(physical).expect("Failed to get surface capabilities");
@@ -170,12 +170,12 @@ impl VulkanoRenderer {
         Swapchain::new(
             device,
             surface,
-            2,
+            caps.min_image_count,
             format,
             dimensions,
             1,
-            &caps.supported_usage_flags,
-            queue,
+            caps.supported_usage_flags,
+            &queue,
             SurfaceTransform::Identity,
             alpha,
             present,
@@ -186,7 +186,7 @@ impl VulkanoRenderer {
 
     fn create_descriptor_set(
         texture: &Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
-        device: &Arc<Device>,
+        device: Arc<Device>,
         width: u32,
         height: u32,
         uniform_buffer: &Arc<CpuAccessibleBuffer<::renderer::vulkano::vs::ty::Data>>,
@@ -194,7 +194,7 @@ impl VulkanoRenderer {
         pipeline: &ThisPipelineType,
     ) -> ThisPipelineDescriptorSet {
 
-        let sampler = vulkano::sampler::Sampler::new(&device, vulkano::sampler::Filter::Linear,
+        let sampler = vulkano::sampler::Sampler::new(device.clone(), vulkano::sampler::Filter::Linear,
                                                      vulkano::sampler::Filter::Linear, vulkano::sampler::MipmapMode::Nearest,
                                                      vulkano::sampler::SamplerAddressMode::Repeat,
                                                      vulkano::sampler::SamplerAddressMode::Repeat,
@@ -245,7 +245,7 @@ impl VulkanoRenderer {
         };
 
         let queue = queues.next().unwrap();
-        let (swapchain, images) = Self::create_swapchain(&window.surface(), &device, &queue, &physical);
+        let (swapchain, images) = Self::create_swapchain(window.surface().clone(), device.clone(), queue.clone(), &physical);
 
         // TODO: as part of asset_loader, we should be loading all the shaders we expect to use in a scene
         let vs = vs::Shader::load(&device).expect("failed to create vs shader module");
