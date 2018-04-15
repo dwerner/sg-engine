@@ -1,9 +1,8 @@
+use glium;
 use glium::{
-    DisplayBuild,
+    glutin,
     Surface,
 };
-use glium::backend::glutin_backend::GlutinFacade;
-use glium::glutin;
 
 use game_state;
 use game_state::state::SceneGraph;
@@ -18,7 +17,7 @@ use std::collections::VecDeque;
 
 pub struct OpenGLRenderer {
     id: Identity,
-    display: GlutinFacade,
+    display: glium::Display,
     w:u32,
     h:u32,
     title: String,
@@ -27,11 +26,12 @@ pub struct OpenGLRenderer {
 impl OpenGLRenderer {
 
     pub fn new(title: &str, w: u32, h: u32) -> Self {
-        let display = glutin::WindowBuilder::new()
-            .with_vsync()
+        let events_loop = glutin::EventsLoop::new();
+        let window = glutin::WindowBuilder::new()
             .with_title(title)
-            .with_dimensions(w,h)
-            .build_glium()
+            .with_dimensions(w,h);
+        let context = glutin::ContextBuilder::new();
+        let display = glium::Display::new(window, context, &events_loop)
             .unwrap();
 
         OpenGLRenderer{

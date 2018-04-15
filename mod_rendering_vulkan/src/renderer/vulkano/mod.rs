@@ -7,21 +7,17 @@ use vulkano;
 use cgmath;
 use game_state::winit;
 
-use vulkano_win::IntoVkWindowRef;
-use vulkano_win::WindowRef;
-
 use vulkano::buffer::BufferUsage;
 use vulkano::buffer::CpuAccessibleBuffer;
 use vulkano::command_buffer::DynamicState;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
-use vulkano::command_buffer::CommandBufferBuilder;
 use vulkano::device::Device;
 use vulkano::framebuffer::Framebuffer;
 use vulkano::framebuffer::Subpass;
 use vulkano::instance::Instance;
 use vulkano::instance::PhysicalDevice;
 use vulkano::pipeline::GraphicsPipeline;
-use vulkano::pipeline::GraphicsPipelineParams;
+use vulkano::pipeline::GraphicsPipelineSys;
 use vulkano::pipeline::blend::Blend;
 use vulkano::pipeline::depth_stencil::DepthStencil;
 use vulkano::pipeline::input_assembly::InputAssembly;
@@ -40,7 +36,6 @@ use vulkano::image::{
     ImmutableImage,
     SwapchainImage,
     ImageViewAccess,
-    Image,
 };
 
 //use vulkano::device::QueuesIter;

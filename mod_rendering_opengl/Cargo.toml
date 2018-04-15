@@ -12,9 +12,9 @@ name = "mod_rendering_opengl"
 crate-type=["dylib"]
 
 [dependencies]
-glium = "0.16" # 0.21
-image = "0.13" #0.18
-cgmath = "0.12" #0.16
+glium = "0.21"
+cgmath = "0.16"
+image = "0.17" #0.18 seems to fail to compile now...
 
 [dependencies.game_state]
 path = "../game_state"
