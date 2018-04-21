@@ -16,7 +16,7 @@ use game_state::state::WindowAccess;
 fn main() {
     let mut state = state::State::new();
 
-    state.add_window(640, 800, "sg".to_string());
+    state.add_window(640, 800, "sg-shell".to_string());
 
     // TODO mod_audio
     // TODO mod_gui
@@ -36,7 +36,7 @@ fn main() {
     }
 
     let mut frame = 0;
-    let frame_budget = 16000i64;// for 60 fps
+    let frame_budget = 1600i64;// for 60 fps
     let mut last_update = time::now();
 
     loop {

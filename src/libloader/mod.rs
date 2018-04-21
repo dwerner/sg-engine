@@ -36,11 +36,18 @@ use std::io::Error;
 #[macro_export]
 macro_rules! load_mod {
     ( $s:expr ) => {{
+
+        #[cfg(debug_assertions)]
+        fn build_profile() -> &'static str {"debug"}
+
+        #[cfg(not(debug_assertions))]
+        fn build_profile() -> &'static str {"release"}
+
         let name = stringify!($s);
         let path = if cfg!(windows) {
-            format!( "mod_{0}/target/debug/mod_{0}.dll", name )
+            format!( "mod_{0}/target/{1}/mod_{0}.dll", name, build_profile() )
         } else {
-            format!( "mod_{0}/target/debug/deps/libmod_{0}.so", name )
+            format!( "mod_{0}/target/{1}/deps/libmod_{0}.so", name, build_profile() )
         };
         LibLoader::new(&path, name)
     }};
@@ -98,7 +105,7 @@ impl LibLoader {
     pub fn check_update(&mut self, state: &mut state::State) {
 
         let source = Path::new(&self.filename);
-        let file_stem = source.file_stem().unwrap().to_str().unwrap();
+            let file_stem = source.file_stem().unwrap().to_str().unwrap();
 
         match fs::metadata(&source) {
             Ok(new_meta) => {
@@ -200,11 +207,12 @@ impl LibLoader {
     fn message(&self, message: &str) {
         let source = Path::new(&self.filename);
         let file_stem = source.file_stem().unwrap().to_str().unwrap();
-        println!( "{}{} {} (version {}){}",
+        println!( "{}{} {} (version {}, {}){}",
                   Green.bold().paint("["),
                   Green.bold().paint(message),
                   Yellow.paint(file_stem),
                   Cyan.paint(format!("{}",self.version)),
+                  Cyan.paint(format!("{:?}", source)),
                   Green.bold().paint("]")
         );
     }
