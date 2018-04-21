@@ -16,7 +16,6 @@ use game_state::state::WindowAccess;
 fn main() {
     let mut state = state::State::new();
 
-    state.add_window(640, 800, "sg-shell".to_string());
 
     // TODO mod_audio
     // TODO mod_gui
@@ -27,8 +26,13 @@ fn main() {
     let mut mods = Vec::new();
     mods.push(load_mod!(input));
     mods.push(load_mod!(simulation));
-    mods.push(load_mod!(rendering_vulkan));
-    //mods.push(load_mod!(rendering_opengl));
+
+    //state.add_window(800, 600, "sg-shell 1 (vulkan)".to_string());
+    //mods.push(load_mod!(rendering_vulkan));
+
+    state.add_window_builder(800, 600, "sg-shell (OpenGL/glutin)".to_string());
+    mods.push(load_mod!(rendering_opengl));
+
     mods.push(load_mod!(asset_loader));
 
     for mut m in mods.iter_mut() {
@@ -36,7 +40,7 @@ fn main() {
     }
 
     let mut frame = 0;
-    let frame_budget = 1600i64;// for 60 fps
+    let frame_budget = 16000i64;// for 60 fps
     let mut last_update = time::now();
 
     loop {

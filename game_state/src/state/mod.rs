@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::collections::VecDeque;
 
 use winit::EventsLoop;
+use winit::WindowBuilder;
 
 mod ui_state;
 use self::ui_state::{
@@ -50,6 +51,7 @@ pub enum DrawMode {
 
 pub struct RenderState {
     windows: Vec<Arc<Window>>,
+    window_builders: Vec<WindowBuilder>,
     renderers: Vec<Box<Renderer>>,
     render_layers: Vec<Arc<SceneGraph>>,
 }
@@ -57,6 +59,7 @@ impl RenderState {
     pub fn new() -> Self {
         RenderState{
             windows: Vec::new(),
+            window_builders: Vec::new(), // glutin requires a builder
             renderers: Vec::new(),
             render_layers: Vec::new()
         }

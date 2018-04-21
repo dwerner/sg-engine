@@ -1,49 +1,78 @@
-use glium;
-use glium::{
-    glutin,
-    Surface,
-};
+use gl;
+use gl::types::*;
+
+use glutin;
+use glutin::GlContext;
 
 use game_state;
 use game_state::state::SceneGraph;
 use game_state::Renderable;
 use game_state::Renderer;
+use game_state::winit;
 
 use game_state::input;
 
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    Mutex
+};
+
 use game_state::Identity;
 use std::collections::VecDeque;
 
 pub struct OpenGLRenderer {
     id: Identity,
-    display: glium::Display,
-    w:u32,
-    h:u32,
-    title: String,
+    gl_window: glutin::GlWindow,
+    el: glutin::EventsLoop,
     render_layer_queue: VecDeque<Arc<SceneGraph>>
 }
 impl OpenGLRenderer {
 
-    pub fn new(title: &str, w: u32, h: u32) -> Self {
-        let events_loop = glutin::EventsLoop::new();
-        let window = glutin::WindowBuilder::new()
-            .with_title(title)
-            .with_dimensions(w,h);
+    pub fn new(window: winit::WindowBuilder, events_loop: Arc<Mutex<winit::EventsLoop>>) -> Self {
         let context = glutin::ContextBuilder::new();
-        let display = glium::Display::new(window, context, &events_loop)
-            .unwrap();
+        let el = glutin::EventsLoop::new();
+
+        let gl_window = glutin::GlWindow::new(
+            window.clone(),
+            context,
+            &el
+        ).unwrap();
+
+        unsafe {
+            gl_window.make_current().unwrap();
+        }
+
+        unsafe {
+            gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
+            gl::ClearColor(0.0, 0.1, 0.0, 1.0);
+        }
 
         OpenGLRenderer{
             id: game_state::create_next_identity(),
-            display: display,
-            w: w,
-            h: h,
-            title: title.to_string(),
+            gl_window: gl_window,
+            el,
             render_layer_queue: VecDeque::new()
         }
     }
-    fn render(&mut self){}
+
+    fn render(&mut self){
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+
+        loop {
+            match self.render_layer_queue.pop_front() {
+                Some(layer) => {
+                    
+                    //TODO : gather needed resources from the layer and render
+
+                }
+                None => break
+            }
+        }
+
+        self.gl_window.swap_buffers().expect("failed to swap buffers");
+    }
 }
 
 impl game_state::Identifyable for OpenGLRenderer {
@@ -60,11 +89,9 @@ impl game_state::input::InputSource for OpenGLRenderer {
 
 impl Renderer for OpenGLRenderer {
     fn load(&mut self) {
-        println!("Opengl renderer load");
     }
 
     fn unload(&mut self) {
-        println!("Opengl renderer unload")
     }
 
     fn queue_render_layer(&mut self, layer: Arc<SceneGraph>) {

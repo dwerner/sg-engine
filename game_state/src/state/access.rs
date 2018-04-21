@@ -27,6 +27,8 @@ pub trait WindowAccess {
     fn add_window(&mut self, w: u32, h: u32, title: String);
     fn get_events_loop(&self) -> &Arc<Mutex<EventsLoop>>;
     fn get_windows(&mut self) -> &Vec<Arc<Window>>;
+    fn add_window_builder(&mut self, w: u32, h: u32, title: String);
+    fn get_window_builders(&self) -> &Vec<WindowBuilder>;
 }
 
 // Accessor trait for State by topic
@@ -95,6 +97,17 @@ impl WindowAccess for State {
 
     fn get_windows(&mut self) -> &Vec<Arc<Window>> {
         &self.render_state.windows
+    }
+
+    fn add_window_builder(&mut self, w: u32, h: u32, title: String) {
+        let maybe_window = WindowBuilder::new();
+        let maybe_window = maybe_window.with_title(title);
+        let w = maybe_window.with_dimensions(w,h);
+        self.render_state.window_builders.push( w );
+    }
+
+    fn get_window_builders(&self) -> &Vec<WindowBuilder> {
+        &self.render_state.window_builders
     }
 }
 

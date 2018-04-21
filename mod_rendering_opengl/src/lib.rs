@@ -1,8 +1,8 @@
 extern crate game_state;
 
 // OpenGL Renderer
-#[macro_use]
-extern crate glium;
+extern crate gl;
+extern crate glutin;
 
 extern crate cgmath;
 extern crate image;
@@ -30,15 +30,15 @@ use renderer::opengl::{
 
 #[no_mangle]
 pub extern "C" fn mod_rendering_opengl_load( state: &mut State ) {
-    assert!(state.get_renderers().len() == 0);
+    //assert!(state.get_renderers().len() == 0);
 
     let events_loop = state.get_events_loop().clone();
-    let windows = state.get_windows().iter().map(|x| x.clone()).collect::<Vec<Arc<_>>>();
+    let windows = state.get_window_builders().iter().map(|x| x.clone()).collect::<Vec<_>>();
 
     for w in windows {
         state.add_renderer(
             Box::new(
-                OpenGLRenderer::new("title", 640, 480)
+                OpenGLRenderer::new(w, events_loop.clone())
             ),
         );
     }
