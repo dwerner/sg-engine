@@ -30,13 +30,6 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     let blob = Box::new(model.clone());
     let mut child = Node::create(blob as Box<Renderable>, Some(root.clone()) );
 
-    for _ in 0..10 {
-        let mx = Matrix4::from_translation(Vector3::new(0.0, 2.0, 1.0)) * Matrix4::from_scale(0.95);
-        model.set_model_matrix(mx);
-        let blob = Box::new(model.clone());
-        child = Node::create(blob as Box<Renderable>, Some(child.clone()) );
-    }
-
     state.add_render_layer(Arc::new(SceneGraph{root:root}));
 }
 

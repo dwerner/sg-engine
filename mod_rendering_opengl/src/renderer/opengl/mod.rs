@@ -75,6 +75,4 @@ impl Renderer for OpenGLRenderer {
         self.render();
     }
 
-    fn set_title(&mut self, title: &str) {
-    }
 }

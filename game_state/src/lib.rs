@@ -65,9 +65,6 @@ pub trait Renderer : Identifyable + InputSource {
     /// Actually render the image, compositing render layers in the order they were queued
     fn present(&mut self);
 
-    // Window handle
-    fn set_title(&mut self, title: &str);
-
 }
 
 pub trait Renderable : Identifyable {

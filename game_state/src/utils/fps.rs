@@ -27,6 +27,11 @@ impl FPS {
         let millis = diff.num_milliseconds();
         self.frame_count as f32 / millis as f32 * 1000 as f32
     }
+
+    #[inline]
+    pub fn count(&self) -> u32 {
+        self.frame_count
+    }
 }
 
 //TODO tests??

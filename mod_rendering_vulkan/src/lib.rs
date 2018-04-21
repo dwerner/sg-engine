@@ -4,18 +4,14 @@ use game_state::winit;
 extern crate cgmath;
 #[macro_use] extern crate vulkano;
 
-extern crate vulkano_win;
 extern crate glsl_to_spirv;
 extern crate vulkano_shaders;
 extern crate image;
-
-use game_state::time;
 
 use game_state::time::Duration;
 
 use std::sync::{
     Arc,
-    Mutex
 };
 
 mod renderer;
@@ -26,7 +22,6 @@ use game_state::state::{
     WindowAccess,
     DrawMode,
 };
-use game_state::utils;
 
 use renderer::vulkano::{
     VulkanoRenderer,
@@ -40,11 +35,15 @@ pub extern "C" fn mod_rendering_vulkan_load( state: &mut State ) {
     let windows = state.get_windows().iter().map(|x| x.clone()).collect::<Vec<Arc<_>>>();
 
     for w in windows {
-        state.add_renderer(
-            Box::new(
-                VulkanoRenderer::new((w, events_loop.clone()), DrawMode::Colored)
-            )
-        );
+        let maybe_renderer = VulkanoRenderer::new(w.clone(), events_loop.clone(), DrawMode::Colored);
+        match maybe_renderer {
+            Ok(renderer) => {
+                state.add_renderer(
+                    Box::new(renderer)
+                );
+            }
+            Err(err) => println!("aww fuck. {}", err)
+        }
     }
 
     state.on_render_load();

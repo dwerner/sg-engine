@@ -26,7 +26,7 @@ use winit::WindowBuilder;
 pub trait WindowAccess {
     fn add_window(&mut self, w: u32, h: u32, title: String);
     fn get_events_loop(&self) -> &Arc<Mutex<EventsLoop>>;
-    fn get_windows(&mut self) -> &Vec<Arc<Mutex<Window>>>;
+    fn get_windows(&mut self) -> &Vec<Arc<Window>>;
 }
 
 // Accessor trait for State by topic
@@ -85,7 +85,7 @@ impl WindowAccess for State {
             maybe_window.build(&self.events_loop.lock().unwrap())
         }.expect("unable to create window");
         self.render_state.windows.push(
-            Arc::new(Mutex::new(window))
+            Arc::new(window)
         );
     }
 
@@ -93,7 +93,7 @@ impl WindowAccess for State {
         &self.events_loop
     }
 
-    fn get_windows(&mut self) -> &Vec<Arc<Mutex<Window>>> {
+    fn get_windows(&mut self) -> &Vec<Arc<Window>> {
         &self.render_state.windows
     }
 }
