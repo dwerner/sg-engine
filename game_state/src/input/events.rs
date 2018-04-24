@@ -20,8 +20,8 @@ pub struct JoystickButton(u32);
 
 #[derive(Debug, Copy, Clone)]
 pub enum InputEvent {
-    KeyDown(Identity, u8),
-    KeyUp(Identity, u8),
+    KeyDown(Identity, u32),
+    KeyUp(Identity, u32),
 
     MouseDown(Identity, MouseButton, ScreenPoint),
     MouseUp(Identity, MouseButton, ScreenPoint),

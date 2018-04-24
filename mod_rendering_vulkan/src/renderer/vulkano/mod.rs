@@ -135,8 +135,13 @@ type AMWin = Arc<winit::Window>;
 pub struct VulkanoRenderer {
     id: Identity,
     _instance: Arc<Instance>,
+
+    #[allow(dead_code)]
     window: AMWin,
+
+    #[allow(dead_code)]
     surface: Arc<Surface<AMWin>>,
+
     events_loop: Arc<Mutex<winit::EventsLoop>>,
     device: Arc<Device>,
     //queues: QueuesIter,
@@ -161,7 +166,11 @@ pub struct VulkanoRenderer {
     rect: ScreenRect,
     current_mouse_pos: ScreenPoint,
     debug_world_rotation: f32,
+
+    // Enable vulkan debug layers?
+    #[allow(dead_code)]
     debug_callback: Option<vulkano::instance::debug::DebugCallback>,
+
     previous_frame_end: Box<GpuFuture>,
     recreate_swapchain: bool,
     hack_uploaded_tex: bool,
@@ -673,7 +682,7 @@ impl VulkanoRenderer {
                             .build()
                             .unwrap();
 
-        let mut prev = mem::replace(
+        let prev = mem::replace(
             &mut self.previous_frame_end,
             Box::new(now(self.device.clone())) as Box<GpuFuture>
         );
@@ -762,35 +771,50 @@ impl InputSource for VulkanoRenderer {
             event_loop.poll_events(|e| events.push_back(e.clone()));
         }
 
-        let this_window_id = { self.id };
+        let this_window_id = self.id as u64;
 
         let mut converted_events = VecDeque::with_capacity(events.len());
 
-        /*
         for e in events {
+
+            #[allow(dead_code)]
             match e {
-                winit::Event::WindowEvent{ window_id, ref event } if window_id == this_window_id => {
+                winit::Event::DeviceEvent{device_id, ref event} => {
+                    match event {
+                        &winit::DeviceEvent::Added => {},
+                        &winit::DeviceEvent::Removed => {},
+                        &winit::DeviceEvent::MouseMotion { delta } => {},
+                        &winit::DeviceEvent::MouseWheel {delta} => {},
+                        &winit::DeviceEvent::Motion { axis, value } => {},
+                        &winit::DeviceEvent::Button { button, state } => {},
+                        &winit::DeviceEvent::Key(input) => {},
+                        &winit::DeviceEvent::Text{codepoint} => {}
+                    }
+                },
+                winit::Event::WindowEvent{ window_id, ref event } => {
                     let maybe_converted_event = match event {
                         // Keyboard Events
-                        &winit::WindowEvent::KeyboardInput{state, scancode, _maybe_virtual_keycode, _modifier_state, ..} => {
-                            let e = match state {
-                                winit::ElementState::Pressed => InputEvent::KeyDown(self.id, scancode),
-                                winit::ElementState::Released => InputEvent::KeyDown(self.id, scancode)
+                        &winit::WindowEvent::KeyboardInput{device_id, input} => {
+                            let e = match input.state {
+                                winit::ElementState::Pressed => InputEvent::KeyDown(self.id, input.scancode),
+                                winit::ElementState::Released => InputEvent::KeyDown(self.id, input.scancode)
                             };
                             Some(e)
                         }
 
                         // Mouse Events
 
-                        &winit::WindowEvent::MouseMoved{x,y} => {
+                        &winit::WindowEvent::CursorMoved{device_id, position, modifiers} => {
+                            let (x,y) = position;
                             let old_pos: ScreenPoint = self.get_mouse_pos().clone();
-                            let new_pos = ScreenPoint::new(x,y);
+                            // TODO: resolve f64 truncation to i32 here
+                            let new_pos = ScreenPoint::new(x as i32, y as i32);
                             let moved =
                                 InputEvent::MouseMove(self.id, new_pos.clone(), DeltaVector::from_points(&old_pos, &new_pos));
                             self.set_mouse_pos(new_pos);
                             Some(moved)
                         },
-                        &winit::WindowEvent::MouseInput{state, button} => {
+                        &winit::WindowEvent::MouseInput{device_id, state, button, modifiers} => {
                             let b = match button {
                                 winit::MouseButton::Left => MouseButton::Left,
                                 winit::MouseButton::Right => MouseButton::Right,
@@ -804,7 +828,7 @@ impl InputSource for VulkanoRenderer {
                             Some(e)
                         },
 
-                        &winit::WindowEvent::MouseWheel{delta, _phase} => {
+                        &winit::WindowEvent::MouseWheel{device_id, delta, phase, modifiers} => {
                             let e = match delta {
                                 winit::MouseScrollDelta::LineDelta(x,y) | winit::MouseScrollDelta::PixelDelta(x,y)  =>
                                     InputEvent::MouseWheel(self.id, self.get_mouse_pos().clone(), DeltaVector::new(x as i32, y as i32))
@@ -814,8 +838,10 @@ impl InputSource for VulkanoRenderer {
 
                         // Window Manager events
 
+                        /*
                         &winit::WindowEvent::MouseEntered => Some(InputEvent::MouseEntered(self.id)),
                         &winit::WindowEvent::MouseLeft => Some(InputEvent::MouseLeft(self.id)),
+                        */
                         &winit::WindowEvent::Closed => Some(InputEvent::Closed(self.id)),
                         &winit::WindowEvent::Focused(f) => Some(if f { InputEvent::GainedFocus(self.id) } else { InputEvent::LostFocus(self.id) }),
                         &winit::WindowEvent::Moved(x,y) => {
@@ -840,7 +866,7 @@ impl InputSource for VulkanoRenderer {
                 }
                 _ => {}
             };
-        }*/
+        }
         converted_events
     }
     // FIXME Ruby
