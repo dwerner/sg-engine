@@ -27,11 +27,11 @@ fn main() {
     mods.push(load_mod!(input));
     mods.push(load_mod!(simulation));
 
-    //state.add_window(800, 600, "sg-shell 1 (vulkan)".to_string());
-    //mods.push(load_mod!(rendering_vulkan));
+    state.add_window(800, 600, "sg-shell 1 (vulkan)".to_string());
+    mods.push(load_mod!(rendering_vulkan));
 
-    state.add_window_builder(800, 600, "sg-shell (OpenGL/glutin)".to_string());
-    mods.push(load_mod!(rendering_opengl));
+    //state.add_window_builder(800, 600, "sg-shell (OpenGL/glutin)".to_string());
+    //mods.push(load_mod!(rendering_opengl));
 
     mods.push(load_mod!(asset_loader));
 
@@ -61,7 +61,9 @@ fn main() {
         }
         last_update = time::now();
         if frame % 300 == 0 {
-            println!( "|>= total time: {total_time:>6} μs", total_time=total_time );
+            println!("|>= total time: {total_time:>6} μs", total_time = total_time);
+        }
+        if frame % 30 == 0 {
             for mut m in mods.iter_mut() {
                 m.check_update(&mut state);
             }

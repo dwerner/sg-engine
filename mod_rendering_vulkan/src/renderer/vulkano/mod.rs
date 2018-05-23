@@ -41,7 +41,7 @@ use vulkano::instance::debug::DebugCallback;
 
 use vulkano::image::attachment::AttachmentImage;
 use vulkano::image::{
-    ImmutableImage,
+    StorageImage,
     SwapchainImage,
     ImageViewAccess,
     ImageAccess,
@@ -116,7 +116,7 @@ type ThisPipelineDescriptorSet =
                 (
                     (
                         (),
-                        PersistentDescriptorSetImg<Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>>
+                        PersistentDescriptorSetImg<Arc<StorageImage<vulkano::format::R8G8B8A8Unorm>>>
                     ),
                     vulkano::descriptor::descriptor_set::PersistentDescriptorSetSampler
                 ),
@@ -144,14 +144,12 @@ pub struct VulkanoRenderer {
 
     events_loop: Arc<Mutex<winit::EventsLoop>>,
     device: Arc<Device>,
-    //queues: QueuesIter,
     queue: Arc<Queue>,
     swapchain: Arc<Swapchain<AMWin>>,
     _images: Vec<Arc<SwapchainImage<AMWin>>>,
-    //submissions: Vec<Box<GpuFuture>>,
     pipeline: Arc<ThisPipelineType>,
-    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,//Vec<Arc<Framebuffer<render_pass::CustomRenderPass>>>,
-    texture: Arc<vulkano::image::ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
+    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
+    texture: Arc<vulkano::image::StorageImage<vulkano::format::R8G8B8A8Unorm>>,
     fps: fps::FPS,
 
     _renderpass: Arc<RenderPassAbstract + Send + Sync>,
@@ -166,6 +164,7 @@ pub struct VulkanoRenderer {
     rect: ScreenRect,
     current_mouse_pos: ScreenPoint,
     debug_world_rotation: f32,
+    debug_zoom: f32,
 
     // Enable vulkan debug layers?
     #[allow(dead_code)]
@@ -174,6 +173,7 @@ pub struct VulkanoRenderer {
     previous_frame_end: Box<GpuFuture>,
     recreate_swapchain: bool,
     hack_uploaded_tex: bool,
+    dynamic_state: DynamicState,
 }
 
 impl VulkanoRenderer {
@@ -212,7 +212,7 @@ impl VulkanoRenderer {
     }
 
     fn create_descriptor_set(
-        texture: Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
+        texture: Arc<StorageImage<vulkano::format::R8G8B8A8Unorm>>,
         device: Arc<Device>,
         width: u32,
         height: u32,
@@ -260,7 +260,9 @@ impl VulkanoRenderer {
         };
 
         let callback = DebugCallback::errors_and_warnings(
-            &instance, |msg| { println!("Debug callback: {:?}", msg.description); }
+            &instance, |msg| {
+                println!("Debug callback: {:?}", msg.description);
+            }
         ).ok();
 
         let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
@@ -315,8 +317,8 @@ impl VulkanoRenderer {
 
         // Vulkan uses right-handed coordinates, y positive is down
         let view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(0.0, 0.0, -4.0),   // eye
-            cgmath::Point3::new(0.0, -5.5, 0.0),  // center
+            cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
+            cgmath::Point3::new(0.0, 0.0, 0.0),  // center
             cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
         );
 
@@ -412,15 +414,7 @@ impl VulkanoRenderer {
             .line_width(2.0)
             .vertex_shader(vs.main_entry_point(), ())
             .triangle_list()
-            //.viewports_dynamic_scissors_irrelevant(1)
-            .viewports(vec![
-                Viewport {
-                    origin: [0.0, 0.0],
-                    depth_range: 0.0 .. 1.0,
-                    dimensions: [ImageAccess::dimensions(&images[0]).width() as f32,
-                        ImageAccess::dimensions(&images[0]).height() as f32],
-                },
-            ])
+            .viewports_dynamic_scissors_irrelevant(1)
             .fragment_shader(fs.main_entry_point(), ())
             .depth_stencil_simple_depth()
             .blend_alpha_blending()
@@ -432,7 +426,7 @@ impl VulkanoRenderer {
 
         // TODO: texture sizes?
 
-        let texture = ImmutableImage::new(
+        let texture = StorageImage::new(
             device.clone(),
             vulkano::image::Dimensions::Dim2d { width: 2048, height: 2048  },
             vulkano::format::R8G8B8A8Unorm,
@@ -449,8 +443,6 @@ impl VulkanoRenderer {
             pipeline.clone()
         );
 
-
-        //let submissions: Vec<Box<GpuFuture>> = Vec::new();
         // finish up by grabbing some initialization values for position and size
         let (x,y) = window.get_position().unwrap_or((0,0));
         let (w,h) = window.get_inner_size_pixels().unwrap_or((0,0));
@@ -458,6 +450,7 @@ impl VulkanoRenderer {
         // event loop instead
 
         let previous_frame_end = Box::new(now(device.clone())) as Box<GpuFuture>;
+        let dimensions = ImageAccess::dimensions(&images[0]);
 
         Ok(VulkanoRenderer {
             id: game_state::create_next_identity(),
@@ -471,7 +464,6 @@ impl VulkanoRenderer {
             queue: queue,
             swapchain: swapchain,
             _images: images,
-            //submissions: submissions,
             pipeline: pipeline,
             framebuffers: framebuffers,
             texture: texture,
@@ -487,11 +479,21 @@ impl VulkanoRenderer {
             current_mouse_pos: ScreenPoint::new(0, 0),
             rect: ScreenRect::new(x as i32, y as i32, w as i32, h as i32),
             debug_world_rotation: 0f32,
+            debug_zoom: 0f32,
 
             debug_callback: callback,
             previous_frame_end: previous_frame_end,
             recreate_swapchain: false,
             hack_uploaded_tex: false,
+            dynamic_state: DynamicState {
+                line_width: None,
+                viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
+                    origin: [0.0, 0.0],
+                    dimensions: [dimensions.width() as f32, dimensions.height() as f32],
+                    depth_range: 0.0 .. 1.0,
+                }]),
+                .. DynamicState::none()
+            }
 
         })
 
@@ -555,9 +557,6 @@ impl VulkanoRenderer {
             unimplemented!();
         }
 
-       // while self.submissions.len() >= 4 {
-        //    self.submissions.remove(0);
-       // }
 
         // todo: how are passes organized if textures must be uploaded first?
         // FIXME: use an initialization step rather than this quick hack
@@ -572,25 +571,30 @@ impl VulkanoRenderer {
             self.queue.family()
         ).unwrap(); // catch oom error here
 
+        // THIS MUST HAPPEN OUTSIDE THE RENDER PASS
         if !self.hack_uploaded_tex {
+            println!("looking for texture...");
             let maybe_buffer = self.buffer_cache.get(&0usize);
             match maybe_buffer {
                 Some(item) => {
                     let &BufferItem { ref diffuse_map, .. } = item;
+                    println!("copy_buffer_to_image");
                     cmd_buffer_build = cmd_buffer_build.copy_buffer_to_image(
                         diffuse_map.clone(),
                         self.texture.clone()
                     ).expect("unable to upload texture");
+                    self.hack_uploaded_tex = true;
                 },
-                _ => {}
+                _ => {
+                    println!("unable to find texture");
+                }
             }
         }
 
         cmd_buffer_build = cmd_buffer_build.begin_render_pass(
             self.framebuffers[image_num].clone(), false,
-            //
             vec![
-                vulkano::format::ClearValue::from([0.0,0.0,0.0,1.0]),
+                vulkano::format::ClearValue::from([ 0.25, 0.05, 0.25, 1.0 ]),
                 vulkano::format::ClearValue::Depth(1.0)
             ]
         ).expect("unable to begin renderpass");
@@ -639,7 +643,6 @@ impl VulkanoRenderer {
                                 &mesh.indices,
                                 &node.data.get_diffuse_map()
                             );
-                            self.hack_uploaded_tex = true;
                         }
 
                         let (v, i, _t) = {
@@ -651,19 +654,9 @@ impl VulkanoRenderer {
                         let push_constants = vs::ty::PushConstants {
                             model: node.data.get_world_matrix().clone().into()
                         };
-                        // begin the command buffer
-                        let dimensions = ImageAccess::dimensions(&self._images[0]);
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
                                 self.pipeline.clone(),
-                                DynamicState::none(), /* {
-                                    line_width: None,
-                                    viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
-                                        origin: [0.0, 0.0],
-                                        dimensions: [dimensions.width() as f32, dimensions.height() as f32],
-                                        depth_range: 0.0 .. 1.0,
-                                    }]),
-                                    scissors: None,
-                                },*/
+                                self.dynamic_state.clone(),
                                 v.clone(),
                                 i.clone(),
                                 self.pipeline_set.clone(),
@@ -784,7 +777,9 @@ impl InputSource for VulkanoRenderer {
                         &winit::DeviceEvent::Added => {},
                         &winit::DeviceEvent::Removed => {},
                         &winit::DeviceEvent::MouseMotion { delta } => {},
-                        &winit::DeviceEvent::MouseWheel {delta} => {},
+                        &winit::DeviceEvent::MouseWheel {delta} => {
+                            println!("it's magic {:?}", delta);
+                        },
                         &winit::DeviceEvent::Motion { axis, value } => {},
                         &winit::DeviceEvent::Button { button, state } => {},
                         &winit::DeviceEvent::Key(input) => {},
