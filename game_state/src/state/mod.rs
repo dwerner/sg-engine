@@ -38,17 +38,21 @@ pub use self::render_state::{
     SceneGraph,
 };
 
-pub mod entity_state;
 
 use winit::Window;
 
 use std::sync::Mutex;
+use thing;
 
 #[allow(dead_code)]
 pub enum DrawMode {
     Wireframe,
     Points,
     Colored
+}
+
+pub struct World {
+    things: Vec<thing::Thing>
 }
 
 pub struct RenderState {
@@ -71,6 +75,7 @@ impl RenderState {
 /// This is the central, and global, state passed to each mod during the main loop
 ///
 pub struct State {
+    world: World,
     events_loop: Arc<Mutex<EventsLoop>>,
     render_state: RenderState,
     input_state: InputState,
@@ -82,6 +87,8 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         State{
+            world: World{ things: Vec::new() },
+
             events_loop: Arc::new(Mutex::new(EventsLoop::new())), // app-wide wm events loop
             render_state: RenderState::new(),
             input_state: InputState {

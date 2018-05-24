@@ -34,6 +34,49 @@ impl ThingBuilder {
         self.facets.push(facet);
         self
     }
+
+    pub fn with_camera(mut self, facet: CameraFacet<f32>) -> Self {
+        self.facets.push(Facet::Camera(facet));
+        self
+    }
+
+    pub fn with_physical(mut self, position: Vector3<f32>) -> Self {
+        self.facets.push(
+            Facet::Physical(
+                PhysicalFacet{
+                    body: Shape::Sphere { radius: 1.0f32 },
+                    mass: 1.0f32,
+                    linear_velocity: Vector3{ x: 0.0, y: 0.0, z: 0.0 },
+                    angular_velocity: Vector3{ x: 0.0, y: 0.0, z: 0.0 },
+                    position,
+                }
+            )
+        );
+        self
+    }
+
+    pub fn with_health(mut self, hp: u32) -> Self {
+        self.facets.push(
+            Facet::Health( HealthFacet{ hp } )
+        );
+        self
+    }
+
+    pub fn with_mesh(mut self, mesh: Arc<model::Model>) -> Self {
+        self.facets.push(
+            Facet::Mesh(mesh)
+        );
+        self
+    }
+
+    pub fn with_pathing(mut self) -> Self {
+        self.facets.push(
+            Facet::Pathing
+        );
+        self
+    }
+
+    // ...
 }
 
 use std::sync::Arc;
@@ -44,7 +87,7 @@ pub enum Facet {
     Network,
     Health(HealthFacet),  // can it be hurt? die?
     Pathing, // finding it's way around
-    Camera,
+    Camera(CameraFacet<f32>),
     Dialogue, // can this entity be talked with?
     Mesh(Arc<model::Model>),
     AI,
@@ -81,6 +124,10 @@ pub struct PhysicalFacet<U> {
     pub linear_velocity: Vector3<U>,
     pub angular_velocity: Vector3<U>, // is this sufficient for angular velocity? durrrrr
     pub position: Vector3<U>,
+}
+
+pub struct CameraFacet<U> {
+    pub orientation: Vector3<U>
 }
 
 

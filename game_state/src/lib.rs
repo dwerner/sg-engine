@@ -6,6 +6,7 @@ pub mod ui;
 pub mod input;
 pub mod event;
 pub mod utils;
+pub mod thing;
 
 extern crate cgmath;
 extern crate nom_obj;
@@ -80,38 +81,7 @@ pub trait Renderable : Identifyable {
     // TODO fn get_graph_node(&self) -> tree::RcNode<_>;
 }
 
-
-
 pub trait Behavior {
     fn update(delta_time: &time::Duration);
 }
 
-pub struct SceneGraphNode;
-pub struct PhysicalGraphNode;
-
-// Entity component system, Optional components?
-// WorldEntity
-// - renderable : strong reference to node in renderable tree
-// - body : strong reference to node in physical object tree
-// ? behavior?
-pub struct WorldEntity {
-    id: Identity,
-    scene_node: Option< RcNode<SceneGraphNode> >,
-    physical_node: Option< RcNode<PhysicalGraphNode> >,
-}
-
-impl WorldEntity {
-    pub fn get_scene_node(&self) -> &Option<RcNode<SceneGraphNode>> {
-        &self.scene_node
-    }
-    pub fn get_body(&self) -> &Option<RcNode<PhysicalGraphNode>> {
-        &self.physical_node
-    }
-
-}
-
-impl Identifyable for WorldEntity {
-    fn identify(&self) -> Identity {
-        self.id
-    }
-}
