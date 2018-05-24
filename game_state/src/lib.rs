@@ -34,7 +34,7 @@ use input::InputSource;
 // traits for implementing behavior of state objects should exist here
 // but the impls for those traits can be in mods
 
-pub type Identity = u64;
+pub type Identity = u64; // really?
 
 use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 static GLOBAL_IDENITY_CURSOR: AtomicUsize = ATOMIC_USIZE_INIT;
@@ -80,38 +80,7 @@ pub trait Renderable : Identifyable {
     // TODO fn get_graph_node(&self) -> tree::RcNode<_>;
 }
 
-pub struct PhysicalComponent {
-    pub mass: f32,
-    pub linear_velocity: model::Vector,
-    pub angular_velocity: model::Vector,
-    pub position: model::Vector,
-}
 
-pub enum Shape {
-    Box { width: f32, height: f32, depth: f32 },
-    Cone { radius: f32, height: f32 },
-    Cylinder { radius: f32, height: f32 },
-    Sphere { radius: f32 },
-}
-
-pub trait PhysicalBody {
-    fn set_position(&mut self, model::Vector);
-    fn get_position(&self) -> &model::Vector;
-
-    fn set_mass(&mut self, m: f32);
-    fn get_mass(&self) -> &model::Vector;
-
-    fn set_linear_velocity(&mut self, model::Vector);
-    fn get_linear_velocity(&self) -> &model::Vector;
-
-    fn set_angular_velocity(&mut self, model::Vector);
-    fn get_angular_velocity(&self) -> &model::Vector;
-
-    fn update(delta_time: &time::Duration);
-
-    fn get_body(&self) -> &Shape;
-    fn set_body(&mut self, shape: Shape);
-}
 
 pub trait Behavior {
     fn update(delta_time: &time::Duration);

@@ -594,7 +594,7 @@ impl VulkanoRenderer {
         cmd_buffer_build = cmd_buffer_build.begin_render_pass(
             self.framebuffers[image_num].clone(), false,
             vec![
-                vulkano::format::ClearValue::from([ 0.25, 0.05, 0.25, 1.0 ]),
+                vulkano::format::ClearValue::from([ 0.15, 0.15, 0.15, 1.0 ]),
                 vulkano::format::ClearValue::Depth(1.0)
             ]
         ).expect("unable to begin renderpass");
@@ -660,7 +660,7 @@ impl VulkanoRenderer {
                                 v.clone(),
                                 i.clone(),
                                 self.pipeline_set.clone(),
-                                push_constants
+                                push_constants // or () - both leak...
                         ).expect("Unable to add command");
 
                     }

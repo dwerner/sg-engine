@@ -177,4 +177,27 @@ https://www.youtube.com/watch?v=c1H92b_uLdU
   State synchronization
 
   p2p vs client/server
+  
+  
+# Loading sequence
+- build in source code within game_state
+- default main menu
+	- [load world]
+		- world file
+			- entities
+				- chunk 
+					- tree( model = tree1.obj, health = 100 )
+					- player( model = player1.obj, health = 50 ) 
+						- gun( model = gun1.obj )
+					- enemy ( model = enemy.obj )
+						- gun( model = gun1.obj )
+						
+						 
+					- snake
+	- [options]
+		- controls
+		- sounds
+		- graphics
+		- updates?
+		- mods?
 

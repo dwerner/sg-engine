@@ -28,7 +28,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn create(filename: &'static str, model_mat: Matrix4<f32>) -> Self {
+    pub fn create(filename: &str, model_mat: Matrix4<f32>) -> Self {
 
         let obj = Obj::create(filename);
         let Interleaved{ v_vt_vn, idx } = obj.objects[0].interleaved();

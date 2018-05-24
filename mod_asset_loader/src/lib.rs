@@ -25,12 +25,13 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     let blob = Box::new(model.clone());
     let root =  Node::create(blob as Box<Renderable>, None );
 
-    let mx = Matrix4::from_translation(Vector3::new(0.0, 1.0, 1.0)) * Matrix4::from_scale(0.75);
+    let mx = Matrix4::from_translation(Vector3::new(0.0, 1.0, 1.0)) * Matrix4::from_scale(0.85);
     model.set_model_matrix(mx);
     let blob = Box::new(model.clone());
     let mut child = Node::create(blob as Box<Renderable>, Some(root.clone()) );
+
     for _ in 0..9 {
-        let mx = Matrix4::from_translation(Vector3::new(0.0, 1.0, 1.0)) * Matrix4::from_scale(0.75);
+        let mx = Matrix4::from_translation(Vector3::new(0.0, 1.0, 1.0)) * Matrix4::from_scale(0.85);
         model.set_model_matrix(mx);
         let blob = Box::new(model.clone());
         child = Node::create(blob as Box<Renderable>, Some(child.clone()) );

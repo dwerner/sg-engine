@@ -38,6 +38,8 @@ pub use self::render_state::{
     SceneGraph,
 };
 
+pub mod entity_state;
+
 use winit::Window;
 
 use std::sync::Mutex;
