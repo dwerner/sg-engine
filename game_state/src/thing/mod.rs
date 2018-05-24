@@ -108,6 +108,9 @@ pub struct HealthFacet {
 }
 
 impl HealthFacet {
+    fn new(hp: u32) -> Self {
+        HealthFacet{ hp }
+    }
     fn take_dmg(&mut self, dmg: u32) {
         if dmg > self.hp {
             self.hp = 0;
@@ -129,7 +132,3 @@ pub struct PhysicalFacet<U> {
 pub struct CameraFacet<U> {
     pub orientation: Vector3<U>
 }
-
-
-
-
