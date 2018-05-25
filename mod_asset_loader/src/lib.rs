@@ -6,6 +6,7 @@ use game_state::Renderable;
 use game_state::state::RenderLayerAccess;
 
 use game_state::model::{ Model };
+use game_state::Identifyable;
 use game_state::tree::{ Node };
 use game_state::state::{ SceneGraph };
 
@@ -21,22 +22,13 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     assert!(state.get_render_layers().len() == 0);
 
     let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0)) * Matrix4::from_scale(1.5);
-    let mut model = Model::create("assets/models/textured_thing.obj", mx);
-    let blob = Box::new(model.clone());
-    let root =  Node::create(blob as Box<Renderable>, None );
+    let thing = Model::create("assets/models/textured_thing.obj", mx);
+    let root = Node::create(thing.identify(), None );
+    let thing2 = Model::create("assets/models/pship.obj", mx);
+    let child = Node::create(thing2.identify(), Some(root.clone()) );
 
-    let mx = Matrix4::from_translation(Vector3::new(0.0, 1.0, 1.0)) * Matrix4::from_scale(0.85);
-    model.set_model_matrix(mx);
-    let blob = Box::new(model.clone());
-    let mut child = Node::create(blob as Box<Renderable>, Some(root.clone()) );
-
-    for _ in 0..9 {
-        let mx = Matrix4::from_translation(Vector3::new(0.0, 1.0, 1.0)) * Matrix4::from_scale(0.85);
-        model.set_model_matrix(mx);
-        let blob = Box::new(model.clone());
-        child = Node::create(blob as Box<Renderable>, Some(child.clone()) );
-    }
-
+    state.models.push(Arc::new(thing));
+    state.models.push(Arc::new(thing2));
     state.add_render_layer(Arc::new(SceneGraph{root:root}));
 }
 

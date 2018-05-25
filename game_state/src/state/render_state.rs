@@ -1,6 +1,7 @@
 use Renderable;
+use Identity;
 
 use tree::{ RcNode };
 pub struct SceneGraph {
-    pub root: RcNode<Box<Renderable>>,
+    pub root: RcNode<Identity>,
 }

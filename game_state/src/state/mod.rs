@@ -74,7 +74,9 @@ impl RenderState {
 ///
 /// This is the central, and global, state passed to each mod during the main loop
 ///
+use super::model::Model;
 pub struct State {
+    pub models: Vec<Arc<Model>>,
     world: World,
     events_loop: Arc<Mutex<EventsLoop>>,
     render_state: RenderState,
@@ -87,8 +89,8 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         State{
+            models: Vec::new(),
             world: World{ things: Vec::new() },
-
             events_loop: Arc::new(Mutex::new(EventsLoop::new())), // app-wide wm events loop
             render_state: RenderState::new(),
             input_state: InputState {

@@ -14,7 +14,7 @@ use nom_obj::model::{
 
 #[derive(Clone)]
 pub struct Material {
-    diffuse_map: image::DynamicImage
+    pub diffuse_map: image::DynamicImage
 }
 
 #[derive(Clone)]

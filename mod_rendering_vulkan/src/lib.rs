@@ -37,7 +37,10 @@ pub extern "C" fn mod_rendering_vulkan_load( state: &mut State ) {
     for w in windows {
         let maybe_renderer = VulkanoRenderer::new(w.clone(), events_loop.clone(), DrawMode::Colored);
         match maybe_renderer {
-            Ok(renderer) => {
+            Ok(mut renderer) => {
+                for model in state.models.iter() {
+                  renderer.upload_model( model.clone() );
+                }
                 state.add_renderer(
                     Box::new(renderer)
                 );
