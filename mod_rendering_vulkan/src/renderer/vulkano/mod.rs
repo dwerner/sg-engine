@@ -137,6 +137,7 @@ type ThisPipelineDescriptorSet =
 type AMWin = Arc<winit::Window>;
 pub struct VulkanoRenderer {
     id: Identity,
+    HACK_tex_loaded: bool,
     _instance: Arc<Instance>,
 
     #[allow(dead_code)]
@@ -438,6 +439,17 @@ impl VulkanoRenderer {
             ..ImageUsage::none()
         };
 
+        pub struct RendererImage<F> {
+            pub immutable: Arc<ImmutableImage<F>>,
+            pub init: Arc<ImageAccess>
+        }
+
+        impl <F> RendererImage<F> {
+            pub fn new( immutable: Arc<ImmutableImage<F>>, init: Arc<ImageAccess> ) -> Self {
+                RendererImage{ immutable, init }
+            }
+        }
+
         let (texture, texture_init) = ImmutableImage::uninitialized(
             device.clone(),
             vulkano::image::Dimensions::Dim2d { width: 2048, height: 2048  },
@@ -469,6 +481,7 @@ impl VulkanoRenderer {
 
         Ok(VulkanoRenderer {
             id: game_state::create_next_identity(),
+            HACK_tex_loaded: false,
             _instance: instance.clone(),
             window,
             surface,
@@ -527,77 +540,87 @@ impl VulkanoRenderer {
 
     pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) {
 
-        if !self.buffer_cache.len() >= 1 {
-            &mut self.previous_frame_end.cleanup_finished();
-
-            let mut cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
-                self.device.clone(),
-                self.queue.family()
-            ).unwrap(); // catch oom error here
-
+        // TODO: fix single texture uploaded issue - self.texture_init is the buffer to copy to
+        // However we probably want to put this in some other managed datastructure
+        // This is separate from self.texture, used for reading...?
+        // RESEARCH: Why this dichotomy of read and init ImageAccess
+        //
+        if !self.HACK_tex_loaded && !self.buffer_cache.len() >= 1 {
+            self.HACK_tex_loaded = true;
             let id = 0;
             let mesh = &model.mesh;
             let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
-            let pixel_buffer = {
-                let image = model.material.diffuse_map.to_rgba();
-                let image_data = image.into_raw().clone();
 
-                let image_data_chunks = image_data.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]);
+            { // save model+material in VulkanoRenderer buffer cache
+                let pixel_buffer = {
+                    let image = model.material.diffuse_map.to_rgba();
+                    let image_data = image.into_raw().clone();
 
-                // TODO: staging buffer instead
-                vulkano::buffer::cpu_access::CpuAccessibleBuffer::<[[u8; 4]]>
-                ::from_iter(self.device.clone(), BufferUsage::all(), image_data_chunks)
-                    .expect("failed to create buffer")
-            };
+                    let image_data_chunks = image_data.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]);
 
-            self.buffer_cache.push(BufferItem {
-                vertices: CpuAccessibleBuffer::from_iter(
+                    // TODO: staging buffer instead
+                    vulkano::buffer::cpu_access::CpuAccessibleBuffer::<[[u8; 4]]>
+                        ::from_iter(self.device.clone(), BufferUsage::all(), image_data_chunks)
+                        .expect("failed to create buffer")
+                };
+
+                self.buffer_cache.push(BufferItem {
+
+                    vertices: CpuAccessibleBuffer::from_iter(
+                        self.device.clone(),
+                        BufferUsage::all(),
+                        vertices.iter().cloned()
+                    ).expect("Unable to create buffer"),
+
+                    indices: CpuAccessibleBuffer::from_iter(
+                        self.device.clone(),
+                        BufferUsage::all(),
+                        mesh.indices.iter().cloned()
+                    ).expect("Unable to create buffer"),
+
+                    diffuse_map: pixel_buffer
+                });
+            }
+
+            {   // upload to GPU memory
+                let mut cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
                     self.device.clone(),
-                    BufferUsage::all(),
-                    vertices.iter().cloned()
-                ).expect("Unable to create buffer"),
-                indices: CpuAccessibleBuffer::from_iter(
-                    self.device.clone(),
-                    BufferUsage::all(),
-                    mesh.indices.iter().cloned()
-                ).expect("Unable to create buffer"),
-                diffuse_map: pixel_buffer
-            });
+                    self.queue.family()
+                ).unwrap(); // catch oom error here
 
-            // THIS MUST HAPPEN OUTSIDE THE RENDER PASS
-            println!("looking for texture...");
-            let diffuse_map = &self.buffer_cache[0].diffuse_map;
+                println!("looking for texture...");
+                let diffuse_map = &self.buffer_cache[0].diffuse_map;
 
-            println!("copy_buffer_to_image");
-            let cmd_buffer = cmd_buffer_build.copy_buffer_to_image(
-                diffuse_map.clone(),
-                self.texture_init.clone()
-            ).expect("unable to upload texture").build().expect("unable to build command buffer");
+                println!("copy_buffer_to_image");
+                let cmd_buffer = cmd_buffer_build.copy_buffer_to_image(
+                    diffuse_map.clone(),
+                    self.texture_init.clone()
+                ).expect("unable to upload texture").build().expect("unable to build command buffer");
 
-            let prev = mem::replace(
-                &mut self.previous_frame_end,
-                Box::new(now(self.device.clone())) as Box<GpuFuture>
-            );
-            let after_future =
-                prev.then_execute(self.queue.clone(), cmd_buffer)
-                    .expect(
-                        &format!("VulkanoRenderer(frame {}) - unable to execute command buffer", self.fps.count())
-                    )
-                    .then_signal_fence_and_flush();
+                let prev = mem::replace(
+                    &mut self.previous_frame_end,
+                    Box::new(now(self.device.clone())) as Box<GpuFuture>
+                );
+                let after_future =
+                    prev.then_execute(self.queue.clone(), cmd_buffer)
+                        .expect(
+                            &format!("VulkanoRenderer(frame {}) - unable to execute command buffer", self.fps.count())
+                        )
+                        .then_signal_fence_and_flush();
 
-            match after_future {
-                Ok(future) => {
-                    self.previous_frame_end = Box::new(future) as Box<_>;
-                }
-                Err(e) => {
-                    println!("Error ending frame {:?}", e);
-                    self.previous_frame_end = Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
+                match after_future {
+                    Ok(future) => {
+                        self.previous_frame_end = Box::new(future) as Box<_>;
+                    }
+                    Err(e) => {
+                        println!("Error ending frame {:?}", e);
+                        self.previous_frame_end = Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
+                    }
                 }
             }
         }
 
         self.models.push(model);
-
     }
 
     fn render(&mut self) {
@@ -605,12 +628,12 @@ impl VulkanoRenderer {
         &mut self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
-            //TODO
+            // TODO recreate swapchain...
             self.recreate_swapchain = false;
             unimplemented!();
         }
 
-        // todo: re-create swapchain ^kthx
+        // TODO: re-create swapchain ^kthx
         let (image_num, acquire_future) = swapchain::acquire_next_image(self.swapchain.clone(), None)
                                             .unwrap();
 
@@ -651,20 +674,21 @@ impl VulkanoRenderer {
                         let rot_model = model_mat * rotation;
 
                         // TODO: update the world matrices from the parent * child's local matrix
-                     // match node.parent() {
-                     //     Some(parent) => {
-                     //         let parent_model_id = parent.borrow().data;
-                     //         let parent_model = &self.models[parent_model_id as usize];
-                     //         let global_mat = parent_model.world_mat * rot_model;
-                     //         model.world_mat = global_mat;
-                     //     },
-                     //     None => {
-                     //         model.world_mat = rot_model;
-                     //     }
-                     // }
+                        // match node.parent() {
+                        //     Some(parent) => {
+                        //         let parent_model_id = parent.borrow().data;
+                        //         let parent_model = &self.models[parent_model_id as usize];
+                        //         let global_mat = parent_model.world_mat * rot_model;
+                        //         model.world_mat = global_mat;
+                        //     },
+                        //     None => {
+                        //         model.world_mat = rot_model;
+                        //     }
+                        // }
 
                         let (v, i, _t) = {
-                            let item = self.buffer_cache.get(node.data as usize).unwrap();
+                            // TODO: make reference node.data
+                            let item = self.buffer_cache.get(0usize).unwrap();
                             (item.vertices.clone(), item.indices.clone(), item.diffuse_map.clone())
                         };
 
