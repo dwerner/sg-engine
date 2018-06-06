@@ -379,9 +379,11 @@ impl VulkanoRenderer {
         let depth_buffer = Arc::new(depth_buffer);
 
         let framebuffers = images.iter().map(|image| {
-            //let attachments = renderpass_arc.desc().start_attachments()
-            //    .color(image.clone()).depth(depth_buffer.clone());
-            let dimensions = [ImageAccess::dimensions(image).width(), ImageAccess::dimensions(image).height(), 1];
+            let dimensions = [
+                ImageAccess::dimensions(image).width(),
+                ImageAccess::dimensions(image).height(),
+                1
+            ];
             let fb =
                 Framebuffer::with_dimensions(renderpass_arc.clone(), dimensions)
                 .add( image.clone() as Arc<ImageViewAccess + Send + Sync>)
@@ -395,16 +397,13 @@ impl VulkanoRenderer {
 
         // -----------------------------------------------
         // Rendermodes, fill, lines, points
-
-        let polygonmode = match draw_mode {
+        let mut raster = Rasterization::default();
+        raster.cull_mode = CullMode::Back;
+        raster.polygon_mode = match draw_mode {
             DrawMode::Colored => PolygonMode::Fill,
             DrawMode::Points  => PolygonMode::Point,
             DrawMode::Wireframe => PolygonMode::Line
         };
-
-        let mut raster = Rasterization::default();
-        raster.cull_mode = CullMode::Back;
-        raster.polygon_mode = polygonmode;
         raster.depth_clamp = true;
         raster.front_face = FrontFace::Clockwise;
         raster.line_width = Some(2.0);
@@ -424,29 +423,30 @@ impl VulkanoRenderer {
             .fragment_shader(fs.main_entry_point(), ())
             .depth_stencil_simple_depth()
             .blend_alpha_blending()
-            .render_pass(Subpass::from(renderpass_arc.clone() as Arc<RenderPassAbstract + Send + Sync>, 0).unwrap())
+            .render_pass(
+                Subpass::from(
+                    renderpass_arc.clone() as Arc<RenderPassAbstract + Send + Sync>,
+                    0
+                ).unwrap()
+            )
             .build(device.clone())
             .unwrap();
 
         let pipeline = Arc::new(p);
 
-        // TODO: texture sizes?
-
-        let usage = ImageUsage {
-            transfer_source: true, // for blits
-            transfer_destination: true,
-            sampled: true,
-            ..ImageUsage::none()
-        };
-
         pub struct RendererImage<F> {
             pub immutable: Arc<ImmutableImage<F>>,
-            pub init: Arc<ImageAccess>
+            pub init: Arc<ImageAccess>,
+            pub descriptor_set: Arc<ThisPipelineDescriptorSet>
         }
 
         impl <F> RendererImage<F> {
-            pub fn new( immutable: Arc<ImmutableImage<F>>, init: Arc<ImageAccess> ) -> Self {
-                RendererImage{ immutable, init }
+            pub fn new(
+                immutable: Arc<ImmutableImage<F>>,
+                init: Arc<ImageAccess>,
+                descriptor_set: Arc<ThisPipelineDescriptorSet>
+            ) -> Self {
+                RendererImage{ immutable, init, descriptor_set }
             }
         }
 
@@ -455,7 +455,12 @@ impl VulkanoRenderer {
             vulkano::image::Dimensions::Dim2d { width: 2048, height: 2048  },
             vulkano::format::R8G8B8A8Unorm,
             MipmapsCount::One,
-            usage,
+            ImageUsage {
+                transfer_source: true, // for blits
+                transfer_destination: true,
+                sampled: true,
+                ..ImageUsage::none()
+            },
             ImageLayout::ShaderReadOnlyOptimal,
             Some(queue.family())
         ).unwrap();
@@ -469,6 +474,12 @@ impl VulkanoRenderer {
             queue.clone(),
             pipeline.clone()
         );
+
+        let mut descriptor_sets = Vec::new();
+        descriptor_sets.push(
+            RendererImage::new( texture, texture_init, pipeline_set )
+        );
+        // TODO: finish this
 
         // finish up by grabbing some initialization values for position and size
         let (x,y) = window.get_position().unwrap_or((0,0));
@@ -517,9 +528,7 @@ impl VulkanoRenderer {
                 }]),
                 .. DynamicState::none()
             }
-
         })
-
     }
 
     #[inline]
@@ -533,8 +542,10 @@ impl VulkanoRenderer {
 
     #[inline]
     fn set_rect(&mut self, new_rect: ScreenRect) {
-        // TODO: determine a delta here?
         // TODO: let the renderer know to change things up because we were resized?
+        self.recreate_swapchain = true;
+
+        // TODO: determine a delta here?
         self.rect = new_rect;
     }
 
@@ -628,12 +639,31 @@ impl VulkanoRenderer {
         &mut self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
-            // TODO recreate swapchain...
-            self.recreate_swapchain = false;
-            unimplemented!();
+            let size = self.window.get_inner_size_pixels();
+            match size {
+                Some((w,h)) => {
+                    use vulkano::swapchain::SwapchainCreationError;
+
+                    let dims = self.surface.capabilities(self.device)
+                        .expect("failed to get surface capabilities")
+                        .current_extent.unwrap_or([1024,768]);
+
+                    match self.swapchain.recreate_with_dimension(dims) {
+                        Ok((new_swapchain, new_images)) => {
+                            mem::replace(&mut self.swapchain, new_swapchain);
+                            mem::replace(&mut self.images, new_images);
+                            self.recreate_swapchain = false;
+                        },
+                        Err(SwapchainCreationError::UnsupportedDimensions) => {
+                            println!("Unsupported dimensions! {}", dims);
+                        },
+                        Err(e) => panic!("{:?}", e)
+                    }
+                },
+                None => panic!("unable to get dimensions from window");
+            }
         }
 
-        // TODO: re-create swapchain ^kthx
         let (image_num, acquire_future) = swapchain::acquire_next_image(self.swapchain.clone(), None)
                                             .unwrap();
 
@@ -728,7 +758,10 @@ impl VulkanoRenderer {
             prev.join(acquire_future)
                         .then_execute(self.queue.clone(), cmd_buffer)
                         .expect(
-                            &format!("VulkanoRenderer(frame {}) - unable to execute command buffer", self.fps.count())
+                            &format!(
+                                "VulkanoRenderer(frame {}) - unable to execute command buffer",
+                                self.fps.count()
+                            )
                         )
                         .then_swapchain_present(self.queue.clone(), self.swapchain.clone(), image_num)
                         .then_signal_fence_and_flush();
@@ -738,6 +771,7 @@ impl VulkanoRenderer {
                 self.previous_frame_end = Box::new(future) as Box<_>;
             }
             Err(vulkano::sync::FlushError::OutOfDate) => {
+                println!("swapchain is out of date, flagging recreate_swapchain=true for next frame");
                 self.recreate_swapchain = true;
                 self.previous_frame_end = Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
             }
