@@ -508,7 +508,7 @@ impl VulkanoRenderer {
     #[inline]
     fn set_rect(&mut self, new_rect: ScreenRect) {
         // TODO: let the renderer know to change things up because we were resized?
-        self.recreate_swapchain = true;
+        self.flag_recreate_swapchain();
 
         // TODO: determine a delta here?
         self.rect = new_rect;
@@ -632,12 +632,16 @@ impl VulkanoRenderer {
         self.models.push(model);
     }
 
-    fn render(&mut self) {
-        println!("render()");
+    fn flag_recreate_swapchain(&mut self) {
+        // TODO fix this functionality (coming from set_rect)
+        //self.recreate_swapchain = true;
+    }
 
+    fn render(&mut self) {
         &mut self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
+            println!("! recreating swapchain !");
             let size = self.window.get_inner_size_pixels();
             match size {
                 Some((w,h)) => {
@@ -652,8 +656,10 @@ impl VulkanoRenderer {
 
                     match self.swapchain.recreate_with_dimension(dims) {
                         Ok((new_swapchain, new_images)) => {
-                            mem::replace(&mut self.swapchain, new_swapchain);
-                            mem::replace(&mut self.images, new_images);
+                            self.swapchain = new_swapchain;
+                            self.images = new_images;
+                            self.previous_frame_end =
+                                Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
                             self.recreate_swapchain = false;
                         },
                         Err(SwapchainCreationError::UnsupportedDimensions) => {
@@ -671,11 +677,10 @@ impl VulkanoRenderer {
             Some(Duration::new(1, 0))
         ) {
             Ok((num, future)) => {
-                println!("acquire {}", num);
                 (num, future)
             },
             Err(vulkano::swapchain::AcquireError::OutOfDate) => {
-                self.recreate_swapchain = true;
+                self.flag_recreate_swapchain();
                 return;
             },
             Err(vulkano::swapchain::AcquireError::Timeout) => {
@@ -802,7 +807,8 @@ impl VulkanoRenderer {
             }
             Err(vulkano::sync::FlushError::OutOfDate) => {
                 println!("swapchain is out of date, flagging recreate_swapchain=true for next frame");
-                self.recreate_swapchain = true;
+
+                self.flag_recreate_swapchain();
                 self.previous_frame_end = Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
             }
             Err(e) => {
