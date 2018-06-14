@@ -178,7 +178,9 @@ pub struct VulkanoRenderer {
 
     renderpass: Arc<RenderPassAbstract + Send + Sync>,
 
+    // TODO: camera
     uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkano::vs::ty::Data>>,
+
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     buffer_cache: Vec<BufferItem>,
 
@@ -650,14 +652,11 @@ impl VulkanoRenderer {
         &mut self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
-
-            println!("! recreating swapchain !");
-
-            // TODO --------------
-
             let size = self.window.get_inner_size_pixels();
             match size {
                 Some((w,h)) => {
+                    println!("recreating swapchain with dimensions {:?}", size);
+
                     use vulkano::swapchain::SwapchainCreationError;
 
                     let physical = vulkano::instance::PhysicalDevice::enumerate(&self.instance)
@@ -759,6 +758,7 @@ impl VulkanoRenderer {
                         //         model.world_mat = rot_model;
                         //     }
                         // }
+                     
 
                         let (v, i, _t) = {
                             // TODO: make reference node.data
