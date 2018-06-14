@@ -164,6 +164,7 @@ pub struct VulkanoRenderer {
     surface: Arc<Surface<AMWin>>,
 
     models: Vec<Arc<game_state::model::Model>>,
+    depth_buffer: Arc<ImageViewAccess + Send + Sync>,
     material_data: Vec<MaterialRenderData<vulkano::format::R8G8B8A8Unorm>>,
 
     events_loop: Arc<Mutex<winit::EventsLoop>>,
@@ -175,7 +176,7 @@ pub struct VulkanoRenderer {
     framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
     fps: fps::FPS,
 
-    _renderpass: Arc<RenderPassAbstract + Send + Sync>,
+    renderpass: Arc<RenderPassAbstract + Send + Sync>,
 
     uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkano::vs::ty::Data>>,
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
@@ -263,6 +264,29 @@ impl VulkanoRenderer {
 
         Arc::new(ds)
 
+    }
+
+    fn create_framebuffers(
+        renderpass: Arc<RenderPassAbstract + Send + Sync>,
+        images: Vec<Arc<SwapchainImage<AMWin>>>,
+        depth_buffer: Arc<ImageViewAccess + Send + Sync>
+    ) -> Vec<Arc<FramebufferAbstract + Send + Sync>> {
+        images.iter().map(|image| {
+            let dimensions = [
+                ImageAccess::dimensions(image).width(),
+                ImageAccess::dimensions(image).height(),
+                1
+            ];
+            let fb =
+                Framebuffer::with_dimensions(renderpass.clone(), dimensions)
+                .add( image.clone() as Arc<ImageViewAccess + Send + Sync>)
+                .unwrap()
+                .add( depth_buffer.clone() as Arc<ImageViewAccess + Send + Sync> )
+                .unwrap()
+                .build()
+                .unwrap();
+            Arc::new(fb) as Arc<FramebufferAbstract + Send + Sync>
+        }).collect::<Vec<_>>()
     }
 
     // FIXME don't pass a tuple, rather a new struct type that composes these
@@ -389,25 +413,10 @@ impl VulkanoRenderer {
             ).unwrap();
 
 
-        let renderpass_arc = Arc::new(renderpass); //as Arc<RenderPassAbstract + Send + Sync>;
-        let depth_buffer = Arc::new(depth_buffer);
-
-        let framebuffers = images.iter().map(|image| {
-            let dimensions = [
-                ImageAccess::dimensions(image).width(),
-                ImageAccess::dimensions(image).height(),
-                1
-            ];
-            let fb =
-                Framebuffer::with_dimensions(renderpass_arc.clone(), dimensions)
-                .add( image.clone() as Arc<ImageViewAccess + Send + Sync>)
-                .unwrap()
-                .add( depth_buffer.clone() as Arc<ImageViewAccess + Send + Sync> )
-                .unwrap()
-                .build()
-                .unwrap();
-            Arc::new(fb) as Arc<FramebufferAbstract + Send + Sync>
-        }).collect::<Vec<_>>();
+        let renderpass = Arc::new(renderpass); //as Arc<RenderPassAbstract + Send + Sync>;
+        let depth_buffer = Arc::new(depth_buffer); // as Arc<ImageViewAccess + Send + Sync>
+        let dimensions = ImageAccess::dimensions(&images[0]);
+        let framebuffers = Self::create_framebuffers(renderpass.clone(), images.clone(), depth_buffer.clone());
 
         // -----------------------------------------------
         // Rendermodes, fill, lines, points
@@ -439,7 +448,7 @@ impl VulkanoRenderer {
             .blend_alpha_blending()
             .render_pass(
                 Subpass::from(
-                    renderpass_arc.clone() as Arc<RenderPassAbstract + Send + Sync>,
+                    renderpass.clone() as Arc<RenderPassAbstract + Send + Sync>,
                     0
                 ).unwrap()
             )
@@ -456,22 +465,23 @@ impl VulkanoRenderer {
         // event loop instead
 
         let previous_frame_end = Box::new(now(device.clone())) as Box<GpuFuture>;
-        let dimensions = ImageAccess::dimensions(&images[0]);
+        let instance = instance.clone();
 
         Ok(VulkanoRenderer {
             id: game_state::create_next_identity(),
-            instance: instance.clone(),
+            instance,
             window,
             surface,
-            events_loop: events_loop.clone(),
+            events_loop,
             device,
             queue,
             swapchain,
             images,
             pipeline,
-            framebuffers,
             models: Vec::new(),
-            _renderpass: renderpass_arc as Arc<RenderPassAbstract + Send + Sync>,
+            depth_buffer,
+            framebuffers,
+            renderpass: renderpass as Arc<RenderPassAbstract + Send + Sync>,
             material_data: Vec::new(),
             fps: fps::FPS::new(),
             uniform_buffer,
@@ -633,15 +643,18 @@ impl VulkanoRenderer {
     }
 
     fn flag_recreate_swapchain(&mut self) {
-        // TODO fix this functionality (coming from set_rect)
-        //self.recreate_swapchain = true;
+        self.recreate_swapchain = true;
     }
 
     fn render(&mut self) {
         &mut self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
+
             println!("! recreating swapchain !");
+
+            // TODO --------------
+
             let size = self.window.get_inner_size_pixels();
             match size {
                 Some((w,h)) => {
@@ -658,8 +671,16 @@ impl VulkanoRenderer {
                         Ok((new_swapchain, new_images)) => {
                             self.swapchain = new_swapchain;
                             self.images = new_images;
-                            self.previous_frame_end =
-                                Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
+                            self.depth_buffer = AttachmentImage::transient(
+                                self.device.clone(),
+                                dims,
+                                vulkano::format::D16Unorm
+                            ).unwrap();
+                            self.framebuffers = Self::create_framebuffers(
+                                self.renderpass.clone(),
+                                self.images.clone(),
+                                self.depth_buffer.clone()
+                            );
                             self.recreate_swapchain = false;
                         },
                         Err(SwapchainCreationError::UnsupportedDimensions) => {
