@@ -606,27 +606,13 @@ impl VulkanoRenderer {
                 texture_init.clone()
             ).expect("unable to upload texture").build().expect("unable to build command buffer");
 
-            let (image_num, acquire_future) = match swapchain::acquire_next_image(
-                self.swapchain.clone(),
-                Some(Duration::new(1, 0))
-                ) {
-                Ok((num, future)) => {
-                    println!("acquire {}", num);
-                    (num, future)
-                },
-                Err(vulkano::swapchain::AcquireError::OutOfDate) => {
-                    self.recreate_swapchain = true;
-                    return;
-                },
-                Err(vulkano::swapchain::AcquireError::Timeout) => {
-                    println!("swapchain::acquire_next_image() Timeout!");
-                    return;
-                },
-                Err(e) => panic!("{:?}", e)
-            };
+            let prev = mem::replace(
+                &mut self.previous_frame_end,
+                Box::new(now(self.device.clone())) as Box<GpuFuture>
+            );
 
             let after_future =
-                acquire_future.then_execute(self.queue.clone(), cmd_buffer)
+                prev.then_execute(self.queue.clone(), cmd_buffer)
                 .expect(
                     &format!("VulkanoRenderer(frame {}, upload_model() ) - unable to execute command buffer", self.fps.count())
                 )
