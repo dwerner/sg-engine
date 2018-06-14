@@ -135,19 +135,19 @@ type ThisPipelineDescriptorSet =
         >;
 
 
-pub struct RendererImage<F> {
+pub struct MaterialRenderData<F> {
     pub immutable: Arc<ImmutableImage<F>>,
     pub init: Arc<ImageAccess>,
     pub descriptor_set: Arc<ThisPipelineDescriptorSet>
 }
 
-impl <F> RendererImage<F> {
+impl <F> MaterialRenderData<F> {
     pub fn new(
         immutable: Arc<ImmutableImage<F>>,
         init: Arc<ImageAccess>,
         descriptor_set: Arc<ThisPipelineDescriptorSet>
     ) -> Self {
-        RendererImage{ immutable, init, descriptor_set }
+        MaterialRenderData{ immutable, init, descriptor_set }
     }
 }
 
@@ -164,7 +164,7 @@ pub struct VulkanoRenderer {
     surface: Arc<Surface<AMWin>>,
 
     models: Vec<Arc<game_state::model::Model>>,
-    renderer_images: Vec<RendererImage<vulkano::format::R8G8B8A8Unorm>>,
+    material_data: Vec<MaterialRenderData<vulkano::format::R8G8B8A8Unorm>>,
 
     events_loop: Arc<Mutex<winit::EventsLoop>>,
     device: Arc<Device>,
@@ -472,7 +472,7 @@ impl VulkanoRenderer {
             framebuffers,
             models: Vec::new(),
             _renderpass: renderpass_arc as Arc<RenderPassAbstract + Send + Sync>,
-            renderer_images: Vec::new(),
+            material_data: Vec::new(),
             fps: fps::FPS::new(),
             uniform_buffer,
             render_layer_queue: VecDeque::new(),
@@ -568,11 +568,12 @@ impl VulkanoRenderer {
 
             let texture_init = Arc::new(texture_init);
 
+            // we want to store the descriptor set id for use in rendering
             let desc_set_id = self.models.len();
-            println!("defining descriptorset id: {}", desc_set_id);
+            println!("defining DescriptorSet({})", desc_set_id);
 
             let pipeline_set = Self::create_descriptor_set(
-                self.models.len(),
+                desc_set_id,
                 texture.clone(),
                 self.device.clone(),
                 2048,
@@ -582,8 +583,8 @@ impl VulkanoRenderer {
                 self.pipeline.clone()
             );
 
-            self.renderer_images.push(
-                RendererImage::new(
+            self.material_data.push(
+                MaterialRenderData::new(
                     texture.clone(),
                     texture_init.clone(),
                     pipeline_set.clone()
@@ -605,15 +606,29 @@ impl VulkanoRenderer {
                 texture_init.clone()
             ).expect("unable to upload texture").build().expect("unable to build command buffer");
 
-            let prev = mem::replace(
-                &mut self.previous_frame_end,
-                Box::new(now(self.device.clone())) as Box<GpuFuture>
-            );
+            let (image_num, acquire_future) = match swapchain::acquire_next_image(
+                self.swapchain.clone(),
+                Some(Duration::new(1, 0))
+                ) {
+                Ok((num, future)) => {
+                    println!("acquire {}", num);
+                    (num, future)
+                },
+                Err(vulkano::swapchain::AcquireError::OutOfDate) => {
+                    self.recreate_swapchain = true;
+                    return;
+                },
+                Err(vulkano::swapchain::AcquireError::Timeout) => {
+                    println!("swapchain::acquire_next_image() Timeout!");
+                    return;
+                },
+                Err(e) => panic!("{:?}", e)
+            };
 
             let after_future =
-                prev.then_execute(self.queue.clone(), cmd_buffer)
+                acquire_future.then_execute(self.queue.clone(), cmd_buffer)
                 .expect(
-                    &format!("VulkanoRenderer(frame {}) - unable to execute command buffer", self.fps.count())
+                    &format!("VulkanoRenderer(frame {}, upload_model() ) - unable to execute command buffer", self.fps.count())
                 )
                 .then_signal_fence_and_flush();
 
@@ -665,13 +680,20 @@ impl VulkanoRenderer {
             }
         }
 
-        let (image_num, acquire_future) = match swapchain::acquire_next_image(self.swapchain.clone(), None) {
+        let (image_num, acquire_future) = match swapchain::acquire_next_image(
+            self.swapchain.clone(),
+            Some(Duration::new(1, 0))
+        ) {
             Ok((num, future)) => {
                 println!("acquire {}", num);
                 (num, future)
             },
             Err(vulkano::swapchain::AcquireError::OutOfDate) => {
                 self.recreate_swapchain = true;
+                return;
+            },
+            Err(vulkano::swapchain::AcquireError::Timeout) => {
+                println!("swapchain::acquire_next_image() Timeout!");
                 return;
             },
             Err(e) => panic!("{:?}", e)
@@ -739,7 +761,7 @@ impl VulkanoRenderer {
                         
                         let mesh = &model.mesh;
 
-                        let dset = self.renderer_images[node.data as usize].descriptor_set.clone();
+                        let dset = self.material_data[node.data as usize].descriptor_set.clone();
 
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
                                 self.pipeline.clone(),
@@ -747,7 +769,7 @@ impl VulkanoRenderer {
                                 v,
                                 i,
                                 dset,
-                                push_constants // or () - both leak...
+                                push_constants // or () - both leak on win32...
                         ).expect("Unable to add command");
 
                     }
