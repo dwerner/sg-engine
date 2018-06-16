@@ -22,13 +22,13 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     assert!(state.get_render_layers().len() == 0);
 
     let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0)) * Matrix4::from_scale(1.5);
-    let thing = Model::create("assets/models/textured_thing.obj", mx);
+    let thing = Model::create("assets/models/pship.obj", mx);
     let root = Node::create(0, None );
-   // let thing2 = Model::create("assets/models/pship.obj", mx);
-    //let child = Node::create(1, Some(root.clone()) );
+    let thing2 = Model::create("assets/models/textured_thing.obj", mx);
+    let child = Node::create(1, Some(root.clone()) );
 
     state.models.push(Arc::new(thing));
-    //state.models.push(Arc::new(thing2));
+    state.models.push(Arc::new(thing2));
     state.add_render_layer(Arc::new(SceneGraph{root:root}));
 }
 

@@ -17,6 +17,8 @@ use vulkano::image::MipmapsCount;
 
 use vulkano::command_buffer::DynamicState;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::command_buffer::CommandBuffer;
+
 use vulkano::descriptor::descriptor_set::{
     PersistentDescriptorSet,
     PersistentDescriptorSetBuf,
@@ -256,7 +258,7 @@ impl VulkanoRenderer {
             0.0, 1.0, 0.0, 0.0
         ).unwrap();
 
-        let ds = PersistentDescriptorSet::start(pipeline, id)
+        let ds = PersistentDescriptorSet::start(pipeline, 0) // intended to be bound at 0
             .add_sampled_image(texture, sampler)
             .expect("error loading texture")
             .add_buffer(uniform_buffer)
@@ -305,7 +307,7 @@ impl VulkanoRenderer {
             i
         };
 
-        let callback = DebugCallback::errors_and_warnings(
+        let debug_callback = DebugCallback::errors_and_warnings(
             &instance, |msg| {
                 println!("Debug callback: {:?}", msg.description);
             }
@@ -480,22 +482,27 @@ impl VulkanoRenderer {
             swapchain,
             images,
             pipeline,
-            models: Vec::new(),
             depth_buffer,
             framebuffers,
-            renderpass: renderpass as Arc<RenderPassAbstract + Send + Sync>,
-            material_data: Vec::new(),
-            fps: fps::FPS::new(),
             uniform_buffer,
-            render_layer_queue: VecDeque::new(),
+            debug_callback,
+            previous_frame_end,
+            renderpass: renderpass as Arc<RenderPassAbstract + Send + Sync>,
+            recreate_swapchain: false, // flag indicating to rebuild the swapchain on the next frame
+
+
+            models: Vec::new(),
+            material_data: Vec::new(),
             buffer_cache: Vec::new(),
+            render_layer_queue: VecDeque::new(),
+
+            fps: fps::FPS::new(),
+
             current_mouse_pos: ScreenPoint::new(0, 0),
             rect: ScreenRect::new(x as i32, y as i32, w as i32, h as i32),
             debug_world_rotation: 0f32,
             debug_zoom: 0f32,
-            debug_callback: callback,
-            previous_frame_end,
-            recreate_swapchain: false,
+
             dynamic_state: DynamicState {
                 line_width: None,
                 viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
@@ -642,6 +649,7 @@ impl VulkanoRenderer {
         }
 
         self.models.push(model);
+        println!("added model {}", self.models.len()); 
     }
 
     fn flag_recreate_swapchain(&mut self) {
@@ -729,7 +737,6 @@ impl VulkanoRenderer {
             // TODO: that might be best done through the uniform_buffer, as it's what owns the
             // TODO: projection matrix at this point
 
-            self.debug_world_rotation += 0.01;
             match self.render_layer_queue.pop_front() {
                 Some(next_layer) => {
 
@@ -740,39 +747,46 @@ impl VulkanoRenderer {
                     let iterator = BreadthFirstIterator::new(next_layer.root.clone());
                     for (_node_id, rc) in iterator {
                         let mut node = &mut rc.borrow_mut();
+
+                        // TODO: implement a per model -instance- matrix in the graph itself?
                         let model = self.models[node.data as usize].clone();
 
                         let model_mat = model.model_mat.clone();
-                        let rotation = cgmath::Matrix4::from_angle_y(cgmath::Rad(self.debug_world_rotation));
-                        let rot_model = model_mat * rotation;
+                        let rotation = cgmath::Matrix4::from_angle_y(
+                            cgmath::Rad(self.debug_world_rotation)
+                        );
+                        let scale = cgmath::Matrix4::from_scale(
+                            1.0f32 + self.debug_zoom
+                        );
+                        let rot_model = model_mat * rotation * scale;
 
                         // TODO: update the world matrices from the parent * child's local matrix
-                        // match node.parent() {
-                        //     Some(parent) => {
-                        //         let parent_model_id = parent.borrow().data;
-                        //         let parent_model = &self.models[parent_model_id as usize];
-                        //         let global_mat = parent_model.world_mat * rot_model;
-                        //         model.world_mat = global_mat;
-                        //     },
-                        //     None => {
-                        //         model.world_mat = rot_model;
-                        //     }
-                        // }
-                     
+                        // eg. flag dirty a node, which means all children must be updated
+                        let transform_mat = match node.parent() {
+                             Some(parent) => {
+                                let parent_model_id = parent.borrow().data;
+                                let parent_model = &self.models[parent_model_id as usize];
+                                let global_mat = parent_model.world_mat * rot_model;
+                                global_mat
+                            },
+                            None => {
+                                rot_model
+                            }
+                        };
+
+                        // Push constants are leveraged here to send per-model
+                        // (should be per-model instance instead)
+                        // matrices into the shaders
+                        let push_constants = vs::ty::PushConstants {
+                            model: transform_mat.into()
+                        };
 
                         let (v, i, _t) = {
-                            // TODO: make reference node.data
                             let item = self.buffer_cache.get(node.data as usize).unwrap();
                             (item.vertices.clone(), item.indices.clone(), item.diffuse_map.clone())
                         };
-
-                        // Push constants are leveraged here to send per-model matrices into the shaders
-                        let push_constants = vs::ty::PushConstants {
-                            model: model.world_mat.into()
-                        };
                         
                         let mesh = &model.mesh;
-
                         let dset = self.material_data[node.data as usize].descriptor_set.clone();
 
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
@@ -901,6 +915,7 @@ impl InputSource for VulkanoRenderer {
         }
 
         let this_window_id = self.id as u64;
+        //test chg
 
         let mut converted_events = VecDeque::with_capacity(events.len());
 
@@ -913,9 +928,7 @@ impl InputSource for VulkanoRenderer {
                         &winit::DeviceEvent::Added => {},
                         &winit::DeviceEvent::Removed => {},
                         &winit::DeviceEvent::MouseMotion { delta } => {},
-                        &winit::DeviceEvent::MouseWheel {delta} => {
-                            println!("it's magic {:?}", delta);
-                        },
+                        &winit::DeviceEvent::MouseWheel {delta} => {},
                         &winit::DeviceEvent::Motion { axis, value } => {},
                         &winit::DeviceEvent::Button { button, state } => {},
                         &winit::DeviceEvent::Key(input) => {},
@@ -961,9 +974,17 @@ impl InputSource for VulkanoRenderer {
 
                         &winit::WindowEvent::MouseWheel{device_id, delta, phase, modifiers} => {
                             let e = match delta {
-                                winit::MouseScrollDelta::LineDelta(x,y) | winit::MouseScrollDelta::PixelDelta(x,y)  =>
-                                    InputEvent::MouseWheel(self.id, self.get_mouse_pos().clone(), DeltaVector::new(x as i32, y as i32))
+                                winit::MouseScrollDelta::LineDelta(x,y) |
+                                winit::MouseScrollDelta::PixelDelta(x,y) => {
+                                    self.debug_world_rotation += x;
+                                    self.debug_zoom += y;
+                                    InputEvent::MouseWheel(
+                                        self.id, self.get_mouse_pos().clone(),
+                                        DeltaVector::new(x as i32, y as i32)
+                                    )
+                                }
                             };
+
                             Some(e)
                         },
 
