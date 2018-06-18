@@ -224,7 +224,6 @@ impl VulkanoRenderer {
         pipeline: Arc<ThisPipelineType>,
     ) -> Arc<DescriptorSet + Send + Sync> {
 
-        println!("Creating descriptor set...");
         let sampler = vulkano::sampler::Sampler::new(
             device.clone(),
             vulkano::sampler::Filter::Linear,
@@ -294,7 +293,6 @@ impl VulkanoRenderer {
         let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
             .next().expect("No device available.");
 
-        println!("Creating surface...");
         let surface: Arc<Surface<AMWin>> = unsafe {
            match vulkano_win_patch::winit_to_surface(instance.clone(), window.clone()) {
                Ok(s) => s,
@@ -302,12 +300,10 @@ impl VulkanoRenderer {
            }
         };
 
-        println!("getting queue");
         let queue = physical.queue_families().find(|q| {
             q.supports_graphics() && surface.is_supported(q.clone()).unwrap_or(false)
         }).expect("Couldn't find a graphical queue family.");
 
-        println!("getting device");
         let (device, mut queues) = {
             let device_ext = vulkano::device::DeviceExtensions {
                 khr_swapchain: true,
@@ -321,7 +317,6 @@ impl VulkanoRenderer {
 
         let queue = queues.next().unwrap();
 
-        println!("Creating swapchain...");
         let (swapchain, images) = Self::create_swapchain(surface.clone(), device.clone(), queue.clone(), physical)?;
 
         // TODO: as part of asset_loader, we should be loading all the shaders we expect to use in a scene
@@ -512,7 +507,6 @@ impl VulkanoRenderer {
     }
 
     pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) {
-        println!("upload model");
 
         // TODO: fix single texture uploaded issue - self.texture_init is the buffer to copy to
         // However we probably want to put this in some other managed datastructure
@@ -567,7 +561,6 @@ impl VulkanoRenderer {
 
             // we want to store the descriptor set id for use in rendering
             let desc_set_id = self.models.len();
-            println!("defining DescriptorSet({})", desc_set_id);
 
             let pipeline_set = Self::create_descriptor_set(
                 desc_set_id,
@@ -594,10 +587,8 @@ impl VulkanoRenderer {
                 self.queue.family()
             ).unwrap(); // catch oom error here
 
-            println!("looking for texture...");
             let diffuse_map = &self.buffer_cache[0].diffuse_map;
 
-            println!("copy_buffer_to_image");
             let cmd_buffer = cmd_buffer_build.copy_buffer_to_image(
                 diffuse_map.clone(),
                 texture_init.clone()
@@ -627,7 +618,6 @@ impl VulkanoRenderer {
         }
 
         self.models.push(model);
-        println!("added model {}", self.models.len()); 
     }
 
     fn flag_recreate_swapchain(&mut self) {
@@ -766,20 +756,15 @@ impl VulkanoRenderer {
                         };
                         
                         let mesh = &model.mesh;
-                        let descriptor_sets = self.material_data
-                            .iter()
-                            .map(|i| {
-                                i.descriptor_set.clone()
-                            }).collect::<Vec<_>>();
                         
-                        //let dset = self.material_data[node.data as usize].descriptor_set.clone();
+                        let dset = self.material_data[node.data as usize].descriptor_set.clone();
 
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
                                 self.pipeline.clone(),
                                 self.dynamic_state.clone(),
                                 v,
                                 i,
-                                descriptor_sets[0].clone(),
+                                dset,
                                 push_constants // or () - both leak on win32...
                         ).expect("Unable to add command");
 
