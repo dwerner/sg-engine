@@ -214,14 +214,14 @@ impl VulkanoRenderer {
     }
 
     fn create_descriptor_set(
-        id: usize,
-        texture: Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
         device: Arc<Device>,
-        width: u32,
-        height: u32,
         uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkano::vs::ty::Data>>,
         queue: Arc<Queue>,
         pipeline: Arc<ThisPipelineType>,
+        id: usize,
+        texture: Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
+        width: u32,
+        height: u32,
     ) -> Arc<DescriptorSet + Send + Sync> {
 
         let sampler = vulkano::sampler::Sampler::new(
@@ -563,14 +563,14 @@ impl VulkanoRenderer {
             let desc_set_id = self.models.len();
 
             let pipeline_set = Self::create_descriptor_set(
-                desc_set_id,
-                texture.clone(),
                 self.device.clone(),
-                2048,
-                2048,
                 self.uniform_buffer.clone(),
                 self.queue.clone(),
-                self.pipeline.clone()
+                self.pipeline.clone(),
+                desc_set_id,
+                texture.clone(),
+                2048,
+                2048
             );
 
             self.material_data.push(
