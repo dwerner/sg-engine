@@ -19,7 +19,8 @@ layout(set = 0, binding = 1) uniform Data {
 } uniforms;
 
 layout(push_constant) uniform PushConstants {
-    mat4 model;
+    mat4 model_mat;
+    uint material;
 } push_constants;
 
 layout(location = 0) in vec3 position;
@@ -28,12 +29,16 @@ layout(location = 2) in vec2 uv;
 
 layout(location = 0) out vec3 v_normal;
 layout(location = 1) out vec2 v_uv;
+layout(location = 2) flat out uint v_material;
 
 
 void main() {
 // TODO : this is extremely wasteful of GPU time, and should be done once on the CPU per model instead
-    mat4 worldview = uniforms.view * uniforms.world * push_constants.model;
+
+    mat4 worldview = uniforms.view * uniforms.world * push_constants.model_mat;
     v_normal = transpose(inverse(mat3(worldview))) * normal;
     gl_Position = uniforms.proj * worldview * vec4(position, 1.0);
     v_uv = uv;
+
+  //  v_material = push_constants.material;
 }

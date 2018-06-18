@@ -20,6 +20,7 @@ use vulkano::command_buffer::AutoCommandBufferBuilder;
 use vulkano::command_buffer::CommandBuffer;
 
 use vulkano::descriptor::descriptor_set::{
+    DescriptorSet,
     PersistentDescriptorSet,
     PersistentDescriptorSetBuf,
     PersistentDescriptorSetImg
@@ -114,40 +115,17 @@ type ThisPipelineType =
         Arc<vulkano::framebuffer::RenderPassAbstract + Send + Sync>
     >;
 
-type ThisPipelineDescriptorSet =
-        PersistentDescriptorSet<
-            Arc<ThisPipelineType>,
-            (
-                (
-                    (
-                        (),
-                        PersistentDescriptorSetImg<Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>>
-                    ),
-                    vulkano::descriptor::descriptor_set::PersistentDescriptorSetSampler
-                ),
-                PersistentDescriptorSetBuf<
-                    Arc<
-                        CpuAccessibleBuffer<
-                            ::renderer::vulkano::vs::ty::Data
-                        >
-                    >
-                >
-            ),
-            vulkano::descriptor::descriptor_set::StdDescriptorPoolAlloc
-        >;
-
-
 pub struct MaterialRenderData<F> {
     pub immutable: Arc<ImmutableImage<F>>,
     pub init: Arc<ImageAccess>,
-    pub descriptor_set: Arc<ThisPipelineDescriptorSet>
+    pub descriptor_set: Arc<DescriptorSet + Send + Sync>
 }
 
 impl <F> MaterialRenderData<F> {
     pub fn new(
         immutable: Arc<ImmutableImage<F>>,
         init: Arc<ImageAccess>,
-        descriptor_set: Arc<ThisPipelineDescriptorSet>
+        descriptor_set: Arc<DescriptorSet+Send+Sync>
     ) -> Self {
         MaterialRenderData{ immutable, init, descriptor_set }
     }
@@ -244,7 +222,7 @@ impl VulkanoRenderer {
         uniform_buffer: Arc<CpuAccessibleBuffer<::renderer::vulkano::vs::ty::Data>>,
         queue: Arc<Queue>,
         pipeline: Arc<ThisPipelineType>,
-    ) -> Arc<ThisPipelineDescriptorSet> {
+    ) -> Arc<DescriptorSet + Send + Sync> {
 
         println!("Creating descriptor set...");
         let sampler = vulkano::sampler::Sampler::new(
@@ -266,7 +244,7 @@ impl VulkanoRenderer {
             .build()
             .unwrap();
 
-        Arc::new(ds)
+        Arc::new(ds) as Arc<DescriptorSet + Send + Sync>
 
     }
 
@@ -778,7 +756,8 @@ impl VulkanoRenderer {
                         // (should be per-model instance instead)
                         // matrices into the shaders
                         let push_constants = vs::ty::PushConstants {
-                            model: transform_mat.into()
+                            model_mat: transform_mat.into(),
+                            material: node.data as u32
                         };
 
                         let (v, i, _t) = {
@@ -787,14 +766,20 @@ impl VulkanoRenderer {
                         };
                         
                         let mesh = &model.mesh;
-                        let dset = self.material_data[node.data as usize].descriptor_set.clone();
+                        let descriptor_sets = self.material_data
+                            .iter()
+                            .map(|i| {
+                                i.descriptor_set.clone()
+                            }).collect::<Vec<_>>();
+                        
+                        //let dset = self.material_data[node.data as usize].descriptor_set.clone();
 
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
                                 self.pipeline.clone(),
                                 self.dynamic_state.clone(),
                                 v,
                                 i,
-                                dset,
+                                descriptor_sets[0].clone(),
                                 push_constants // or () - both leak on win32...
                         ).expect("Unable to add command");
 
