@@ -764,7 +764,10 @@ impl VulkanoRenderer {
                                 self.dynamic_state.clone(),
                                 v,
                                 i,
-                                dset,
+                                dset, // bug here - the AutoCommandBufferBuilder
+                                    // underneath seems to cache the last index of dset, thereby making
+                                    // it impossible to rebind in the middle of commands here.
+                                    // ... wtf
                                 push_constants // or () - both leak on win32...
                         ).expect("Unable to add command");
 
