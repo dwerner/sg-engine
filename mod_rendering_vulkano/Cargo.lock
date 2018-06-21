@@ -291,7 +291,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mod_rendering_vulkan"
+name = "mod_rendering_vulkano"
 version = "0.1.0"
 dependencies = [
  "cgmath 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",

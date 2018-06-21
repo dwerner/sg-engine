@@ -1,5 +1,5 @@
 [package]
-name = "mod_rendering_vulkan"
+name = "mod_rendering_vulkano"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
 
@@ -8,7 +8,7 @@ default = []
 dynamic_lib = []
 
 [lib]
-name = "mod_rendering_vulkan"
+name = "mod_rendering_vulkano"
 crate-type=["dylib"]
 
 [dependencies]

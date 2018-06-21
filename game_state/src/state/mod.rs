@@ -40,7 +40,6 @@ pub use self::render_state::{
 
 
 use winit::Window;
-
 use std::sync::Mutex;
 use thing;
 
@@ -56,7 +55,7 @@ pub struct World {
 }
 
 pub struct RenderState {
-    windows: Vec<Arc<Window>>,
+    windows: Vec<WindowWithEvents>,
     window_builders: Vec<WindowBuilder>,
     renderers: Vec<Box<Renderer>>,
     render_layers: Vec<Arc<SceneGraph>>,
@@ -71,6 +70,7 @@ impl RenderState {
         }
     }
 }
+
 ///
 /// This is the central, and global, state passed to each mod during the main loop
 ///
@@ -78,7 +78,6 @@ use super::model::Model;
 pub struct State {
     pub models: Vec<Arc<Model>>,
     world: World,
-    events_loop: Arc<Mutex<EventsLoop>>,
     render_state: RenderState,
     input_state: InputState,
     ui_state: UIState,
@@ -91,7 +90,6 @@ impl State {
         State{
             models: Vec::new(),
             world: World{ things: Vec::new() },
-            events_loop: Arc::new(Mutex::new(EventsLoop::new())), // app-wide wm events loop
             render_state: RenderState::new(),
             input_state: InputState {
                 pending_input_events: VecDeque::new(),
@@ -103,5 +101,22 @@ impl State {
     }
 }
 
+#[derive(Clone)]
+pub struct WindowWithEvents {
+    window: Arc<Window>,
+    event_loop: Arc<Mutex<EventsLoop>>
+}
 
+impl WindowWithEvents {
+    pub fn new( window: Arc<Window>, event_loop: Arc<Mutex<EventsLoop>> ) -> Self {
+        WindowWithEvents { window, event_loop }
+    }
 
+    pub fn get_window(&self) -> &Arc<Window> {
+        &self.window
+    }
+
+    pub fn get_event_loop(&self) -> &Arc<Mutex<EventsLoop>> {
+        &self.event_loop
+    }
+}

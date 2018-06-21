@@ -17,16 +17,19 @@ use state::{
     State,
     SimulationLayer,
     SceneGraph,
+    WindowWithEvents,
 };
 
 use winit::Window;
 use winit::EventsLoop;
 use winit::WindowBuilder;
 
+
 pub trait WindowAccess {
     fn add_window(&mut self, w: u32, h: u32, title: String);
-    fn get_events_loop(&self) -> &Arc<Mutex<EventsLoop>>;
-    fn get_windows(&mut self) -> &Vec<Arc<Window>>;
+    fn get_windows(&mut self) -> &Vec<WindowWithEvents>;
+
+    // glium uses a builder rather than a winit::Window... :P
     fn add_window_builder(&mut self, w: u32, h: u32, title: String);
     fn get_window_builders(&self) -> &Vec<WindowBuilder>;
 }
@@ -80,22 +83,25 @@ pub trait UIAccess {
 
 impl WindowAccess for State {
     fn add_window(&mut self, w: u32, h: u32, title: String) {
+
+        let events_loop = Arc::new(Mutex::new(EventsLoop::new()));
+
         let window: Window  = {
             let maybe_window = WindowBuilder::new();
             let maybe_window = maybe_window.with_title(title);
             let maybe_window = maybe_window.with_dimensions(w,h);
-            maybe_window.build(&self.events_loop.lock().unwrap())
+            maybe_window.build(&events_loop.lock().unwrap())
         }.expect("unable to create window");
+
         self.render_state.windows.push(
-            Arc::new(window)
+            WindowWithEvents::new(
+                Arc::new(window),
+                events_loop
+            )
         );
     }
 
-    fn get_events_loop(&self) -> &Arc<Mutex<EventsLoop>> {
-        &self.events_loop
-    }
-
-    fn get_windows(&mut self) -> &Vec<Arc<Window>> {
+    fn get_windows(&mut self) -> &Vec<WindowWithEvents> {
         &self.render_state.windows
     }
 

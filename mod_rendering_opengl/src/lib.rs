@@ -10,6 +10,8 @@ extern crate image;
 use game_state::time;
 use game_state::time::Duration;
 
+use game_state::winit::EventsLoop;
+
 use std::sync::{
     Arc,
     Mutex
@@ -30,9 +32,7 @@ use renderer::opengl::{
 
 #[no_mangle]
 pub extern "C" fn mod_rendering_opengl_load( state: &mut State ) {
-    //assert!(state.get_renderers().len() == 0);
-
-    let events_loop = state.get_events_loop().clone();
+    let events_loop = Arc::new(Mutex::new(EventsLoop::new()));
     let windows = state.get_window_builders().iter().map(|x| x.clone()).collect::<Vec<_>>();
 
     for w in windows {

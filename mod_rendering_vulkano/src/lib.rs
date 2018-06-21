@@ -28,24 +28,25 @@ use renderer::vulkano::{
 };
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_vulkan_load( state: &mut State ) {
-    //assert!(state.get_renderers().len() == 0);
+pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
 
-    let events_loop = state.get_events_loop().clone();
-    let windows = state.get_windows().iter().map(|x| x.clone()).collect::<Vec<Arc<_>>>();
-
+    let windows = { state.get_windows().clone() };
     for w in windows {
-        let maybe_renderer = VulkanoRenderer::new(w.clone(), events_loop.clone(), DrawMode::Colored);
+        let maybe_renderer =
+            VulkanoRenderer::new(
+                w.get_window().clone(),
+                w.get_event_loop().clone(),
+                DrawMode::Colored
+            );
+
         match maybe_renderer {
             Ok(mut renderer) => {
                 for model in state.models.iter() {
-                  renderer.upload_model( model.clone() );
+                    renderer.upload_model( model.clone() );
                 }
-                state.add_renderer(
-                    Box::new(renderer)
-                );
+                state.add_renderer( Box::new(renderer));
             }
-            Err(err) => println!("aww fuck. {}", err)
+            Err(err) => println!("Failed to load renderer. {}", err)
         }
     }
 
@@ -53,7 +54,7 @@ pub extern "C" fn mod_rendering_vulkan_load( state: &mut State ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_vulkan_update(state: &mut State, dt: &Duration) {
+pub extern "C" fn mod_rendering_vulkano_update(state: &mut State, dt: &Duration) {
     // queue each existing render layers for rendering
     state.push_render_layers();
     state.present_all();
@@ -61,7 +62,7 @@ pub extern "C" fn mod_rendering_vulkan_update(state: &mut State, dt: &Duration) 
 
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_vulkan_unload(state: &mut State ) {
+pub extern "C" fn mod_rendering_vulkano_unload(state: &mut State ) {
 
     state.on_render_unload();
 }

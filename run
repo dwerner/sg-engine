@@ -5,7 +5,8 @@ set -e
 #boop
 (cd game_state && cargo build $1)
 (cd mod_rendering_opengl && cargo build $1) 
-(cd mod_rendering_vulkan && cargo build $1)
+(cd mod_rendering_vulkano && cargo build $1)
+#(cd mod_rendering_voodoo && cargo build $1)
 (cd mod_input && cargo build $1)
 (cd mod_asset_loader && cargo build $1)
 (cd mod_simulation && cargo build $1)
