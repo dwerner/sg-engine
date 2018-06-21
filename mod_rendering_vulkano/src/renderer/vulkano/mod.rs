@@ -270,7 +270,6 @@ impl VulkanoRenderer {
         }).collect::<Vec<_>>()
     }
 
-    // FIXME don't pass a tuple, rather a new struct type that composes these
     pub fn new<'a>(
         window: AMWin,
         events_loop: Arc<Mutex<winit::EventsLoop>>,
@@ -508,6 +507,9 @@ impl VulkanoRenderer {
 
     pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) {
 
+        // TODO: Consolidate self.buffer_cache, self.material_data, self.models --
+        // all of these share an index, and should be the same struct.
+
         // TODO: fix single texture uploaded issue - self.texture_init is the buffer to copy to
         // However we probably want to put this in some other managed datastructure
         // This is separate from self.texture, used for reading...?
@@ -587,7 +589,7 @@ impl VulkanoRenderer {
                 self.queue.family()
             ).unwrap(); // catch oom error here
 
-            let diffuse_map = &self.buffer_cache[0].diffuse_map;
+            let diffuse_map = &self.buffer_cache[desc_set_id].diffuse_map;
 
             let cmd_buffer = cmd_buffer_build.copy_buffer_to_image(
                 diffuse_map.clone(),
@@ -759,16 +761,20 @@ impl VulkanoRenderer {
                         
                         let dset = self.material_data[node.data as usize].descriptor_set.clone();
 
+                        cmd_buffer_build.invalidate_cacher();
+
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
                                 self.pipeline.clone(),
                                 self.dynamic_state.clone(),
                                 v,
                                 i,
-                                dset, // bug here - the AutoCommandBufferBuilder
-                                    // underneath seems to cache the last index of dset, thereby making
-                                    // it impossible to rebind in the middle of commands here.
-                                    // ... wtf
+                                dset,   // bug here - the AutoCommandBufferBuilder
+                                        // underneath seems to cache the last index of dset, thereby making
+                                        // it impossible to bind to a different descriptor set 
+                                        // ... wtf
+                                        
                                 push_constants // or () - both leak on win32...
+
                         ).expect("Unable to add command");
 
                     }
