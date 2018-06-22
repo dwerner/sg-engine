@@ -28,7 +28,7 @@ fn main() {
     mods.push(load_mod!(simulation));
 
     state.add_window(800, 600, "sg-shell 1 (vulkano)".to_string());
-    state.add_window(800, 600, "sg-shell 2 (voodoo)".to_string());
+    //state.add_window(800, 600, "sg-shell 2 (voodoo)".to_string());
     mods.push(load_mod!(rendering_vulkano));
 
     //mods.push(load_mod!(rendering_voodoo));

@@ -6,6 +6,9 @@ use {
     model,
 };
 
+use cgmath::Vector3;
+use cgmath::Matrix4;
+
 pub struct Thing {
     pub id: Identity,
     pub facets: Vec<Facet>
@@ -27,9 +30,15 @@ pub struct ThingBuilder {
 }
 
 impl ThingBuilder {
+
+    pub fn start() -> Self {
+        ThingBuilder { facets: Vec::new() }
+    }
+
     pub fn build(self) -> Thing {
         Thing::new(self.facets)
     }
+
     pub fn with_facet(mut self, facet: Facet) -> Self {
         self.facets.push(facet);
         self
@@ -62,9 +71,9 @@ impl ThingBuilder {
         self
     }
 
-    pub fn with_mesh(mut self, mesh: Arc<model::Model>) -> Self {
+    pub fn with_model(mut self, transform: Matrix4<f32>, model: Arc<model::Model>) -> Self {
         self.facets.push(
-            Facet::Mesh(mesh)
+            Facet::Model(ModelInstanceFacet{ transform, model })
         );
         self
     }
@@ -89,18 +98,22 @@ pub enum Facet {
     Pathing, // finding it's way around
     Camera(CameraFacet<f32>),
     Dialogue, // can this entity be talked with?
-    Mesh(Arc<model::Model>),
+    Model(ModelInstanceFacet<f32>),
     AI,
     UI,
 }
 
-use cgmath::Vector3;
 
 pub enum Shape<U> {
     Box { width: U, height: U, depth: U },
     Cone { radius: U, height: U },
     Cylinder { radius: U, height: U },
     Sphere { radius: U },
+}
+
+pub struct ModelInstanceFacet<U = f32> {
+    pub transform: Matrix4<U>,
+    model: Arc<model::Model>
 }
 
 pub struct HealthFacet {

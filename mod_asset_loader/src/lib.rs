@@ -12,6 +12,9 @@ use game_state::state::{ SceneGraph };
 
 use game_state::time::Duration;
 
+use game_state::thing::Thing;
+use game_state::thing::ThingBuilder;
+
 use std::sync::Arc;
 
 use cgmath::Matrix4;
@@ -22,12 +25,25 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     assert!(state.get_render_layers().len() == 0);
 
     let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0)) * Matrix4::from_scale(1.5);
-    let thing = Model::create("assets/models/pship.obj", mx);
+
+    // Conceptually here, we are loading one model, but we might instance it from many entities
+    let model = Model::create("assets/models/pship.obj", mx);
+    let am = Arc::new(model);
+
+    // state.models is rendering state - we upload these to the GPU when appropriate
+    state.models.push(am.clone());
+
+    // build the actual entity
+    let builder = ThingBuilder::start()
+        .with_model(mx, am)
+        .build();
+
+    // previously we just agreed on an index, but is there a better way to relate 
+    // Model + Material ==> DescriptorSet and CpuAccessibleBuffer?
     let root = Node::create(0, None );
     let thing2 = Model::create("assets/models/textured_thing.obj", mx);
     let child = Node::create(1, Some(root.clone()) );
 
-    state.models.push(Arc::new(thing));
     state.models.push(Arc::new(thing2));
     state.add_render_layer(Arc::new(SceneGraph{root:root}));
 }

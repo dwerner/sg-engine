@@ -207,7 +207,7 @@ impl VulkanoRenderer {
             &queue,
             SurfaceTransform::Identity,
             alpha,
-            vulkano::swapchain::PresentMode::Fifo,
+            vulkano::swapchain::PresentMode::Immediate,
             true,
             None
         ).expect("Failed to create swapchain."))
@@ -670,9 +670,10 @@ impl VulkanoRenderer {
             }
         }
 
+        // Note the use of 300 micros as a magic number for acquiring a swapchain image
         let (image_num, acquire_future) = match swapchain::acquire_next_image(
             self.swapchain.clone(),
-            Some(Duration::new(1, 0))
+            Some( Duration::from_micros(300) )
         ) {
             Ok((num, future)) => {
                 (num, future)
@@ -732,6 +733,7 @@ impl VulkanoRenderer {
 
                         // TODO: update the world matrices from the parent * child's local matrix
                         // eg. flag dirty a node, which means all children must be updated
+                        // actually save the data in each node
                         let transform_mat = match node.parent() {
                              Some(parent) => {
                                 let parent_model_id = parent.borrow().data;
@@ -749,7 +751,6 @@ impl VulkanoRenderer {
                         // matrices into the shaders
                         let push_constants = vs::ty::PushConstants {
                             model_mat: transform_mat.into(),
-                            material: node.data as u32
                         };
 
                         let (v, i, _t) = {
