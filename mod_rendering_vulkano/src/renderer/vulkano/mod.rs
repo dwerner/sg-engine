@@ -325,6 +325,7 @@ impl VulkanoRenderer {
         // ----------------------------------
         // Uniform buffer
         // TODO: extract to the notion of a camera
+        
         let proj = cgmath::perspective(
             cgmath::Rad(::std::f32::consts::FRAC_PI_2),
             {
@@ -335,23 +336,13 @@ impl VulkanoRenderer {
             100.0 // depth used for culling!
         );
 
-        // Vulkan uses right-handed coordinates, y positive is down
-        let view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
-            cgmath::Point3::new(0.0, 0.0, 0.0),  // center
-            cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
-        );
-
-        let scale = cgmath::Matrix4::from_scale(1.0);
-
         let uniform_buffer = CpuAccessibleBuffer::<vs::ty::Data>::from_data(
             device.clone(),
             vulkano::buffer::BufferUsage::all(),
             vs::ty::Data {
-                world : <cgmath::Matrix4<f32> as cgmath::SquareMatrix>::identity().into(),
-                view : (view * scale).into(),
                 proj : proj.into(),
             }).expect("failed to create buffer");
+
         // ----------------------------------
 
         let img_usage = ImageUsage {
@@ -697,10 +688,21 @@ impl VulkanoRenderer {
         cmd_buffer_build = cmd_buffer_build.begin_render_pass(
             self.framebuffers[image_num].clone(), false,
             vec![
-                vulkano::format::ClearValue::from([ 0.15, 0.15, 0.15, 1.0 ]),
+                vulkano::format::ClearValue::from([ 0.0, 0.0, 0.0, 1.0 ]),
                 vulkano::format::ClearValue::Depth(1.0)
             ]
         ).expect("unable to begin renderpass");
+
+        // Vulkan uses right-handed coordinates, y positive is down
+        let view = cgmath::Matrix4::look_at(
+            cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
+            cgmath::Point3::new(0.0, 0.0, 0.0),  // center
+            cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
+        );
+
+        let scale = cgmath::Matrix4::from_scale(1.0);
+
+        let viewscale = view*scale;
 
         loop {
 
@@ -741,16 +743,13 @@ impl VulkanoRenderer {
                                 let global_mat = parent_model.world_mat * rot_model;
                                 global_mat
                             },
-                            None => {
-                                rot_model
-                            }
+                            None => rot_model
                         };
 
                         // Push constants are leveraged here to send per-model
-                        // (should be per-model instance instead)
                         // matrices into the shaders
                         let push_constants = vs::ty::PushConstants {
-                            model_mat: transform_mat.into(),
+                            model_mat:  (viewscale * transform_mat).into(),
                         };
 
                         let (v, i, _t) = {
@@ -769,11 +768,7 @@ impl VulkanoRenderer {
                                 self.dynamic_state.clone(),
                                 v,
                                 i,
-                                dset,   // bug here - the AutoCommandBufferBuilder
-                                        // underneath seems to cache the last index of dset, thereby making
-                                        // it impossible to bind to a different descriptor set 
-                                        // ... wtf
-                                        
+                                dset,  
                                 push_constants // or () - both leak on win32...
 
                         ).expect("Unable to add command");

@@ -14,6 +14,7 @@ use game_state::time::Duration;
 
 use game_state::thing::Thing;
 use game_state::thing::ThingBuilder;
+use game_state::thing::CameraFacet;
 
 use std::sync::Arc;
 
@@ -34,7 +35,8 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     state.models.push(am.clone());
 
     // build the actual entity
-    let builder = ThingBuilder::start()
+    let thing = ThingBuilder::start()
+        .with_camera(CameraFacet{ orientation: Vector3::new(0.0, 1.0, 0.0) * mx })
         .with_model(mx, am)
         .build();
 
