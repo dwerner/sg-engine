@@ -192,10 +192,26 @@ impl VulkanoRenderer {
                 return Err(format!("Unable to get capabilities from surface: {:?}", err).to_string())
             }
         };
+
+        use vulkano::swapchain::PresentMode;
+
         let dimensions = caps.current_extent.unwrap_or([1280, 800]);
         let present = caps.present_modes.iter().next().unwrap();
         let alpha = caps.supported_composite_alpha.iter().next().unwrap();
         let format = caps.supported_formats[0].0;
+
+        let present_mode = if caps.present_modes.immediate {
+            Some(PresentMode::Immediate)
+        } else if caps.present_modes.mailbox {
+            Some(PresentMode::Mailbox)
+        } else if caps.present_modes.relaxed {
+            Some(PresentMode::Relaxed)
+        } else if caps.present_modes.mailbox {
+            Some(PresentMode::Fifo)
+        } else {
+            None
+        }.expect("No supported present mode found.");
+
         Ok(Swapchain::new(
             device,
             surface,
@@ -207,7 +223,7 @@ impl VulkanoRenderer {
             &queue,
             SurfaceTransform::Identity,
             alpha,
-            vulkano::swapchain::PresentMode::Immediate,
+            present_mode,
             true,
             None
         ).expect("Failed to create swapchain."))
@@ -452,15 +468,11 @@ impl VulkanoRenderer {
             previous_frame_end,
             renderpass: renderpass as Arc<RenderPassAbstract + Send + Sync>,
             recreate_swapchain: false, // flag indicating to rebuild the swapchain on the next frame
-
-
             models: Vec::new(),
             material_data: Vec::new(),
             buffer_cache: Vec::new(),
             render_layer_queue: VecDeque::new(),
-
             fps: fps::FPS::new(),
-
             current_mouse_pos: ScreenPoint::new(0, 0),
             rect: ScreenRect::new(x as i32, y as i32, w as i32, h as i32),
             debug_world_rotation: 0f32,

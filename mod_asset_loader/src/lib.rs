@@ -36,7 +36,7 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
 
     // build the actual entity
     let thing = ThingBuilder::start()
-        .with_camera(CameraFacet{ orientation: Vector3::new(0.0, 1.0, 0.0) * mx })
+        .with_camera(CameraFacet{ orientation: Vector3::new(0.0, 1.0, 0.0) })
         .with_model(mx, am)
         .build();
 
