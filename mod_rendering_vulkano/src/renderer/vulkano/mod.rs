@@ -200,6 +200,11 @@ impl VulkanoRenderer {
         let alpha = caps.supported_composite_alpha.iter().next().unwrap();
         let format = caps.supported_formats[0].0;
 
+        // note that some present modes block on vsync
+        // TODO: this should be a user-configurable option
+        // THOUGHTS: perhaps this could be better supported by putting the renderer on another thread
+        // and then syncing with state once per update, but allowing rendering to happen
+        // without blocking
         let present_mode = if caps.present_modes.immediate {
             Some(PresentMode::Immediate)
         } else if caps.present_modes.mailbox {
@@ -357,7 +362,8 @@ impl VulkanoRenderer {
             vulkano::buffer::BufferUsage::all(),
             vs::ty::Data {
                 proj : proj.into(),
-            }).expect("failed to create buffer");
+            }
+        ).expect("failed to create buffer");
 
         // ----------------------------------
 
