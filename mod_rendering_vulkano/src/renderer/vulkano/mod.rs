@@ -761,8 +761,6 @@ impl VulkanoRenderer {
                         
                         let dset = self.material_data[node.data as usize].descriptor_set.clone();
 
-                        cmd_buffer_build.invalidate_cacher();
-
                         cmd_buffer_build = cmd_buffer_build.draw_indexed(
                                 self.pipeline.clone(),
                                 self.dynamic_state.clone(),
