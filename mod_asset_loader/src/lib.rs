@@ -40,6 +40,8 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
         .with_model(mx, am)
         .build();
 
+    // state.world.add_thing(thing);
+
     // previously we just agreed on an index, but is there a better way to relate 
     // Model + Material ==> DescriptorSet and CpuAccessibleBuffer?
     let root = Node::create(0, None );

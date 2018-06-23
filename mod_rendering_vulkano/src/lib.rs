@@ -44,7 +44,7 @@ pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
                 for model in state.models.iter() {
                     renderer.upload_model( model.clone() );
                 }
-                state.add_renderer( Box::new(renderer));
+                state.add_renderer( Box::new(renderer) );
             }
             Err(err) => println!("Failed to load renderer. {}", err)
         }

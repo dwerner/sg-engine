@@ -76,8 +76,14 @@ impl RenderState {
 ///
 use super::model::Model;
 pub struct State {
+
+    // TODO: trait for model access - (uploaded)
+    // TODO: what about unloading models?
     pub models: Vec<Arc<Model>>,
+
+    // TODO: trait for world state access
     world: World,
+
     render_state: RenderState,
     input_state: InputState,
     ui_state: UIState,
@@ -89,7 +95,9 @@ impl State {
     pub fn new() -> Self {
         State{
             models: Vec::new(),
+
             world: World{ things: Vec::new() },
+
             render_state: RenderState::new(),
             input_state: InputState {
                 pending_input_events: VecDeque::new(),
