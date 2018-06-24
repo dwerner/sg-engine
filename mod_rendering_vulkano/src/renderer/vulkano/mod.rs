@@ -174,7 +174,7 @@ pub struct VulkanoRenderer {
     debug_world_rotation: f32,
     debug_zoom: f32,
 
-    // Enable vulkan debug layers?
+    // Enable vulkan debug layers? - need to install the vulkan sdk to get them
     #[allow(dead_code)]
     debug_callback: Option<vulkano::instance::debug::DebugCallback>,
 
@@ -191,6 +191,7 @@ impl VulkanoRenderer {
         queue: Arc<Queue>,
         physical: PhysicalDevice
     ) -> Result<(Arc<Swapchain<AMWin>>, Vec<Arc<SwapchainImage<AMWin>>>), String> {
+
         let caps = match surface.capabilities(physical.clone()) {
             Ok(caps) => caps,
             Err(err) => {
@@ -487,6 +488,7 @@ impl VulkanoRenderer {
             debug_world_rotation: 0f32,
             debug_zoom: 0f32,
 
+            // TODO: should DynamicState be reset when the swapchain is rebuilt as well?
             dynamic_state: DynamicState {
                 line_width: None,
                 viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
@@ -522,6 +524,7 @@ impl VulkanoRenderer {
         { // save model+material in VulkanoRenderer buffer cache
             let mesh = &model.mesh;
             let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
+
             let pixel_buffer = {
                 let image = model.material.diffuse_map.to_rgba();
                 let image_data = image.into_raw().clone();
@@ -533,6 +536,8 @@ impl VulkanoRenderer {
                     ::from_iter(self.device.clone(), BufferUsage::all(), image_data_chunks)
                     .expect("failed to create buffer")
             };
+
+            // TODO: per-model textures are 2048x2048, perhaps this could depend on the image instead?
 
             let (texture, texture_init) = ImmutableImage::uninitialized(
                 self.device.clone(),
@@ -625,8 +630,7 @@ impl VulkanoRenderer {
             let size = self.window.get_inner_size_pixels();
             match size {
                 Some((w,h)) => {
-                    println!("recreating swapchain with dimensions {:?}", size);
-
+                    //println!("recreating swapchain with dimensions {:?}", size);
                     use vulkano::swapchain::SwapchainCreationError;
 
                     let physical = vulkano::instance::PhysicalDevice::enumerate(&self.instance)
@@ -702,14 +706,30 @@ impl VulkanoRenderer {
         );
 
         let scale = cgmath::Matrix4::from_scale(1.0);
-
         let viewscale = view*scale;
 
-        loop {
+        // TODO HERE
+        let viewpoint: Option<Arc<Vector3<f32>>> = None;
 
-            // TODO: implement a notion of a camera
-            // TODO: that might be best done through the uniform_buffer, as it's what owns the
-            // TODO: projection matrix at this point
+        // TODO: WIP implement a notion of a camera
+        // TODO: do we want to do this every frame?
+        let proj_mat = cgmath::perspective(
+            cgmath::Rad(::std::f32::consts::FRAC_PI_2),
+            {
+                let d = ImageAccess::dimensions(&self.images[0]);
+                d.width() as f32 / d.height() as f32
+            },
+            0.01,
+            100.0 // depth used for culling!
+        );
+
+        {  // modify the data in the uniform buffer for this renderer == our camera
+            let mut write_uniform = self.uniform_buffer.write().unwrap();
+            write_uniform.proj = proj_mat.into();
+        }
+
+
+        loop {
 
             match self.render_layer_queue.pop_front() {
                 Some(next_layer) => {
