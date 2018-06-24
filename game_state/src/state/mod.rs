@@ -1,6 +1,6 @@
 use super::{
     Renderer,
-}; //, Physical, Syncable, Identifyable };
+};
 
 use std::sync::Arc;
 use std::collections::VecDeque;
@@ -20,17 +20,12 @@ pub use self::input_state::{
 
 mod access;
 pub use self::access::{
+    WorldAccess,
+    ModelAccess,
     WindowAccess,
     RenderAccess,
     RenderLayerAccess,
     InputAccess,
-    SimulationAccess
-};
-
-mod simulation_state;
-use self::simulation_state::{
-    Simulation,
-    SimulationLayer,
 };
 
 mod render_state;
@@ -51,10 +46,16 @@ pub enum DrawMode {
 }
 
 pub struct World {
-    things: Vec<thing::Thing>
+    things: Vec<Arc<thing::Thing>>
+}
+impl World {
+    pub fn add_thing(&mut self, thing: Arc<thing::Thing>) {
+        self.things.push(thing);
+    }
 }
 
 pub struct RenderState {
+    models: Vec<Arc<Model>>,
     windows: Vec<WindowWithEvents>,
     window_builders: Vec<WindowBuilder>,
     renderers: Vec<Box<Renderer>>,
@@ -63,6 +64,7 @@ pub struct RenderState {
 impl RenderState {
     pub fn new() -> Self {
         RenderState{
+            models: Vec::new(),
             windows: Vec::new(),
             window_builders: Vec::new(), // glutin requires a builder
             renderers: Vec::new(),
@@ -76,25 +78,15 @@ impl RenderState {
 ///
 use super::model::Model;
 pub struct State {
-
-    // TODO: trait for model access - (uploaded)
-    // TODO: what about unloading models?
-    pub models: Vec<Arc<Model>>,
-
-    // TODO: trait for world state access
     world: World,
-
     render_state: RenderState,
     input_state: InputState,
     ui_state: UIState,
-    // simulation state
-    simulation_state: Simulation,
 }
 
 impl State {
     pub fn new() -> Self {
         State{
-            models: Vec::new(),
 
             world: World{ things: Vec::new() },
 
@@ -104,7 +96,6 @@ impl State {
                 other_input_sources: Vec::new() // input sources added at runtime
             },
             ui_state: UIState::new(),
-            simulation_state: Simulation::new(),
         }
     }
 }

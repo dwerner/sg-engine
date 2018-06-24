@@ -9,6 +9,7 @@ extern crate vulkano_shaders;
 extern crate image;
 
 use game_state::time::Duration;
+use game_state::state::ModelAccess;
 
 use std::sync::{
     Arc,
@@ -41,7 +42,10 @@ pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
 
         match maybe_renderer {
             Ok(mut renderer) => {
-                for model in state.models.iter() {
+
+
+
+                for model in state.get_models().iter() {
                     renderer.upload_model( model.clone() );
                 }
                 state.add_renderer( Box::new(renderer) );

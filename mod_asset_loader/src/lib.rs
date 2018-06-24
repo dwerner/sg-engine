@@ -2,7 +2,6 @@ extern crate game_state;
 extern crate cgmath;
 
 use game_state::state::State;
-use game_state::Renderable;
 use game_state::state::RenderLayerAccess;
 
 use game_state::model::{ Model };
@@ -15,6 +14,9 @@ use game_state::time::Duration;
 use game_state::thing::Thing;
 use game_state::thing::ThingBuilder;
 use game_state::thing::CameraFacet;
+
+use game_state::state::ModelAccess;
+use game_state::state::WorldAccess;
 
 use std::sync::Arc;
 
@@ -32,7 +34,7 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     let am = Arc::new(model);
 
     // state.models is rendering state - we upload these to the GPU when appropriate
-    state.models.push(am.clone());
+    state.add_model(am.clone());
 
     // build the actual entity
     let thing = ThingBuilder::start()
@@ -40,7 +42,12 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
         .with_model(mx, am)
         .build();
 
-    // state.world.add_thing(thing);
+    let thing = Arc::new(thing);
+
+    {
+        let mut world = state.get_world();
+        world.add_thing(thing);
+    }
 
     // previously we just agreed on an index, but is there a better way to relate 
     // Model + Material ==> DescriptorSet and CpuAccessibleBuffer?
@@ -48,7 +55,7 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     let thing2 = Model::create("assets/models/textured_thing.obj", mx);
     let child = Node::create(1, Some(root.clone()) );
 
-    state.models.push(Arc::new(thing2));
+    state.add_model(Arc::new(thing2));
     state.add_render_layer(Arc::new(SceneGraph{root:root}));
 }
 

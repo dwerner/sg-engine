@@ -1,4 +1,3 @@
-use Renderable;
 use Identity;
 
 use tree::{ RcNode };

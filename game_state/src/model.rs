@@ -1,4 +1,3 @@
-use Renderable;
 use Identity;
 use Identifyable;
 use create_next_identity;
@@ -60,6 +59,27 @@ impl Model {
         };
         build
     }
+
+    fn get_mesh(&self) -> &Mesh { &self.mesh }
+
+    fn get_world_matrix(&self) -> &Matrix4<f32> {
+        &self.world_mat
+    }
+
+    fn get_model_matrix(&self) -> &Matrix4<f32> {
+        &self.model_mat
+    }
+    fn get_diffuse_map(&self) -> &image::DynamicImage {
+        &self.material.diffuse_map
+    }
+
+    fn set_world_matrix(&mut self, mat: Matrix4<f32>) {
+        self.world_mat = mat;
+    }
+    fn set_model_matrix(&mut self, mat: Matrix4<f32>) {
+        self.model_mat = mat;
+    }
+
 }
 
 #[test]
@@ -122,28 +142,6 @@ pub struct Mesh {
 impl Mesh {
     pub fn create(v: Vec<Vertex>, i: Vec<u16>) -> Self {
         Mesh { vertices:v, indices:i }
-    }
-}
-
-impl Renderable for Model {
-    fn get_mesh(&self) -> &Mesh { &self.mesh }
-
-    fn get_world_matrix(&self) -> &Matrix4<f32> {
-        &self.world_mat
-    }
-
-    fn get_model_matrix(&self) -> &Matrix4<f32> {
-        &self.model_mat
-    }
-    fn get_diffuse_map(&self) -> &image::DynamicImage {
-        &self.material.diffuse_map
-    }
-
-    fn set_world_matrix(&mut self, mat: Matrix4<f32>) {
-        self.world_mat = mat;
-    }
-    fn set_model_matrix(&mut self, mat: Matrix4<f32>) {
-        self.model_mat = mat;
     }
 }
 

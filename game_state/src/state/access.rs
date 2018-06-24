@@ -15,15 +15,26 @@ use Identity;
 
 use state::{
     State,
-    SimulationLayer,
+    World,
     SceneGraph,
     WindowWithEvents,
 };
+
+use super::thing::Thing;
+use super::Model;
 
 use winit::Window;
 use winit::EventsLoop;
 use winit::WindowBuilder;
 
+pub trait WorldAccess {
+    fn get_world(&mut self) -> &mut World;
+}
+
+pub trait ModelAccess {
+    fn get_models(&self) -> &Vec<Arc<Model>>;
+    fn add_model(&mut self, model: Arc<Model>);
+}
 
 pub trait WindowAccess {
     fn add_window(&mut self, w: u32, h: u32, title: String);
@@ -68,17 +79,27 @@ pub trait InputAccess {
     fn on_input_unload(&mut self);
 }
 
-pub trait SimulationAccess {
-    fn get_sim_layers(&mut self) -> &Vec<SimulationLayer>;
-    fn on_sim_load(&mut self);
-    fn on_sim_unload(&mut self);
-}
-
 pub trait UIAccess {
     fn pending_ui_events(&mut self) -> &VecDeque<UIEvent>;
     fn queue_ui_event(&mut self, event: UIEvent);
     fn on_ui_load(&mut self);
     fn on_ui_unload(&mut self);
+}
+
+impl ModelAccess for State {
+    fn get_models(&self) -> &Vec<Arc<Model>> {
+        &self.render_state.models
+    }
+
+    fn add_model(&mut self, model: Arc<Model>) {
+        self.render_state.models.push(model);
+    }
+}
+
+impl WorldAccess for State {
+    fn get_world(&mut self) -> &mut World {
+        &mut self.world
+    }
 }
 
 impl WindowAccess for State {
@@ -251,19 +272,6 @@ impl InputAccess for State {
     }
     fn has_pending_input_events(&self) -> bool {
         !self.input_state.pending_input_events.is_empty()
-    }
-}
-
-impl SimulationAccess for State {
-    fn get_sim_layers(&mut self) -> &Vec<SimulationLayer> {
-        &self.simulation_state.layers()
-    }
-
-    fn on_sim_load(&mut self) {
-        unimplemented!();
-    }
-    fn on_sim_unload(&mut self) {
-        unimplemented!();
     }
 }
 

@@ -68,19 +68,6 @@ pub trait Renderer : Identifyable + InputSource {
 
 }
 
-pub trait Renderable : Identifyable {
-    fn get_mesh(&self) -> &Mesh;
-
-    fn get_diffuse_map(&self) -> &image::DynamicImage;
-    fn get_world_matrix(&self) -> &Matrix4<f32>;
-    fn set_world_matrix(&mut self, mat: Matrix4<f32>);
-
-    fn get_model_matrix(&self) -> &Matrix4<f32>;
-    fn set_model_matrix(&mut self, mat: Matrix4<f32>);
-
-    // TODO fn get_graph_node(&self) -> tree::RcNode<_>;
-}
-
 pub trait Behavior {
     fn update(delta_time: &time::Duration);
 }

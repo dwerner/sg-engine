@@ -11,7 +11,6 @@ use input::screen::{
 
 use cgmath::Matrix4;
 
-use Renderable;
 use model::Mesh;
 
 use Identity;
@@ -52,29 +51,6 @@ impl UIView {
 
 impl Identifyable for UIView {
     fn identify(&self) -> Identity { self.id }
-}
-
-impl Renderable for UIView {
-    fn get_mesh(&self) -> &Mesh {
-        panic!("nope!!!");
-    }
-
-    fn get_world_matrix(&self) -> &Matrix4<f32> {
-        panic!("nope");
-    }
-    fn get_model_matrix(&self) -> &Matrix4<f32> {
-        panic!("nope");
-    }
-
-    fn set_world_matrix(&mut self, _mat: Matrix4<f32>) {
-        panic!("nope");
-    }
-    fn set_model_matrix(&mut self, _mat: Matrix4<f32>) {
-        panic!("nope");
-    }
-    fn get_diffuse_map(&self) -> &image::DynamicImage {
-        unimplemented!()
-    }
 }
 
 pub struct UIWindow {

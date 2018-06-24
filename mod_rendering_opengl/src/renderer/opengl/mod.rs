@@ -6,7 +6,6 @@ use glutin::GlContext;
 
 use game_state;
 use game_state::state::SceneGraph;
-use game_state::Renderable;
 use game_state::Renderer;
 use game_state::winit;
 

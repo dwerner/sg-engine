@@ -2,7 +2,6 @@ use {
     create_next_identity,
     Identity,
     Identifyable,
-    Renderable,
     model,
 };
 
