@@ -31,7 +31,7 @@ use renderer::vulkano::{
 #[no_mangle]
 pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
 
-    let windows = { state.get_windows().clone() };
+    let windows = state.get_windows().clone();
     for w in windows {
         let maybe_renderer =
             VulkanoRenderer::new(
@@ -42,9 +42,6 @@ pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
 
         match maybe_renderer {
             Ok(mut renderer) => {
-
-
-
                 for model in state.get_models().iter() {
                     renderer.upload_model( model.clone() );
                 }

@@ -31,10 +31,12 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
 
     // Conceptually here, we are loading one model, but we might instance it from many entities
     let model = Model::create("assets/models/pship.obj", mx);
+    let thing2 = Model::create("assets/models/textured_thing.obj", mx);
     let am = Arc::new(model);
 
     // state.models is rendering state - we upload these to the GPU when appropriate
     state.add_model(am.clone());
+    state.add_model(Arc::new(thing2));
 
     // build the actual entity
     let thing = ThingBuilder::start()
@@ -46,16 +48,14 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
 
     {
         let mut world = state.get_world();
-        world.add_thing(thing);
+        world.add_thing(thing.clone());
     }
 
     // previously we just agreed on an index, but is there a better way to relate 
     // Model + Material ==> DescriptorSet and CpuAccessibleBuffer?
     let root = Node::create(0, None );
-    let thing2 = Model::create("assets/models/textured_thing.obj", mx);
-    let child = Node::create(1, Some(root.clone()) );
+    let child = Node::create( 1, Some(root.clone()) );
 
-    state.add_model(Arc::new(thing2));
     state.add_render_layer(Arc::new(SceneGraph{root:root}));
 }
 
