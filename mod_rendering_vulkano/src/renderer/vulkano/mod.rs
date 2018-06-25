@@ -969,10 +969,13 @@ impl InputSource for VulkanoRenderer {
                             {
                                 let mut m = self.camera_host.lock().unwrap();
                                 let mut camera = m.get_camera_facet().unwrap();
+
+                                // TODO: this is still quite fucky, and it's not clear that
+                                // input processing should happen here
                                 camera.view = cgmath::Matrix4::from_angle_y(
-                                    cgmath::Rad((x/1000.0) as f32)
+                                    cgmath::Rad((x/100.0) as f32)
                                 ) + cgmath::Matrix4::from_angle_x(
-                                    cgmath::Rad((y/1000.0) as f32)
+                                    cgmath::Rad((y/100.0) as f32)
                                 );
                             }
 
