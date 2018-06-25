@@ -18,7 +18,10 @@ use game_state::thing::CameraFacet;
 use game_state::state::ModelAccess;
 use game_state::state::WorldAccess;
 
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    Mutex,
+};
 
 use cgmath::Matrix4;
 use cgmath::Vector3;
@@ -40,11 +43,20 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
 
     // build the actual entity
     let thing = ThingBuilder::start()
-        .with_camera(CameraFacet{ orientation: Vector3::new(0.0, 1.0, 0.0) })
+        .with_camera(
+            CameraFacet::new(
+                cgmath::Matrix4::look_at(
+                    cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
+                    cgmath::Point3::new(0.0, 0.0, 0.0),  // center
+                    cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
+                ),
+                Matrix4::from_translation( Vector3::new(0.0, 0.0, 0.0) ) * Matrix4::from_scale(1.0)
+            )
+        )
         .with_model(mx, am)
         .build();
 
-    let thing = Arc::new(thing);
+    let thing = Arc::new(Mutex::new(thing));
 
     {
         let mut world = state.get_world();

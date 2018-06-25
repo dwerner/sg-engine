@@ -46,11 +46,14 @@ pub enum DrawMode {
 }
 
 pub struct World {
-    things: Vec<Arc<thing::Thing>>
+    things: Vec<Arc<Mutex<thing::Thing>>>
 }
 impl World {
-    pub fn add_thing(&mut self, thing: Arc<thing::Thing>) {
+    pub fn add_thing(&mut self, thing: Arc<Mutex<thing::Thing>>) {
         self.things.push(thing);
+    }
+    pub fn get_things(&self) -> &Vec<Arc<Mutex<thing::Thing>>> {
+        &self.things
     }
 }
 

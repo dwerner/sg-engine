@@ -94,6 +94,7 @@ use game_state::tree::{ BreadthFirstIterator };
 use game_state::state::SceneGraph;
 use game_state::state::DrawMode;
 use game_state::model::Model;
+use game_state::thing::Thing;
 
 use image;
 
@@ -181,7 +182,10 @@ pub struct VulkanoRenderer {
     previous_frame_end: Box<GpuFuture>,
     recreate_swapchain: bool,
     dynamic_state: DynamicState,
+    camera_host: Arc<Mutex<Thing>>
 }
+
+use game_state::thing::CameraFacet;
 
 impl VulkanoRenderer {
 
@@ -297,10 +301,12 @@ impl VulkanoRenderer {
         }).collect::<Vec<_>>()
     }
 
+
     pub fn new<'a>(
         window: AMWin,
         events_loop: Arc<Mutex<winit::EventsLoop>>,
-        draw_mode: DrawMode
+        draw_mode: DrawMode,
+        camera_host: Arc<Mutex<Thing>>
     ) -> Result<Self, String>{
 
         let instance = {
@@ -497,7 +503,8 @@ impl VulkanoRenderer {
                     depth_range: 0.0 .. 1.0,
                 }]),
                 .. DynamicState::none()
-            }
+            },
+            camera_host,
         })
     }
 
@@ -584,7 +591,7 @@ impl VulkanoRenderer {
             };
 
             // upload to GPU memory
-            let mut cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
+            let cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
                 self.device.clone(),
                 self.queue.family()
             ).unwrap(); // catch oom error here
@@ -642,18 +649,32 @@ impl VulkanoRenderer {
 
                     match self.swapchain.recreate_with_dimension(dims) {
                         Ok((new_swapchain, new_images)) => {
+
                             self.swapchain = new_swapchain;
                             self.images = new_images;
+
                             self.depth_buffer = AttachmentImage::transient(
                                 self.device.clone(),
                                 dims,
                                 vulkano::format::D16Unorm
                             ).unwrap();
+
                             self.framebuffers = Self::create_framebuffers(
                                 self.renderpass.clone(),
                                 self.images.clone(),
                                 self.depth_buffer.clone()
                             );
+
+                            self.dynamic_state = DynamicState {
+                                line_width: None,
+                                viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
+                                    origin: [0.0, 0.0],
+                                    dimensions: [dims[0] as f32, dims[1] as f32],
+                                    depth_range: 0.0 .. 1.0,
+                                }]),
+                                .. DynamicState::none()
+                            };
+
                             self.recreate_swapchain = false;
                         },
                         Err(SwapchainCreationError::UnsupportedDimensions) => {
@@ -698,19 +719,15 @@ impl VulkanoRenderer {
             ]
         ).expect("unable to begin renderpass");
 
-        // Vulkan uses right-handed coordinates, y positive is down
-        let view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
-            cgmath::Point3::new(0.0, 0.0, 0.0),  // center
-            cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
-        );
+        let view = {
+            let mut m = self.camera_host.lock().unwrap();
+            let camera = m.get_camera_facet().expect("Unable to find CameraFacet for renderer");
+            camera.view.clone()
+        };
 
         let scale = cgmath::Matrix4::from_scale(1.0);
         let viewscale = view*scale;
-
-        // TODO HERE
-        let viewpoint: Option<Arc<Vector3<f32>>> = None;
-
+        
         // TODO: WIP implement a notion of a camera
         // TODO: do we want to do this every frame?
         let proj_mat = cgmath::perspective(
@@ -724,8 +741,12 @@ impl VulkanoRenderer {
         );
 
         {  // modify the data in the uniform buffer for this renderer == our camera
-            let mut write_uniform = self.uniform_buffer.write().unwrap();
-            write_uniform.proj = proj_mat.into();
+            match self.uniform_buffer.write() {
+                Ok(mut write_uniform) => {
+                    write_uniform.proj = proj_mat.into();
+                }
+                Err(err) => println!("Error writing to uniform buffer {:?}", err)
+            }
         }
 
 
@@ -943,6 +964,18 @@ impl InputSource for VulkanoRenderer {
                             let moved =
                                 InputEvent::MouseMove(self.id, new_pos.clone(), DeltaVector::from_points(&old_pos, &new_pos));
                             self.set_mouse_pos(new_pos);
+
+
+                            {
+                                let mut m = self.camera_host.lock().unwrap();
+                                let mut camera = m.get_camera_facet().unwrap();
+                                camera.view = cgmath::Matrix4::from_angle_y(
+                                    cgmath::Rad((x/1000.0) as f32)
+                                ) + cgmath::Matrix4::from_angle_x(
+                                    cgmath::Rad((y/1000.0) as f32)
+                                );
+                            }
+
                             Some(moved)
                         },
                         &winit::WindowEvent::MouseInput{device_id, state, button, modifiers} => {

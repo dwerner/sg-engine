@@ -18,6 +18,18 @@ impl Thing {
          let id = create_next_identity();
          Thing{ id, facets }
      }
+
+    // TODO: macroize this pattern?
+    pub fn get_camera_facet(&mut self) -> Option<&mut CameraFacet<f32>> {
+        if let Some(Facet::Camera(ref mut camera)) = self.facets.iter_mut().find(|i| {
+            if let Facet::Camera(ref f) = i { true } else { false }
+        }) {
+            Some(camera)
+        } else {
+            None
+        }
+    }
+
 }
 
 impl Identifyable for Thing {
@@ -142,5 +154,12 @@ pub struct PhysicalFacet<U> {
 }
 
 pub struct CameraFacet<U> {
-    pub orientation: Vector3<U>
+    pub view: Matrix4<U>,
+    pub transform: Matrix4<U>
+}
+
+impl <U> CameraFacet<U> {
+    pub fn new(view: Matrix4<U>, transform: Matrix4<U>) -> Self {
+        CameraFacet{view, transform}
+    }
 }
