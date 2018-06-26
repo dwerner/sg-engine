@@ -48,6 +48,9 @@ pub trait Identifyable {
     fn identify(&self) -> Identity;
 }
 
+use state::State;
+use thing::CameraFacet;
+
 pub trait Renderer : Identifyable + InputSource {
 
     /// load()
@@ -64,7 +67,7 @@ pub trait Renderer : Identifyable + InputSource {
 
     /// present()
     /// Actually render the image, compositing render layers in the order they were queued
-    fn present(&mut self);
+    fn present(&mut self, camera: &CameraFacet<f32>);
 
 }
 

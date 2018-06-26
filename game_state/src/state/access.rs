@@ -203,8 +203,9 @@ impl RenderAccess for State {
     }
 
     fn present_all(&mut self) {
-        for i in 0..self.render_state.renderers.len() {
-            self.render_state.renderers[i].present();
+        let camera = &self.world.get_facets().cameras[0];
+        for r in self.render_state.renderers.iter_mut() {
+            r.present(camera);
         }
     }
 }

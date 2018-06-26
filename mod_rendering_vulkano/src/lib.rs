@@ -19,7 +19,6 @@ mod renderer;
 
 use game_state::state::{
     State,
-    World,
     WorldAccess,
     RenderAccess,
     WindowAccess,
@@ -27,8 +26,11 @@ use game_state::state::{
 };
 
 use game_state::thing::{
+    World,
     Thing,
-    CameraFacet
+    CameraFacet,
+    FacetIndex,
+
 };
 
 use renderer::vulkano::{
@@ -40,24 +42,12 @@ pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
 
     let windows = state.get_windows().clone();
 
-    let camera_host = {
-        let camera_host = {
-            let mut world = state.get_world();
-            world.get_things().iter().find(|m| {
-                let mut t = m.lock().unwrap();
-                if let Some(facet) = t.get_camera_facet() { true } else { false }
-            })
-        };
-        camera_host.expect("Unable to find camera for renderer").clone()
-    };
-
     for w in windows {
         let maybe_renderer =
             VulkanoRenderer::new(
                 w.get_window().clone(),
                 w.get_event_loop().clone(),
-                DrawMode::Colored,
-                camera_host.clone() // for now we use the same Camera viewpoint for each renderer
+                DrawMode::Colored
             );
 
         match maybe_renderer {

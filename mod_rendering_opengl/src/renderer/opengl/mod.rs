@@ -17,6 +17,8 @@ use std::sync::{
 };
 
 use game_state::Identity;
+use game_state::thing::CameraFacet;
+
 use std::collections::VecDeque;
 
 pub struct OpenGLRenderer {
@@ -54,7 +56,7 @@ impl OpenGLRenderer {
         }
     }
 
-    fn render(&mut self){
+    fn render(&mut self, camera: &CameraFacet<f32>){
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
@@ -97,8 +99,8 @@ impl Renderer for OpenGLRenderer {
         self.render_layer_queue.push_back(layer);
     }
 
-    fn present(&mut self) {
-        self.render();
+    fn present(&mut self, camera: &CameraFacet<f32>) {
+        self.render(camera);
     }
 
 }

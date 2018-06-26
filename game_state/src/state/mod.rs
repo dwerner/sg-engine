@@ -36,25 +36,15 @@ pub use self::render_state::{
 
 use winit::Window;
 use std::sync::Mutex;
+
 use thing;
+use thing::World;
 
 #[allow(dead_code)]
 pub enum DrawMode {
     Wireframe,
     Points,
     Colored
-}
-
-pub struct World {
-    things: Vec<Arc<Mutex<thing::Thing>>>
-}
-impl World {
-    pub fn add_thing(&mut self, thing: Arc<Mutex<thing::Thing>>) {
-        self.things.push(thing);
-    }
-    pub fn get_things(&self) -> &Vec<Arc<Mutex<thing::Thing>>> {
-        &self.things
-    }
 }
 
 pub struct RenderState {
@@ -91,7 +81,7 @@ impl State {
     pub fn new() -> Self {
         State{
 
-            world: World{ things: Vec::new() },
+            world: World::new(),
 
             render_state: RenderState::new(),
             input_state: InputState {

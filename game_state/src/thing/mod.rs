@@ -8,118 +8,23 @@ use {
 use cgmath::Vector3;
 use cgmath::Matrix4;
 
-pub struct Thing {
-    pub id: Identity,
-    pub facets: Vec<Facet>
-}
-
-impl Thing {
-     pub fn new(facets: Vec<Facet>) -> Self {
-         let id = create_next_identity();
-         Thing{ id, facets }
-     }
-
-    // TODO: macroize this pattern?
-    pub fn get_camera_facet(&mut self) -> Option<&mut CameraFacet<f32>> {
-        if let Some(Facet::Camera(ref mut camera)) = self.facets.iter_mut().find(|i| {
-            if let Facet::Camera(ref f) = i { true } else { false }
-        }) {
-            Some(camera)
-        } else {
-            None
-        }
-    }
-
-}
-
-impl Identifyable for Thing {
-    fn identify(&self) -> u64 { self.id }
-}
-
-pub struct ThingBuilder {
-    facets: Vec<Facet>
-}
-
-impl ThingBuilder {
-
-    pub fn start() -> Self {
-        ThingBuilder { facets: Vec::new() }
-    }
-
-    pub fn build(self) -> Thing {
-        Thing::new(self.facets)
-    }
-
-    pub fn with_facet(mut self, facet: Facet) -> Self {
-        self.facets.push(facet);
-        self
-    }
-
-    pub fn with_camera(mut self, facet: CameraFacet<f32>) -> Self {
-        self.facets.push(Facet::Camera(facet));
-        self
-    }
-
-    pub fn with_physical(mut self, position: Vector3<f32>) -> Self {
-        self.facets.push(
-            Facet::Physical(
-                PhysicalFacet{
-                    body: Shape::Sphere { radius: 1.0f32 },
-                    mass: 1.0f32,
-                    linear_velocity: Vector3{ x: 0.0, y: 0.0, z: 0.0 },
-                    angular_velocity: Vector3{ x: 0.0, y: 0.0, z: 0.0 },
-                    position,
-                }
-            )
-        );
-        self
-    }
-
-    pub fn with_health(mut self, hp: u32) -> Self {
-        self.facets.push(
-            Facet::Health( HealthFacet{ hp } )
-        );
-        self
-    }
-
-    pub fn with_model(mut self, transform: Matrix4<f32>, model: Arc<model::Model>) -> Self {
-        self.facets.push(
-            Facet::Model(ModelInstanceFacet{ transform, model })
-        );
-        self
-    }
-
-    pub fn with_pathing(mut self) -> Self {
-        self.facets.push(
-            Facet::Pathing
-        );
-        self
-    }
-
-    // ...
-}
-
-use std::sync::Arc;
-
-pub enum Facet {
-    Input,   //
-    Physical(PhysicalFacet<f32>), // does it have mass?
-    Network,
-    Health(HealthFacet),  // can it be hurt? die?
-    Pathing, // finding it's way around
-    Camera(CameraFacet<f32>),
-    Dialogue, // can this entity be talked with?
-    Model(ModelInstanceFacet<f32>),
-    AI,
-    UI,
-}
+use std::sync::{
+    Arc,
+    Mutex,
+};
 
 
-pub enum Shape<U> {
-    Box { width: U, height: U, depth: U },
-    Cone { radius: U, height: U },
-    Cylinder { radius: U, height: U },
-    Sphere { radius: U },
+pub enum FacetIndex {
+    Input(usize),   //
+    Physical(usize), // does it have mass?
+    Network(usize),
+    Health(usize),  // can it be hurt? die?
+    Pathing(usize), // finding it's way around
+    Camera(usize),
+    Dialogue(usize), // can this entity be talked with?
+    Model(usize),
+    AI(usize),
+    UI(usize),
 }
 
 pub struct ModelInstanceFacet<U = f32> {
@@ -145,6 +50,13 @@ impl HealthFacet {
     fn is_alive(&self) -> bool { self.hp > 0 }
 }
 
+pub enum Shape<U> {
+    Box { width: U, height: U, depth: U },
+    Cone { radius: U, height: U },
+    Cylinder { radius: U, height: U },
+    Sphere { radius: U },
+}
+
 pub struct PhysicalFacet<U> {
     pub body: Shape<U>,
     pub mass: U,
@@ -163,3 +75,104 @@ impl <U> CameraFacet<U> {
         CameraFacet{view, transform}
     }
 }
+
+pub struct WorldFacets {
+    pub cameras: Vec<CameraFacet<f32>>,
+    pub models: Vec<ModelInstanceFacet>,
+    pub physical: Vec<PhysicalFacet<f32>>
+}
+
+impl WorldFacets {
+    pub fn new() -> Self {
+        WorldFacets{
+            cameras: Vec::new(),
+            physical: Vec::new(),
+            models: Vec::new(),
+        }
+    }
+}
+
+pub struct World {
+    things: Vec<Arc<Mutex<Thing>>>,
+    facets: WorldFacets,
+}
+
+impl World {
+
+    pub fn new() -> Self {
+        World{
+            things: Vec::new(),
+            facets: WorldFacets::new()
+        }
+    }
+
+    pub fn start_thing(&mut self) -> ThingBuilder {
+        ThingBuilder{
+            world: self,
+            facets: Vec::new()
+        }
+    }
+
+    pub fn get_things(&self) -> &Vec<Arc<Mutex<Thing>>> {
+        &self.things
+    }
+
+    pub fn get_facets(&mut self) -> &mut WorldFacets {
+        &mut self.facets
+    }
+}
+
+pub struct ThingBuilder<'a> {
+    world: &'a mut World,
+    facets: Vec<FacetIndex>,
+}
+
+impl <'a> ThingBuilder <'a> {
+
+    pub fn with_camera(mut self, camera: CameraFacet<f32>) -> Self {
+        let idx = self.world.facets.cameras.len();
+        self.world.facets.cameras.push(camera);
+        self.facets.push(FacetIndex::Camera(idx));
+        self
+    }
+
+    pub fn with_model(mut self, transform: Matrix4<f32>, model: Arc<model::Model>) -> Self {
+        let idx = self.world.facets.models.len();
+        self.world.facets.models.push(ModelInstanceFacet{ transform, model });
+        self.facets.push(FacetIndex::Camera(idx));
+        self
+    }
+
+    pub fn build(self) -> Arc<Mutex<Thing>> {
+        let thing = Thing::new(self.facets);
+        let a = Arc::new(Mutex::new(thing));
+        self.world.things.push(a.clone());
+        a
+    }
+
+}
+
+pub struct Thing {
+    pub id: Identity,
+    pub facets: Vec<FacetIndex>
+}
+
+impl Thing {
+
+    pub fn new(facets: Vec<FacetIndex>) -> Self {
+        let id = create_next_identity();
+        Thing{ id, facets }
+    }
+
+    pub fn get_camera_fi(&mut self) -> Option<&FacetIndex> {
+        self.facets.iter().find(|i| {
+            if let FacetIndex::Camera(_) = i { true } else { false }
+        })
+    }
+
+}
+
+impl Identifyable for Thing {
+    fn identify(&self) -> u64 { self.id }
+}
+

@@ -41,26 +41,22 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     state.add_model(am.clone());
     state.add_model(Arc::new(thing2));
 
-    // build the actual entity
-    let thing = ThingBuilder::start()
-        .with_camera(
-            CameraFacet::new(
-                cgmath::Matrix4::look_at(
-                    cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
-                    cgmath::Point3::new(0.0, 0.0, 0.0),  // center
-                    cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
-                ),
-                Matrix4::from_translation( Vector3::new(0.0, 0.0, 0.0) ) * Matrix4::from_scale(1.0)
-            )
-        )
-        .with_model(mx, am)
-        .build();
-
-    let thing = Arc::new(Mutex::new(thing));
-
     {
         let mut world = state.get_world();
-        world.add_thing(thing.clone());
+        // build the actual entity
+        let thing = world.start_thing()
+            .with_camera(
+                CameraFacet::new(
+                    cgmath::Matrix4::look_at(
+                        cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
+                        cgmath::Point3::new(0.0, 0.0, 0.0),  // center
+                        cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
+                    ),
+                    Matrix4::from_translation( Vector3::new(0.0, 0.0, 0.0) ) * Matrix4::from_scale(1.0)
+                )
+            )
+            .with_model(mx, am)
+            .build(); 
     }
 
     // previously we just agreed on an index, but is there a better way to relate 

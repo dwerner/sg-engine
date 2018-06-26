@@ -95,6 +95,7 @@ use game_state::state::SceneGraph;
 use game_state::state::DrawMode;
 use game_state::model::Model;
 use game_state::thing::Thing;
+use game_state::thing::CameraFacet;
 
 use image;
 
@@ -182,10 +183,7 @@ pub struct VulkanoRenderer {
     previous_frame_end: Box<GpuFuture>,
     recreate_swapchain: bool,
     dynamic_state: DynamicState,
-    camera_host: Arc<Mutex<Thing>>
 }
-
-use game_state::thing::CameraFacet;
 
 impl VulkanoRenderer {
 
@@ -305,8 +303,7 @@ impl VulkanoRenderer {
     pub fn new<'a>(
         window: AMWin,
         events_loop: Arc<Mutex<winit::EventsLoop>>,
-        draw_mode: DrawMode,
-        camera_host: Arc<Mutex<Thing>>
+        draw_mode: DrawMode
     ) -> Result<Self, String>{
 
         let instance = {
@@ -504,7 +501,6 @@ impl VulkanoRenderer {
                 }]),
                 .. DynamicState::none()
             },
-            camera_host,
         })
     }
 
@@ -630,7 +626,7 @@ impl VulkanoRenderer {
         self.recreate_swapchain = true;
     }
 
-    fn render(&mut self) {
+    fn render(&mut self, camera: &CameraFacet<f32>) {
         &mut self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
@@ -720,8 +716,6 @@ impl VulkanoRenderer {
         ).expect("unable to begin renderpass");
 
         let view = {
-            let mut m = self.camera_host.lock().unwrap();
-            let camera = m.get_camera_facet().expect("Unable to find CameraFacet for renderer");
             camera.view.clone()
         };
 
@@ -901,8 +895,8 @@ impl Renderer for VulkanoRenderer {
         self.render_layer_queue.push_back(layer);
     }
 
-    fn present(&mut self) {
-        self.render();
+    fn present(&mut self, camera: &CameraFacet<f32>) {
+        self.render(camera);
     }
 }
 
@@ -964,21 +958,6 @@ impl InputSource for VulkanoRenderer {
                             let moved =
                                 InputEvent::MouseMove(self.id, new_pos.clone(), DeltaVector::from_points(&old_pos, &new_pos));
                             self.set_mouse_pos(new_pos);
-
-
-                            {
-                                let mut m = self.camera_host.lock().unwrap();
-                                let mut camera = m.get_camera_facet().unwrap();
-
-                                // TODO: this is still quite fucky, and it's not clear that
-                                // input processing should happen here
-                                camera.view = cgmath::Matrix4::from_angle_y(
-                                    cgmath::Rad((x/100.0) as f32)
-                                ) + cgmath::Matrix4::from_angle_x(
-                                    cgmath::Rad((y/100.0) as f32)
-                                );
-                            }
-
                             Some(moved)
                         },
                         &winit::WindowEvent::MouseInput{device_id, state, button, modifiers} => {
