@@ -15,16 +15,15 @@ use std::sync::{
 
 
 pub enum FacetIndex {
-    Input(usize),   //
     Physical(usize), // does it have mass?
-    Network(usize),
     Health(usize),  // can it be hurt? die?
-    Pathing(usize), // finding it's way around
     Camera(usize),
-    Dialogue(usize), // can this entity be talked with?
     Model(usize),
-    AI(usize),
-    UI(usize),
+    // Input(usize),
+    // Network(usize),
+    // Pathing(usize), // finding it's way around
+    // Dialogue(usize), // can this entity be talked with?
+    // AI(usize),
 }
 
 pub struct ModelInstanceFacet<U = f32> {
@@ -76,10 +75,16 @@ impl <U> CameraFacet<U> {
     }
 }
 
+// TODO implement the rest of the facets
+// the main idea here is to construct contiguous areas in memory for different facets
+// this is a premature optimization for the Thing/Facet system in general to avoid losing cache
+// coherency whilst traversing a series of objects. Probably we want to integrate concurrency
+// safety here.
 pub struct WorldFacets {
     pub cameras: Vec<CameraFacet<f32>>,
     pub models: Vec<ModelInstanceFacet>,
-    pub physical: Vec<PhysicalFacet<f32>>
+    pub physical: Vec<PhysicalFacet<f32>>,
+    pub health: Vec<HealthFacet>,
 }
 
 impl WorldFacets {
@@ -88,6 +93,7 @@ impl WorldFacets {
             cameras: Vec::new(),
             physical: Vec::new(),
             models: Vec::new(),
+            health: Vec::new(),
         }
     }
 }
@@ -154,7 +160,7 @@ impl <'a> ThingBuilder <'a> {
 
 pub struct Thing {
     pub id: Identity,
-    pub facets: Vec<FacetIndex>
+    pub facets: Vec<FacetIndex>, // index pointers to WorldFacets' specific fields
 }
 
 impl Thing {

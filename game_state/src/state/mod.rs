@@ -30,7 +30,10 @@ pub use self::access::{
 
 mod render_state;
 pub use self::render_state::{
+    DrawMode,
     SceneGraph,
+    RenderState,
+    WindowWithEvents,
 };
 
 
@@ -40,36 +43,12 @@ use std::sync::Mutex;
 use thing;
 use thing::World;
 
-#[allow(dead_code)]
-pub enum DrawMode {
-    Wireframe,
-    Points,
-    Colored
-}
-
-pub struct RenderState {
-    models: Vec<Arc<Model>>,
-    windows: Vec<WindowWithEvents>,
-    window_builders: Vec<WindowBuilder>,
-    renderers: Vec<Box<Renderer>>,
-    render_layers: Vec<Arc<SceneGraph>>,
-}
-impl RenderState {
-    pub fn new() -> Self {
-        RenderState{
-            models: Vec::new(),
-            windows: Vec::new(),
-            window_builders: Vec::new(), // glutin requires a builder
-            renderers: Vec::new(),
-            render_layers: Vec::new()
-        }
-    }
-}
 
 ///
 /// This is the central, and global, state passed to each mod during the main loop
 ///
 use super::model::Model;
+
 pub struct State {
     world: World,
     render_state: RenderState,
@@ -90,25 +69,5 @@ impl State {
             },
             ui_state: UIState::new(),
         }
-    }
-}
-
-#[derive(Clone)]
-pub struct WindowWithEvents {
-    window: Arc<Window>,
-    event_loop: Arc<Mutex<EventsLoop>>
-}
-
-impl WindowWithEvents {
-    pub fn new( window: Arc<Window>, event_loop: Arc<Mutex<EventsLoop>> ) -> Self {
-        WindowWithEvents { window, event_loop }
-    }
-
-    pub fn get_window(&self) -> &Arc<Window> {
-        &self.window
-    }
-
-    pub fn get_event_loop(&self) -> &Arc<Mutex<EventsLoop>> {
-        &self.event_loop
     }
 }
