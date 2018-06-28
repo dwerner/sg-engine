@@ -34,16 +34,19 @@ impl InputSource for VulkanoRenderer {
 
         for e in events {
 
-
-            #[allow(dead_code)]
-                match e {
+            match e {
                 winit::Event::DeviceEvent{device_id, ref event} => {
                     match event {
-                        &winit::DeviceEvent::Added => {},
-                        &winit::DeviceEvent::Removed => {},
-                        &winit::DeviceEvent::MouseMotion { delta } => {},
+                        &winit::DeviceEvent::Added => {
+                            println!("device added");
+                        },
+                        &winit::DeviceEvent::Removed => {
+                            println!("device removed")
+                        },
+                        &winit::DeviceEvent::MouseMotion { delta } => { },
                         &winit::DeviceEvent::MouseWheel {delta} => {},
-                        &winit::DeviceEvent::Motion { axis, value } => {},
+                        &winit::DeviceEvent::Motion { axis, value } => {
+                        },
                         &winit::DeviceEvent::Button { button, state } => {},
                         &winit::DeviceEvent::Key(input) => {},
                         &winit::DeviceEvent::Text{codepoint} => {}
@@ -55,13 +58,12 @@ impl InputSource for VulkanoRenderer {
                         &winit::WindowEvent::KeyboardInput{device_id, input} => {
                             let e = match input.state {
                                 winit::ElementState::Pressed => InputEvent::KeyDown(self.id, input.scancode),
-                                winit::ElementState::Released => InputEvent::KeyDown(self.id, input.scancode)
+                                winit::ElementState::Released => InputEvent::KeyUp(self.id, input.scancode)
                             };
                             Some(e)
                         }
 
                         // Mouse Events
-
                         &winit::WindowEvent::CursorMoved{device_id, position, modifiers} => {
                             let (x,y) = position;
                             let old_pos: ScreenPoint = self.get_mouse_pos().clone();

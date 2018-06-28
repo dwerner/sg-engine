@@ -34,6 +34,26 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
         let events = state.get_input_events().clone();
         for e in events {
             match e {
+                InputEvent::KeyUp(_id, keycode) => {
+                    let q = 'q' as u32;
+                    let kc = keycode as u8;
+                    println!("user released {}", kc);
+                    match kc as char {
+                        _ => {}
+                    }
+                },
+                InputEvent::KeyDown(_id, keycode) => {
+                    let q = 'q' as u32;
+                    let kc = keycode as u8;
+                    println!("user pressed {}", kc);
+                    match keycode {
+                        16 => {
+                            println!("user pressed 'q' : hard exit");
+                            std::process::exit(0);
+                        }
+                        _ => {}
+                    }
+                },
                 InputEvent::MouseMove(_id, sp, _) => {
                     
                     let (x,y) = (sp.x as f32, sp.y as f32);
