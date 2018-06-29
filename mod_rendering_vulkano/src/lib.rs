@@ -11,26 +11,13 @@ extern crate image;
 use game_state::time::Duration;
 use game_state::state::ModelAccess;
 
-use std::sync::{
-    Arc,
-};
-
 mod renderer;
 
 use game_state::state::{
     State,
-    WorldAccess,
     RenderAccess,
     WindowAccess,
     DrawMode,
-};
-
-use game_state::thing::{
-    World,
-    Thing,
-    CameraFacet,
-    FacetIndex,
-
 };
 
 use renderer::vulkano::{

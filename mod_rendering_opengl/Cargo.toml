@@ -12,7 +12,7 @@ name = "mod_rendering_opengl"
 crate-type=["dylib"]
 
 [dependencies]
-glutin = "0.13"
+glutin = "0.17"
 gl = "0.10"
 cgmath = "0.16"
 image = "0.17" #0.18 seems to fail to compile now...

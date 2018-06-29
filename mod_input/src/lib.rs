@@ -54,7 +54,7 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
                         _ => {}
                     }
                 },
-                InputEvent::MouseMove(_id, sp, _) => {
+                InputEvent::MouseMove(_id, sp, delta) => {
                     
                     let (x,y) = (sp.x as f32, sp.y as f32);
                     let mut camera = &mut state.get_world().get_facets().cameras[0];

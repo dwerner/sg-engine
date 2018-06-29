@@ -37,7 +37,8 @@ pub enum InputEvent {
     JoystickButtonUp(Identity, Device, JoystickButton),
 */
 
-    Closed(Identity),
+    CloseRequested(Identity),
+    Destroyed(Identity),
     Resized(Identity, ScreenRect),
     GainedFocus(Identity),
     LostFocus(Identity),

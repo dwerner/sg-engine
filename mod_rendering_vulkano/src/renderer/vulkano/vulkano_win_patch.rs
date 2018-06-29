@@ -7,7 +7,6 @@ use vulkano::swapchain::SurfaceCreationError;
 
 use std::sync::{
     Arc,
-    Mutex
 };
 
 use std::ptr;

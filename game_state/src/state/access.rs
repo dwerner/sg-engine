@@ -26,6 +26,7 @@ use super::Model;
 use winit::Window;
 use winit::EventsLoop;
 use winit::WindowBuilder;
+use winit::dpi::LogicalSize;
 
 pub trait WorldAccess {
     fn get_world(&mut self) -> &mut World;
@@ -41,7 +42,7 @@ pub trait WindowAccess {
     fn get_windows(&mut self) -> &Vec<WindowWithEvents>;
 
     // glium uses a builder rather than a winit::Window... :P
-    fn add_window_builder(&mut self, w: u32, h: u32, title: String);
+    fn add_window_builder(&mut self, w: f64, h: f64, title: String);
     fn get_window_builders(&self) -> &Vec<WindowBuilder>;
 }
 
@@ -110,7 +111,7 @@ impl WindowAccess for State {
         let window: Window  = {
             let maybe_window = WindowBuilder::new();
             let maybe_window = maybe_window.with_title(title);
-            let maybe_window = maybe_window.with_dimensions(w,h);
+            let maybe_window = maybe_window.with_dimensions(LogicalSize::new(w as f64, h as f64));
             maybe_window.build(&events_loop.lock().unwrap())
         }.expect("unable to create window");
 
@@ -126,10 +127,10 @@ impl WindowAccess for State {
         &self.render_state.windows
     }
 
-    fn add_window_builder(&mut self, w: u32, h: u32, title: String) {
+    fn add_window_builder(&mut self, w: f64, h: f64, title: String) {
         let maybe_window = WindowBuilder::new();
         let maybe_window = maybe_window.with_title(title);
-        let w = maybe_window.with_dimensions(w,h);
+        let w = maybe_window.with_dimensions(LogicalSize::new(w,h));
         self.render_state.window_builders.push( w );
     }
 
