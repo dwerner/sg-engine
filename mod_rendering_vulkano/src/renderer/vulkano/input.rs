@@ -17,7 +17,34 @@ use game_state::input::InputSource;
 
 // TODO: probably extract this to game_state
 
+impl VulkanoRenderer {
+    fn toggle_fullscreen(&mut self) {
+        let is_fullscreen = !self.fullscreen;
+        println!("toggle_fullscreen {} -> {}", self.fullscreen, is_fullscreen);
+        if is_fullscreen {
+            let current = self.window.get_current_monitor();
+            println!("current monitor {:?}", current);
+            self.window.set_fullscreen( Some(current) );
+        } else {
+            self.window.set_fullscreen(None);
+        }
+        self.fullscreen = is_fullscreen;
+        self.window.hide_cursor(is_fullscreen);
+        self.cursor_hidden = is_fullscreen;
+        match self.window.grab_cursor(is_fullscreen) {
+            Ok(_) => {
+                println!("{}", if is_fullscreen {"grabbed cursor"} else {"released cursor"});
+                self.cursor_grabbed = is_fullscreen;
+            },
+            Err(e) => println!("unable to grab or release cursor {:?}", e)
+        }
+
+    }
+
+}
+
 impl InputSource for VulkanoRenderer {
+
     fn get_input_events(&mut self) -> VecDeque<InputEvent> {
 
         //println!("get_input_events");
@@ -67,34 +94,7 @@ impl InputSource for VulkanoRenderer {
                                 let c = *scan as u8;
                                 match c {
                                     33 => {
-                                        self.fullscreen = !self.fullscreen;
-                                        if self.fullscreen {
-                                            println!("going into fullscreen");
-                                            self.window.set_fullscreen(Some(self.window.get_current_monitor()));
-                                            self.fullscreen = true;
-                                            self.window.hide_cursor(true);
-                                            self.cursor_hidden = true;
-                                            match self.window.grab_cursor(true) {
-                                               Ok(_) => {
-                                                   println!("grabbed cursor");
-                                                   self.cursor_grabbed = true;
-                                               },
-                                               Err(e) => println!("unable to grab cursor {:?}", e)
-                                            }
-                                        } else {
-                                            println!("leaving fullscreen");
-                                            self.window.set_fullscreen(None);
-                                            self.fullscreen = false;
-                                            self.window.hide_cursor(false);
-                                            self.cursor_hidden = false;
-                                            match self.window.grab_cursor(false) {
-                                                Ok(_) => {
-                                                    println!("grabbed cursor");
-                                                    self.cursor_grabbed = false;
-                                                },
-                                                Err(e) => println!("unable to grab cursor {:?}", e)
-                                            }
-                                        }
+                                        self.toggle_fullscreen();
                                     }
                                     _ => {}
                                 }
