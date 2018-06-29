@@ -19,9 +19,9 @@ use game_state::input::InputSource;
 
 impl VulkanoRenderer {
 
+    /// Within the renderer itself we want to listen for input events
+    /// directly, so we read what's been copied
     fn handle_event(&mut self, e: &InputEvent) {
-        // within the renderer itself we want to listen for input events
-        // directly, so we read what's been copied
 
         match e {
             &InputEvent::KeyDown(ref id, ref scan) =>{
@@ -42,33 +42,27 @@ impl VulkanoRenderer {
         }
     }
 
+    // TODO: Doesn't always work in windowed mode. Just ncrease the padding for wrapping in windowed mode?
+    // TODO: add threshold param
     fn wrap_cursor(&mut self, pos: &ScreenPoint) {
         if let Some(winit::dpi::LogicalSize{width, height}) = self.window.get_inner_size() {
             if pos.x > (width as i32) - 2 {
-                println!("wrapping h");
-                println!("{:?}", pos);
                 match self.window.set_cursor_position(winit::dpi::LogicalPosition::new(3.0, pos.y as f64)) {
                     Ok(_) => {}
                     Err(e) => println!("unable to set cursor position to {},{}", 3.0, pos.y)
                 }
             } else if pos.x < 2 {
-                println!("wrapping h");
-                println!("{:?}", pos);
                 match self.window.set_cursor_position(winit::dpi::LogicalPosition::new(width - 3.0, pos.y as f64)) {
                     Ok(_) => {}
                     Err(e) => println!("unable to set cursor position to {},{}", width - 3.0, pos.y as f64)
                 }
             }
             if pos.y > (height as i32) - 2 {
-                println!("wrapping v");
-                println!("{:?}", pos);
                 match self.window.set_cursor_position(winit::dpi::LogicalPosition::new(pos.x as f64, 3.0)) {
                     Ok(_) => {}
                     Err(e) => println!("unable to set cursor position to {},{}", pos.x as f64, 3.0)
                 }
             } else if pos.y < 2 {
-                println!("wrapping v");
-                println!("{:?}", pos);
                 match self.window.set_cursor_position(winit::dpi::LogicalPosition::new(pos.x as f64, height - 3.0)) {
                     Ok(_) => {}
                     Err(e) => println!("unable to set cursor position to {},{}", pos.x as f64, height - 3.0)
@@ -94,13 +88,11 @@ impl VulkanoRenderer {
         }
     }
 
+    // WIN32 WARNING grabbing the cursor and hiding it MUST be done before the set_fullscreen call
+    // due to a deadlock in the win32 implementation - https://github.com/tomaka/winit/issues/574
     fn toggle_fullscreen(&mut self) {
         let is_fullscreen = !self.fullscreen;
         println!("toggle_fullscreen {} -> {}", self.fullscreen, is_fullscreen);
-        // WIN32 WARNING grabbing the cursor and hiding it MUST be done before the set_fullscreen call
-        // due to a deadlock in the win32 implementation
-        // https://github.com/tomaka/winit/issues/574
-
         if is_fullscreen {
             let current = self.window.get_current_monitor();
             println!("current monitor {:?}", current);

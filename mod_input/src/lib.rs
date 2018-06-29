@@ -43,9 +43,10 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
                     }
                 },
                 InputEvent::KeyDown(_id, keycode) => {
+
                     let q = 'q' as u32;
                     let kc = keycode as u8;
-                    println!("user pressed {}", kc);
+                    println!("user pressed {} {}", kc, q);
                     match keycode {
                         16 => {
                             println!("user pressed 'q' : hard exit");
@@ -54,15 +55,15 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
                         _ => {}
                     }
                 },
-                InputEvent::MouseMove(_id, sp, delta) => {
-                    
-                    let (x,y) = (sp.x as f32, sp.y as f32);
+                InputEvent::MouseMove(_id, _sp, delta) => {
+                    let sensitivity = 100.0;
+                    let (dx,dy) = (delta.delta_x as f32, delta.delta_y as f32);
                     let mut camera = &mut state.get_world().get_facets().cameras[0];
-                    camera.view = cgmath::Matrix4::from_angle_y(
-                        cgmath::Rad((x/100.0) as f32)
-                    ) + cgmath::Matrix4::from_angle_x(
-                        cgmath::Rad((y/100.0) as f32)
-                    );
+                    let xa = cgmath::Rad(-dx/sensitivity);
+                    let ya = cgmath::Rad(-dy/sensitivity);
+                    let from = camera.view;
+                    camera.view = from * cgmath::Matrix4::from_angle_x(ya) * cgmath::Matrix4::from_angle_y(xa);
+
                 },
                 _ => {}
             }
