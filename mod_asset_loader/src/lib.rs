@@ -30,7 +30,7 @@ use cgmath::Vector3;
 pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     assert!(state.get_render_layers().len() == 0);
 
-    let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0)) * Matrix4::from_scale(1.5);
+    let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0)) * Matrix4::from_scale(1.0);
 
     // Conceptually here, we are loading one model, but we might instance it from many entities
     let model = Model::create("assets/models/pship.obj", mx);
@@ -48,8 +48,8 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
             .with_camera(
                 CameraFacet::new(
                     cgmath::Matrix4::look_at(
-                        cgmath::Point3::new(0.0, 0.0, -20.0),   // eye
-                        cgmath::Point3::new(0.0, 0.0, 0.0),  // center
+                        cgmath::Point3::new(0.0, 0.0, 0.0),   // eye
+                        cgmath::Point3::new(0.0, 0.0, 1.0),  // center
                         cgmath::Vector3::new(0.0, -1.0, 0.0)  // up
                     ),
                     Matrix4::from_translation( Vector3::new(0.0, 0.0, 0.0) ) * Matrix4::from_scale(1.0)

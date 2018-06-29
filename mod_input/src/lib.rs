@@ -59,7 +59,7 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
                     let sensitivity = 100.0;
                     let (dx,dy) = (delta.delta_x as f32, delta.delta_y as f32);
                     let mut camera = &mut state.get_world().get_facets().cameras[0];
-                    let xa = cgmath::Rad(-dx/sensitivity);
+                    let xa = cgmath::Rad(dx/sensitivity);
                     let ya = cgmath::Rad(-dy/sensitivity);
                     let from = camera.view;
                     camera.view = from * cgmath::Matrix4::from_angle_x(ya) * cgmath::Matrix4::from_angle_y(xa);
