@@ -179,6 +179,7 @@ pub struct VulkanoRenderer {
     fullscreen: bool,
     cursor_grabbed: bool,
     cursor_hidden: bool,
+    cursor_wrapped: bool
 }
 
 impl VulkanoRenderer {
@@ -488,6 +489,7 @@ impl VulkanoRenderer {
             fullscreen: false,
             cursor_grabbed: false,
             cursor_hidden: false,
+            cursor_wrapped: false,
 
             // TODO: should DynamicState be reset when the swapchain is rebuilt as well?
             dynamic_state: DynamicState {
