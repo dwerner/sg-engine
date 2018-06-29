@@ -68,7 +68,6 @@ impl InputSource for VulkanoRenderer {
                                 match c {
                                     33 => {
                                         self.fullscreen = !self.fullscreen;
-                                        // TODO: monitor parameter
                                         if self.fullscreen {
                                             println!("going into fullscreen");
                                             self.window.set_fullscreen(Some(self.window.get_current_monitor()));
