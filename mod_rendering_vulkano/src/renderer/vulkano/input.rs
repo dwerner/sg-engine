@@ -71,24 +71,31 @@ impl InputSource for VulkanoRenderer {
                                         // TODO: monitor parameter
                                         if self.fullscreen {
                                             println!("going into fullscreen");
-                                            self.window.set_fullscreen(None);
+                                            self.window.set_fullscreen(Some(self.window.get_current_monitor()));
+                                            self.fullscreen = true;
                                             self.window.hide_cursor(true);
+                                            self.cursor_hidden = true;
                                             match self.window.grab_cursor(true) {
-                                               Ok(_) => println!("grabbed cursor"),
+                                               Ok(_) => {
+                                                   println!("grabbed cursor");
+                                                   self.cursor_grabbed = true;
+                                               },
                                                Err(e) => println!("unable to grab cursor {:?}", e)
                                             }
                                         } else {
                                             println!("leaving fullscreen");
                                             self.window.set_fullscreen(None);
+                                            self.fullscreen = false;
                                             self.window.hide_cursor(false);
+                                            self.cursor_hidden = false;
                                             match self.window.grab_cursor(false) {
-                                                Ok(_) => println!("grabbed cursor"),
+                                                Ok(_) => {
+                                                    println!("grabbed cursor");
+                                                    self.cursor_grabbed = false;
+                                                },
                                                 Err(e) => println!("unable to grab cursor {:?}", e)
                                             }
                                         }
-
-                                        //self.window.hide_cursor(self.fullscreen);
-
                                     }
                                     _ => {}
                                 }

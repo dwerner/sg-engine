@@ -175,8 +175,9 @@ pub struct VulkanoRenderer {
     previous_frame_end: Box<GpuFuture>,
     recreate_swapchain: bool,
     dynamic_state: DynamicState,
+
     fullscreen: bool,
-    grabbing_cursor: bool,
+    cursor_grabbed: bool,
     cursor_hidden: bool,
 }
 
@@ -483,8 +484,9 @@ impl VulkanoRenderer {
             fps: fps::FPS::new(),
             current_mouse_pos: ScreenPoint::new(0, 0),
             rect: ScreenRect::new(x as i32, y as i32, width as i32, height as i32),
+
             fullscreen: false,
-            grabbing_cursor: false,
+            cursor_grabbed: false,
             cursor_hidden: false,
 
             // TODO: should DynamicState be reset when the swapchain is rebuilt as well?
