@@ -67,7 +67,7 @@ pub trait Renderer : Identifyable + InputSource {
 
     /// present()
     /// Actually render the image, compositing render layers in the order they were queued
-    fn present(&mut self, camera: &CameraFacet<f32>);
+    fn present(&mut self, camera: &CameraFacet);
 
 }
 

@@ -56,7 +56,7 @@ impl OpenGLRenderer {
         }
     }
 
-    fn render(&mut self, camera: &CameraFacet<f32>){
+    fn render(&mut self, camera: &CameraFacet){
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
@@ -99,7 +99,7 @@ impl Renderer for OpenGLRenderer {
         self.render_layer_queue.push_back(layer);
     }
 
-    fn present(&mut self, camera: &CameraFacet<f32>) {
+    fn present(&mut self, camera: &CameraFacet) {
         self.render(camera);
     }
 

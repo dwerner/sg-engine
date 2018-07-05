@@ -5,8 +5,16 @@ use {
     model,
 };
 
-use cgmath::Vector3;
-use cgmath::Matrix4;
+use cgmath::{
+    Vector3,
+    Point3,
+    Matrix4,
+    PerspectiveFov,
+    Rad,
+    SquareMatrix,
+    InnerSpace,
+};
+
 
 use std::sync::{
     Arc,
@@ -49,30 +57,127 @@ impl HealthFacet {
     fn is_alive(&self) -> bool { self.hp > 0 }
 }
 
-pub enum Shape<U> {
-    Box { width: U, height: U, depth: U },
-    Cone { radius: U, height: U },
-    Cylinder { radius: U, height: U },
-    Sphere { radius: U },
+pub enum Shape {
+    Box { width: f32, height: f32, depth: f32 },
+    Cone { radius: f32, height: f32 },
+    Cylinder { radius: f32, height: f32 },
+    Sphere { radius: f32 },
 }
 
-pub struct PhysicalFacet<U> {
-    pub body: Shape<U>,
-    pub mass: U,
-    pub linear_velocity: Vector3<U>,
-    pub angular_velocity: Vector3<U>, // is this sufficient for angular velocity? durrrrr
-    pub position: Vector3<U>,
+pub struct PhysicalFacet {
+    pub body: Shape,
+    pub mass: f32,
+    pub linear_velocity: Vector3<f32>,
+    pub angular_velocity: Vector3<f32>, // is this sufficient for angular velocity? durrrrr
+    pub position: Vector3<f32>,
 }
 
-pub struct CameraFacet<U> {
-    pub view: Matrix4<U>,
-    pub transform: Matrix4<U>
+pub struct CameraFacet {
+    pub pos: Vector3<f32>,
+    pub rotation: Vector3<f32>,
+
+    dirty: bool,
+    pub rotation_speed: f32,
+    pub movement_speed: f32,
+
+    pub view: Matrix4<f32>,
+    pub perspective: PerspectiveFov<f32>
 }
 
-impl <U> CameraFacet<U> {
-    pub fn new(view: Matrix4<U>, transform: Matrix4<U>) -> Self {
-        CameraFacet{view, transform}
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+    Forward,
+    Backward
+}
+
+impl CameraFacet {
+
+    pub fn new(pos: Vector3<f32>, rotation: Vector3<f32>) -> Self {
+        let mut c = CameraFacet{
+            pos,
+            rotation,
+            rotation_speed : 1.0,
+            movement_speed : 1.0,
+            dirty : false,
+            view: Matrix4::<f32>::identity(),
+
+            // TODO fix default perspective values
+            perspective: PerspectiveFov{ fovy: Rad(0.75), aspect: 1.7, near: 0.0, far: 100.0 }
+        };
+        c.update_view_matrix();
+        c
     }
+
+    pub fn set_perspective(&mut self, fov: f32, aspect: f32, near: f32, far: f32) {
+        self.perspective = PerspectiveFov{ fovy: Rad(fov), aspect, near, far };
+    }
+
+    pub fn update_aspect_ratio(&mut self, aspect: f32) {
+        let PerspectiveFov{ fovy, aspect: _aspect, near, far} = self.perspective;
+        self.perspective = PerspectiveFov{ fovy, aspect, near, far };
+    }
+
+    pub fn set_pos(&mut self, pos: Vector3<f32>) {
+        self.pos = pos;
+        self.update_view_matrix();
+    }
+
+    pub fn rotate(&mut self, delta: Vector3<f32>) {
+        self.rotation += delta;
+        self.update_view_matrix();
+    }
+
+    pub fn translate(&mut self, delta: Vector3<f32>) {
+        self.pos += delta;
+        self.update_view_matrix();
+    }
+
+    pub fn set_rotation(&mut self, rotation: Vector3<f32>) {
+        self.rotation = rotation;
+        self.update_view_matrix();
+    }
+
+    pub fn move_in_dir(&mut self, dir: Direction, amount: f32) {
+        {
+            let r = &self.rotation;
+            let cam_front = Vector3::new(
+                -r.x.cos() * r.y.sin(),
+                r.x.sin(),
+                r.x.cos() * r.y.cos()
+            ).normalize();
+
+            let v = Vector3::new(0.0, 1.0, 0.0);
+            match dir {
+                Up => {},
+                Down => {},
+
+                Left => { self.pos -= cam_front.cross(v).normalize() * self.movement_speed; },
+                Right => { self.pos += cam_front.cross(v).normalize() * self.movement_speed; },
+
+                Backward => { self.pos -= cam_front * self.movement_speed; }
+                Forward => { self.pos += cam_front * self.movement_speed; },
+            }
+        }
+
+        self.update_view_matrix();
+    }
+
+    fn update_view_matrix(&mut self) {
+
+        let rot = Matrix4::from_angle_x(Rad(self.rotation.x)) *
+                  Matrix4::from_angle_y(Rad(self.rotation.y)) *
+                  Matrix4::from_angle_z(Rad(self.rotation.z));
+
+        let trans = Matrix4::from_translation(self.pos);
+
+        self.view = rot * trans;
+
+        self.dirty = true;
+    }
+
 }
 
 // TODO implement the rest of the facets
@@ -81,9 +186,9 @@ impl <U> CameraFacet<U> {
 // coherency whilst traversing a series of objects. Probably we want to integrate concurrency
 // safety here.
 pub struct WorldFacets {
-    pub cameras: Vec<CameraFacet<f32>>,
+    pub cameras: Vec<CameraFacet>,
     pub models: Vec<ModelInstanceFacet>,
-    pub physical: Vec<PhysicalFacet<f32>>,
+    pub physical: Vec<PhysicalFacet>,
     pub health: Vec<HealthFacet>,
 }
 
@@ -135,7 +240,7 @@ pub struct ThingBuilder<'a> {
 
 impl <'a> ThingBuilder <'a> {
 
-    pub fn with_camera(mut self, camera: CameraFacet<f32>) -> Self {
+    pub fn with_camera(mut self, camera: CameraFacet) -> Self {
         let idx = self.world.facets.cameras.len();
         self.world.facets.cameras.push(camera);
         self.facets.push(FacetIndex::Camera(idx));

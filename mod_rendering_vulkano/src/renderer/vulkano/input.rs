@@ -124,19 +124,22 @@ impl InputSource for VulkanoRenderer {
         for e in events {
 
             match e {
+                // TODO: examine if we should be using DeviceEvent as our input rather than WindowEvent
+                // this would prevent the need to wrap the cursor when grabbed
                 winit::Event::DeviceEvent{device_id, ref event} => {
                     match event {
                         &winit::DeviceEvent::Added => {
-                            println!("device added");
+                            println!("device added {:?} {:?}", device_id, event);
                         },
                         &winit::DeviceEvent::Removed => {
-                            println!("device removed")
+                            println!("device removed {:?} {:?}", device_id, event);
                         },
                         &winit::DeviceEvent::MouseMotion { delta } => { },
                         &winit::DeviceEvent::MouseWheel {delta} => {},
                         &winit::DeviceEvent::Motion { axis, value } => {
                         },
-                        &winit::DeviceEvent::Button { button, state } => {},
+                        &winit::DeviceEvent::Button { button, state } => {
+                        },
                         &winit::DeviceEvent::Key(input) => {},
                         &winit::DeviceEvent::Text{codepoint} => {}
                     }

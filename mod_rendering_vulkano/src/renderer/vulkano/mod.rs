@@ -626,7 +626,7 @@ impl VulkanoRenderer {
         self.recreate_swapchain = true;
     }
 
-    fn render(&mut self, camera: &CameraFacet<f32>) {
+    fn render(&mut self, camera: &CameraFacet) {
         &mut self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
@@ -871,7 +871,7 @@ impl Renderer for VulkanoRenderer {
         self.render_layer_queue.push_back(layer);
     }
 
-    fn present(&mut self, camera: &CameraFacet<f32>) {
+    fn present(&mut self, camera: &CameraFacet) {
         self.render(camera);
     }
 }
