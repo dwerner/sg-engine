@@ -46,7 +46,7 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
             .with_camera(
                 CameraFacet::new(
                     cgmath::Vector3::new(0.0, 0.0, 0.0),   // pos
-                    cgmath::Vector3::new(0.0, -1.0, 0.0)  // rotation
+                    cgmath::Vector3::new(0.0, 1.0, 0.0)  // rotation
                 )
             )
             .with_model(mx, am)

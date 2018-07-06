@@ -13,6 +13,7 @@ use cgmath::{
     Rad,
     SquareMatrix,
     InnerSpace,
+    Angle,
 };
 
 
@@ -21,6 +22,7 @@ use std::sync::{
     Mutex,
 };
 
+use super::time::Duration;
 
 pub enum FacetIndex {
     Physical(usize), // does it have mass?
@@ -81,9 +83,11 @@ pub struct CameraFacet {
     pub movement_speed: f32,
 
     pub view: Matrix4<f32>,
-    pub perspective: PerspectiveFov<f32>
+    pub perspective: PerspectiveFov<f32>,
+    pub movement_dir: Option<Direction>,
 }
 
+#[derive(Debug)]
 pub enum Direction {
     Up,
     Down,
@@ -101,6 +105,7 @@ impl CameraFacet {
             rotation,
             rotation_speed : 1.0,
             movement_speed : 1.0,
+            movement_dir: None,
             dirty : false,
             view: Matrix4::<f32>::identity(),
 
@@ -140,25 +145,46 @@ impl CameraFacet {
         self.update_view_matrix();
     }
 
-    pub fn move_in_dir(&mut self, dir: Direction, amount: f32) {
+    #[inline]
+    pub fn forward(&self) -> Vector3<f32> {
+        let r = &self.rotation;
+        let (rx, ry) = (Rad(r.x), Rad(r.y));
+        let f = Vector3::new(
+            -(rx.cos()) * ry.sin(),
+            rx.sin(),
+            rx.cos() * ry.cos()
+        ).normalize();
+        f
+    }
+
+    #[inline]
+    pub fn right(&self) -> Vector3<f32> {
+        let y = Vector3::new(0.0, 1.0, 0.0);
+        let r = y.cross(self.forward()).normalize();
+        r
+    }
+
+    #[inline]
+    pub fn up(&self) -> Vector3<f32> {
+        let x = Vector3::new(1.0, 0.0, 0.0);
+        let r = x.cross(self.forward()).normalize();
+        r
+    }
+
+    pub fn update(&mut self, dt: &Duration) {
         {
-            let r = &self.rotation;
-            let cam_front = Vector3::new(
-                -r.x.cos() * r.y.sin(),
-                r.x.sin(),
-                r.x.cos() * r.y.cos()
-            ).normalize();
-
-            let v = Vector3::new(0.0, 1.0, 0.0);
-            match dir {
-                Up => {},
-                Down => {},
-
-                Left => { self.pos -= cam_front.cross(v).normalize() * self.movement_speed; },
-                Right => { self.pos += cam_front.cross(v).normalize() * self.movement_speed; },
-
-                Backward => { self.pos -= cam_front * self.movement_speed; }
-                Forward => { self.pos += cam_front * self.movement_speed; },
+            let amount = (dt.num_milliseconds() as f64 / 100.0) as f32;
+            if let Some(move_dir) = &self.movement_dir {
+                let m = self.movement_speed * amount;
+                let d = match move_dir {
+                    Direction::Forward =>  self.forward(),
+                    Direction::Backward => -self.forward(),
+                    Direction::Right =>    self.right(),
+                    Direction::Left =>     -self.right(),
+                    Direction::Up =>       self.up(),
+                    Direction::Down =>     -self.up(),
+                };
+                self.pos += d * m;
             }
         }
 
