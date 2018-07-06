@@ -129,7 +129,7 @@ impl InputSource for VulkanoRenderer {
                 winit::Event::DeviceEvent{device_id, ref event} => {
                     match event {
                         &winit::DeviceEvent::Added => {
-                            println!("device added {:?} {:?}", device_id, event);
+                            println!("device added  {:?} {:?}", device_id, event);
                         },
                         &winit::DeviceEvent::Removed => {
                             println!("device removed {:?} {:?}", device_id, event);
@@ -141,7 +141,8 @@ impl InputSource for VulkanoRenderer {
                         &winit::DeviceEvent::Button { button, state } => {
                         },
                         &winit::DeviceEvent::Key(input) => {},
-                        &winit::DeviceEvent::Text{codepoint} => {}
+                        &winit::DeviceEvent::Text{codepoint} => {
+                        }
                     }
                 },
                 winit::Event::WindowEvent{ window_id, ref event } => {

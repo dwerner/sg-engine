@@ -24,6 +24,7 @@ fn main() {
     // because of #[no_mangle], each library needs it's own unique method name as well... sigh
 
     let mut mods = Vec::new();
+    mods.push(load_mod!(gamepad));
     mods.push(load_mod!(asset_loader));
     mods.push(load_mod!(simulation));
 

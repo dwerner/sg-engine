@@ -1,6 +1,11 @@
 extern crate game_state;
 extern crate cgmath;
 
+use game_state::{
+    Identity,
+    Identifyable,
+};
+
 use game_state::state::{
     State,
     InputAccess,
@@ -12,14 +17,19 @@ use game_state::input::events::{
 use game_state::input::screen::{
     ScreenPoint,
 };
+
+use std::collections::VecDeque;
+
+use game_state::input::InputSource;
+use game_state::input::events::JoyButton;
+
 use game_state::time::Duration;
 
 use game_state::thing::Direction;
 
-
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
-// mapping user settings to keyboard and mouse bindings, joystick event source
+// mapping user settings to keyboard and mouse bindings
 
 #[no_mangle]
 pub extern "C" fn mod_input_load( state: &mut State ) {
@@ -39,9 +49,22 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
             match e {
                 InputEvent::KeyUp(_id, keycode) => {
                     match keycode {
-                        17 | 18 | 30 | 31 | 32 | 46 => { // w
+                        // TODO: support multiple keypresses
+                        17 | 18 | 30 | 31 | 32 | 46 => {
                             camera.movement_dir = None;
                         }
+                        _ => {}
+                    }
+                },
+                InputEvent::JoyButtonUp(_src, _id, btn) => {
+                    camera.movement_dir = None;
+                },
+                InputEvent::JoyButtonDown(_src, _id, btn) => {
+                    match btn {
+                        JoyButton::DPadUp => camera.movement_dir = Some(Direction::Forward),
+                        JoyButton::DPadLeft => camera.movement_dir = Some(Direction::Left),
+                        JoyButton::DPadDown => camera.movement_dir = Some(Direction::Backward),
+                        JoyButton::DPadRight => camera.movement_dir = Some(Direction::Right),
                         _ => {}
                     }
                 },
@@ -51,10 +74,9 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
                     // user released 30
                     // user released 31
                     // user released 32
-                    println!("user pressed {:?}", keycode);
                     match keycode {
                         16 => {
-                            println!("user pressed 'q' : hard exit");
+                            println!("user pressed 'q' : hard exit.");
                             std::process::exit(0);
                         }
                         18 =>  // e
@@ -81,7 +103,9 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
                         cgmath::Vector3::new(-ya, -xa, 0.0)
                     );
                 },
-                _ => {}
+                evt => {
+                    println!("event {:?}", evt);
+                }
             }
         }
 

@@ -74,6 +74,7 @@ pub trait InputAccess {
     fn gather_input_events(&mut self);
 
     fn add_input_source(&mut self, source: Box<InputSource>);
+    fn input_sources_len(&mut self) -> usize;
     fn remove_input_source(&mut self, id: Identity);
 
     fn on_input_load(&mut self);
@@ -164,6 +165,17 @@ impl RenderAccess for State {
         self.render_state.renderers.push(renderer);
     }
 
+    fn clear_renderers(&mut self) {
+        self.render_state.renderers.clear();
+    }
+
+    fn present_all(&mut self) {
+        let camera = &self.world.get_facets().cameras[0];
+        for r in self.render_state.renderers.iter_mut() {
+            r.present(camera);
+        }
+    }
+
     fn remove_renderer(&mut self, id: Identity) {
         let mut found = None;
         for i in 0..self.render_state.renderers.len() {
@@ -173,6 +185,15 @@ impl RenderAccess for State {
         }
         if found.is_some() {
             self.render_state.renderers.remove(found.unwrap());
+        }
+    }
+
+    fn push_render_layers(&mut self) {
+        // queue each existing render layers for rendering
+        for i in 0..self.render_state.renderers.len() {
+            for r in &self.render_state.render_layers {
+                self.render_state.renderers[i].queue_render_layer(r.clone());
+            }
         }
     }
 
@@ -189,47 +210,26 @@ impl RenderAccess for State {
         println!("RenderAccess::on_render_unload");
         self.render_state.renderers.clear();
     }
-
-    fn clear_renderers(&mut self) {
-        self.render_state.renderers.clear();
-    }
-
-    fn push_render_layers(&mut self) {
-        // queue each existing render layers for rendering
-        for i in 0..self.render_state.renderers.len() {
-            for r in &self.render_state.render_layers {
-                self.render_state.renderers[i].queue_render_layer(r.clone());
-            }
-        }
-    }
-
-    fn present_all(&mut self) {
-        let camera = &self.world.get_facets().cameras[0];
-        for r in self.render_state.renderers.iter_mut() {
-            r.present(camera);
-        }
-    }
 }
 
 
 impl InputAccess for State {
-
-    fn add_input_source(&mut self, source: Box<InputSource>) {
-        self.input_state.other_input_sources.push(source);
+    fn has_pending_input_events(&self) -> bool {
+        !self.input_state.pending_input_events.is_empty()
     }
 
-    fn remove_input_source(&mut self, id: Identity) {
-        let mut found = None;
-        for i in 0..self.input_state.other_input_sources.len() {
-            if self.input_state.other_input_sources[i].identify() == id {
-                found = Some(i as usize);
-            }
-        }
-        if found.is_some() {
-            self.input_state.other_input_sources.remove(found.unwrap());
-        }
+    fn clear_input_events(&mut self) {
+        self.input_state.pending_input_events.clear();
     }
 
+    fn get_input_events(&mut self) -> &mut VecDeque<InputEvent> {
+        &mut self.input_state.pending_input_events
+    }
+
+    // Input events might also come from other subsystems, so we allow them to be queued as well
+    fn queue_input_event(&mut self, event: InputEvent) {
+        self.input_state.pending_input_events.push_back(event);
+    }
     fn gather_input_events(&mut self) {
         // Renderers own the input event loop associated with their
         // internals: i.e. the window manager window
@@ -254,16 +254,23 @@ impl InputAccess for State {
 
     }
 
-    fn clear_input_events(&mut self) {
-        self.input_state.pending_input_events.clear();
+    fn add_input_source(&mut self, source: Box<InputSource>) {
+        self.input_state.other_input_sources.push(source);
     }
-    // Input events might also come from other subsystems, so we allow them to be queued as well
-    fn queue_input_event(&mut self, event: InputEvent) {
-        self.input_state.pending_input_events.push_back(event);
+    fn input_sources_len(&mut self) -> usize {
+        self.input_state.other_input_sources.len()
     }
 
-    fn get_input_events(&mut self) -> &mut VecDeque<InputEvent> {
-        &mut self.input_state.pending_input_events
+    fn remove_input_source(&mut self, id: Identity) {
+        let mut found = None;
+        for i in 0..self.input_state.other_input_sources.len() {
+            if self.input_state.other_input_sources[i].identify() == id {
+                found = Some(i as usize);
+            }
+        }
+        if found.is_some() {
+            self.input_state.other_input_sources.remove(found.unwrap());
+        }
     }
     fn on_input_load(&mut self) {
         self.input_state.clear();
@@ -271,9 +278,6 @@ impl InputAccess for State {
 
     fn on_input_unload(&mut self) {
         self.input_state.clear();
-    }
-    fn has_pending_input_events(&self) -> bool {
-        !self.input_state.pending_input_events.is_empty()
     }
 }
 

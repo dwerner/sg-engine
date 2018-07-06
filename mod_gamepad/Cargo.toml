@@ -1,0 +1,18 @@
+[package]
+name = "mod_gamepad"
+version = "0.1.0"
+authors = ["Daniel Werner <dan.werner@gmail.com>"]
+
+[features]
+default = []
+dynamic_lib = []
+
+[lib]
+name = "mod_gamepad"
+crate-type=["dylib"]
+
+[dependencies]
+gilrs = "0.6"
+
+[dependencies.game_state]
+path = "../game_state"

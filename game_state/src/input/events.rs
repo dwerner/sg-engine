@@ -14,9 +14,44 @@ pub enum MouseButton {
     Other(u8),
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct JoystickButton(u32);
+pub type DeviceId = usize;
 
+#[derive(Debug, Copy, Clone)]
+pub enum JoyAxis {
+    LeftStickX,
+    LeftStickY,
+    LeftZ,
+    RightStickX,
+    RightStickY,
+    RightZ,
+    DPadX,
+    DPadY,
+    Unknown,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum JoyButton {
+    South,
+    East,
+    North,
+    West,
+    C,
+    Z,
+    LeftTrigger,
+    LeftTrigger2,
+    RightTrigger,
+    RightTrigger2,
+    Select,
+    Start,
+    Mode,
+    LeftThumb,
+    RightThumb,
+    DPadUp,
+    DPadDown,
+    DPadLeft,
+    DPadRight,
+    Unknown,
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum InputEvent {
@@ -31,11 +66,14 @@ pub enum InputEvent {
     MouseEntered(Identity),
     MouseLeft(Identity),
 
-/* TODO at this level, joystick events make sense, however they can't be easily grabbed by say winit
-    JoystickMove(Identity, Device, DeltaVector),
-    JoystickButtonDown(Identity, Device, JoystickButton),
-    JoystickButtonUp(Identity, Device, JoystickButton),
-*/
+    JoyAxisChanged(Identity, DeviceId, JoyAxis, f32),
+    JoyButtonDown(Identity, DeviceId, JoyButton),
+    JoyButtonRepeated(Identity, DeviceId, JoyButton),
+    JoyButtonChanged(Identity, DeviceId, JoyButton, f32),
+    JoyButtonUp(Identity, DeviceId, JoyButton),
+    JoyConnected(Identity, DeviceId),
+    JoyDisconnected(Identity, DeviceId),
+    JoyEventDropped(Identity, DeviceId),
 
     CloseRequested(Identity),
     Destroyed(Identity),
@@ -46,10 +84,6 @@ pub enum InputEvent {
 }
 
 
-#[derive(Debug, Copy, Clone)]
-pub struct Device {
-    //id: u32,
-}
 
 #[cfg(test)]
 mod tests {

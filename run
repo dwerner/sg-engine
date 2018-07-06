@@ -1,6 +1,6 @@
 #!/bin/sh
 # shortcut to recompile both game_state and mod_rendering, in case of working on rendering innards
-export RUST_BACKTRACE=1
+export RUST_BACKTRACE=full
 set -e
 #boop
 (cd game_state && cargo build $1)
@@ -8,6 +8,7 @@ set -e
 (cd mod_rendering_vulkano && cargo build $1)
 #(cd mod_rendering_voodoo && cargo build $1)
 (cd mod_input && cargo build $1)
+(cd mod_gamepad && cargo build $1)
 (cd mod_asset_loader && cargo build $1)
 (cd mod_simulation && cargo build $1)
 cargo run $1
