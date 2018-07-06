@@ -79,18 +79,18 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
                             println!("user pressed 'q' : hard exit.");
                             std::process::exit(0);
                         }
-                        18 =>  // e
-                            camera.movement_dir = Some(Direction::Up),
-                        46 =>  // e
-                            camera.movement_dir = Some(Direction::Down),
-                        17 =>  // w
-                            camera.movement_dir = Some(Direction::Forward),
-                        30 => // a
-                            camera.movement_dir = Some(Direction::Left),
-                        31 =>// s
-                            camera.movement_dir = Some(Direction::Backward),
-                        32 =>// d
-                            camera.movement_dir = Some(Direction::Right),
+                        // e
+                        18 => camera.movement_dir = Some(Direction::Up),
+                        // c
+                        46 => camera.movement_dir = Some(Direction::Down),
+                          // w
+                        17 => camera.movement_dir = Some(Direction::Forward),
+                         // a
+                        30 => camera.movement_dir = Some(Direction::Left),
+                        // s
+                        31 => camera.movement_dir = Some(Direction::Backward),
+                        // d
+                        32 => camera.movement_dir = Some(Direction::Right),
                         _ => {}
                     }
                 },
