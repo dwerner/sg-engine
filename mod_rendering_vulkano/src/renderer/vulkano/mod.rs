@@ -453,8 +453,8 @@ impl VulkanoRenderer {
         let pipeline = Arc::new(p);
 
         // finish up by grabbing some initialization values for position and size
-        let LogicalPosition{x,y} = window.get_position().unwrap_or(LogicalPosition::new(0.0, 0.0));
-        let LogicalSize{width,height} = window.get_inner_size().unwrap_or(LogicalSize::new(0.0, 0.0));
+        let LogicalPosition{x,y} = LogicalPosition::new(0.0, 0.0);
+        let LogicalSize{width,height} = LogicalSize::new(800.0, 600.0);
 
         // TODO: get actual mouse position... or does it matter at this point when we get it in the
         // event loop instead

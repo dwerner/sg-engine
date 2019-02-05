@@ -14,7 +14,8 @@ crate-type=["rlib"]
 [dependencies]
 
 # needs to match all other modules
-winit = "0.16"
+#winit = "0.16.2"
+winit = { path = "../../winit" } 
 cgmath = "0.16"
 image = "0.17"
 time = "0.1"
