@@ -1,14 +1,14 @@
-use libloading::{Symbol, Library};
-use ansi_term::Color::{ Green, Yellow, Cyan };
+use ansi_term::Color::{Cyan, Green, Yellow};
 use game_state::state;
+use libloading::{Library, Symbol};
 
-use std::time::{UNIX_EPOCH, Duration};
-use std::path::Path;
 use std::fs;
+use std::path::Path;
+use std::time::{Duration, UNIX_EPOCH};
 
-use time::PreciseTime;
-use time::Duration as TDuration;
 use std::io::Error;
+use time::Duration as TDuration;
+use time::PreciseTime;
 
 ///
 /// TODO: support a dynamically *defined* and dynamically loaded lib
@@ -29,25 +29,31 @@ use std::io::Error;
 /// }
 ///
 
-
 ///
 /// Macro for loading platform-specific shared lib (dll/so)
 ///
 #[macro_export]
 macro_rules! load_mod {
     ( $s:expr ) => {{
-
         #[cfg(debug_assertions)]
-        fn build_profile() -> &'static str {"debug"}
+        fn build_profile() -> &'static str {
+            "debug"
+        }
 
         #[cfg(not(debug_assertions))]
-        fn build_profile() -> &'static str {"release"}
+        fn build_profile() -> &'static str {
+            "release"
+        }
 
         let name = stringify!($s);
         let path = if cfg!(windows) {
-            format!( "mod_{0}/target/{1}/mod_{0}.dll", name, build_profile() )
+            format!("mod_{0}/target/{1}/mod_{0}.dll", name, build_profile())
         } else {
-            format!( "mod_{0}/target/{1}/deps/libmod_{0}.so", name, build_profile() )
+            format!(
+                "mod_{0}/target/{1}/deps/libmod_{0}.so",
+                name,
+                build_profile()
+            )
         };
         LibLoader::new(&path, name)
     }};
@@ -61,17 +67,15 @@ macro_rules! load_mod {
 /// copy the file, along with a version counter to a temporary directory to load it from.
 ///
 pub struct LibLoader {
-
-    filename: String,               // Source filename to watch
-    lib:      Option<Library>,
+    filename: String, // Source filename to watch
+    lib: Option<Library>,
     modified: Duration,
-    version:  u64,                  // Keep track of how many times we've loaded,
-                                    // as we use this in the filename for the temp copy
+    version: u64, // Keep track of how many times we've loaded,
+    // as we use this in the filename for the temp copy
     mod_name: String,
 }
 
 impl LibLoader {
-
     ///
     /// Returns the defined name of the module
     ///
@@ -89,7 +93,7 @@ impl LibLoader {
             lib: None,
             modified: modified,
             version: 0,
-            mod_name: mod_name.to_string()
+            mod_name: mod_name.to_string(),
         };
         loader
     }
@@ -103,27 +107,22 @@ impl LibLoader {
     /// - call "load" lifecycle event on the newly loaded library, passing &mut State
     ///
     pub fn check_update(&mut self, state: &mut state::State) {
-
         let source = Path::new(&self.filename);
-            let file_stem = source.file_stem().unwrap().to_str().unwrap();
+        let file_stem = source.file_stem().unwrap().to_str().unwrap();
 
         match fs::metadata(&source) {
             Ok(new_meta) => {
-
-                let modified = new_meta.modified()
+                let modified = new_meta
+                    .modified()
                     .expect("Unable to retrieve last modified date.");
 
-                let duration: Duration = modified.duration_since(UNIX_EPOCH)
+                let duration: Duration = modified
+                    .duration_since(UNIX_EPOCH)
                     .expect("Unable to get time.");
 
                 if self.lib.is_none() || self.modified != duration {
-
                     self.modified = duration;
-                    let new_filename = format!(
-                        "target/{}_{}.so",
-                        file_stem,
-                        self.version
-                    );
+                    let new_filename = format!("target/{}_{}.so", file_stem, self.version);
 
                     match fs::copy(&source, Path::new(&new_filename)) {
                         Ok(_) => {
@@ -135,18 +134,17 @@ impl LibLoader {
                                     self.version += 1;
                                     self.lib = Some(lib);
                                     self.load(state);
-                                },
+                                }
                                 Err(err) => println!(
                                     "Unable to open new library: {} - err: {}",
                                     new_filename, err
-                                )
+                                ),
                             }
-                        },
+                        }
                         Err(err) => println!(
                             "Error copying file, target: {} - err: {}",
-                            new_filename,
-                            err
-                        )
+                            new_filename, err
+                        ),
                     }
                 }
             }
@@ -207,13 +205,14 @@ impl LibLoader {
     fn message(&self, message: &str) {
         let source = Path::new(&self.filename);
         let file_stem = source.file_stem().unwrap().to_str().unwrap();
-        println!( "{}{} {} (version {}, {}){}",
-                  Green.bold().paint("["),
-                  Green.bold().paint(message),
-                  Yellow.paint(file_stem),
-                  Cyan.paint(format!("{}",self.version)),
-                  Cyan.paint(format!("{:?}", source)),
-                  Green.bold().paint("]")
+        println!(
+            "{}{} {} (version {}, {}){}",
+            Green.bold().paint("["),
+            Green.bold().paint(message),
+            Yellow.paint(file_stem),
+            Cyan.paint(format!("{}", self.version)),
+            Cyan.paint(format!("{:?}", source)),
+            Green.bold().paint("]")
         );
     }
 
@@ -224,44 +223,43 @@ impl LibLoader {
     ///
     fn call_update(&self, method_name: &str, state: &mut state::State, delta_time: &TDuration) {
         match self.lib {
-            Some(ref lib) => {
-                unsafe {
-                    let method = method_name.as_bytes();
+            Some(ref lib) => unsafe {
+                let method = method_name.as_bytes();
 
-                    let maybe_func: Result<
-                        Symbol<unsafe extern fn(&mut state::State, &TDuration)>,
-                        Error
-                    > = lib.get(method);
+                let maybe_func: Result<
+                    Symbol<unsafe extern "C" fn(&mut state::State, &TDuration)>,
+                    Error,
+                > = lib.get(method);
 
-                    match maybe_func {
-                        Ok(func) => func(state, delta_time),
-                        Err(e) => println!("Unable to call function: {} - method does not exist in lib: {:?}", method_name, lib)
-                    }
-
+                match maybe_func {
+                    Ok(func) => func(state, delta_time),
+                    Err(e) => println!(
+                        "Unable to call function: {} - method does not exist in lib: {:?}",
+                        method_name, lib
+                    ),
                 }
             },
-            None => println!("Cannot call method {} - lib not found", method_name)
+            None => println!("Cannot call method {} - lib not found", method_name),
         }
     }
 
     fn call(&self, method_name: &str, state: &mut state::State) {
         match self.lib {
-            Some(ref lib) => {
-                unsafe {
-                    let method = method_name.as_bytes();
+            Some(ref lib) => unsafe {
+                let method = method_name.as_bytes();
 
-                    let maybe_func: Result<
-                        Symbol<unsafe extern fn(&mut state::State)>,
-                        Error
-                    > = lib.get(method);
+                let maybe_func: Result<Symbol<unsafe extern "C" fn(&mut state::State)>, Error> =
+                    lib.get(method);
 
-                    match maybe_func {
-                        Ok(func) => func(state),
-                        Err(e) => println!("Unable to call function: {} - method does not exist in lib: {:?}", method_name, lib)
-                    }
+                match maybe_func {
+                    Ok(func) => func(state),
+                    Err(e) => println!(
+                        "Unable to call function: {} - method does not exist in lib: {:?}",
+                        method_name, lib
+                    ),
                 }
             },
-            None => println!("Cannot call method {} - lib not found", method_name)
+            None => println!("Cannot call method {} - lib not found", method_name),
         }
     }
 }

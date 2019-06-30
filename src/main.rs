@@ -6,8 +6,8 @@ extern crate game_state;
 extern crate engine;
 use engine::libloader::LibLoader;
 
-use std::time::Duration;
 use game_state::state;
+use std::time::Duration;
 
 use std::thread;
 
@@ -15,7 +15,6 @@ use game_state::state::WindowAccess;
 
 fn main() {
     let mut state = state::State::new();
-
 
     // TODO mod_audio
     // TODO mod_gui
@@ -38,16 +37,15 @@ fn main() {
 
     // For now this is incompatible
     //mods.push(load_mod!(rendering_opengl));
-   
-    mods.push(load_mod!(input));
 
+    mods.push(load_mod!(input));
 
     for mut m in mods.iter_mut() {
         m.check_update(&mut state);
     }
 
     let mut frame = 0;
-    let frame_budget = 16000i64;// for 60 fps
+    let frame_budget = 16000i64; // for 60 fps
     let mut last_update = time::now();
 
     loop {
@@ -60,15 +58,18 @@ fn main() {
             if frame % 300 == 0 {
                 print!(
                     "|> {}: {total_time:>6} μs ",
-                    name=m.get_name(),
-                    total_time=duration.num_microseconds().unwrap_or(0)
+                    name = m.get_name(),
+                    total_time = duration.num_microseconds().unwrap_or(0)
                 );
             }
             total_time += duration.num_microseconds().unwrap_or(0);
         }
         last_update = time::now();
         if frame % 300 == 0 {
-            println!("|>= total time: {total_time:>6} μs", total_time = total_time);
+            println!(
+                "|>= total time: {total_time:>6} μs",
+                total_time = total_time
+            );
         }
         if frame % 30 == 0 {
             for mut m in mods.iter_mut() {
@@ -81,7 +82,5 @@ fn main() {
         if wait > 0 {
             thread::sleep(Duration::from_millis(wait as u64));
         }
-
     }
 }
-

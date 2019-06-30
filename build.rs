@@ -34,18 +34,17 @@ fn main() {
                 Err(err) => println!("Error: {}", err),
             }
         }
-
     }
 }
 
 fn get_out_path(out_dir: &str, file_name: &str) -> PathBuf {
-     let debug = match env::var("DEBUG") {
+    let debug = match env::var("DEBUG") {
         Ok(s) => s == "true",
-        _ => false
+        _ => false,
     };
     if debug {
         return Path::new(&out_dir).join("target/debug/").join(file_name);
     }
-    
+
     Path::new(&out_dir).join("target/release/").join(file_name)
 }
