@@ -13,8 +13,8 @@ crate-type=["dylib"]
 
 [dependencies]
 # Vulkano Renderer
-vulkano = "0.9"
-vulkano-shaders = "0.9"
+vulkano = "0.12"
+vulkano-shaders = "0.12"
 glsl-to-spirv = "0.1"
 
 cgmath = "0.16"

@@ -1,27 +1,16 @@
-extern crate game_state;
 extern crate cgmath;
+extern crate game_state;
 
-use game_state::{
-    Identity,
-    Identifyable,
-};
+use game_state::{Identifyable, Identity};
 
-use game_state::state::{
-    State,
-    InputAccess,
-    WorldAccess,
-};
-use game_state::input::events::{
-    InputEvent,
-};
-use game_state::input::screen::{
-    ScreenPoint,
-};
+use game_state::input::events::InputEvent;
+use game_state::input::screen::ScreenPoint;
+use game_state::state::{InputAccess, State, WorldAccess};
 
 use std::collections::VecDeque;
 
-use game_state::input::InputSource;
 use game_state::input::events::JoyButton;
+use game_state::input::InputSource;
 
 use game_state::time::Duration;
 
@@ -32,17 +21,18 @@ use game_state::thing::Direction;
 // mapping user settings to keyboard and mouse bindings
 
 #[no_mangle]
-pub extern "C" fn mod_input_load( state: &mut State ) {
+pub extern "C" fn mod_input_load(state: &mut State) {
     state.on_input_load();
 }
 
 #[no_mangle]
-pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
-
+pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
+    /*
     state.clear_input_events();
     state.gather_input_events();
 
     if state.has_pending_input_events() {
+
         let events = state.get_input_events().clone();
         for e in events {
             let mut camera = &mut state.get_world().get_facets().cameras[0];
@@ -115,9 +105,10 @@ pub extern "C" fn mod_input_update( state: &mut State, dt: &Duration ) {
         let mut camera = &mut state.get_world().get_facets().cameras[0];
         camera.update(dt);
     }
+        */
 }
 
 #[no_mangle]
-pub extern "C" fn mod_input_unload( state: &mut State ) {
+pub extern "C" fn mod_input_unload(state: &mut State) {
     state.on_input_unload();
 }

@@ -5,9 +5,7 @@ use vulkano::instance::InstanceExtensions;
 use vulkano::swapchain::Surface;
 use vulkano::swapchain::SurfaceCreationError;
 
-use std::sync::{
-    Arc,
-};
+use std::sync::Arc;
 
 use std::ptr;
 
@@ -17,7 +15,6 @@ pub fn required_extensions() -> InstanceExtensions {
         khr_xlib_surface: true,
         khr_xcb_surface: true,
         khr_wayland_surface: true,
-        khr_mir_surface: true,
         khr_android_surface: true,
         khr_win32_surface: true,
         mvk_ios_surface: true,
@@ -35,54 +32,67 @@ pub fn required_extensions() -> InstanceExtensions {
 type AMWin = Arc<winit::Window>;
 
 #[cfg(target_os = "android")]
-pub unsafe fn winit_to_surface(instance: Arc<Instance>, win: AMWin)
-                               -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
+pub unsafe fn winit_to_surface(
+    instance: Arc<Instance>,
+    win: AMWin,
+) -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
     use winit::os::android::WindowExt;
     Surface::from_anativewindow(instance, &win.get_native_window(), win.clone())
 }
 
 #[cfg(all(unix, not(target_os = "android"), not(target_os = "macos")))]
-pub unsafe fn winit_to_surface(instance: Arc<Instance>, win: AMWin)
-                               -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
+pub unsafe fn winit_to_surface(
+    instance: Arc<Instance>,
+    win: AMWin,
+) -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
     use winit::os::unix::WindowExt;
     match (&win.get_wayland_display(), win.get_wayland_surface()) {
-        (Some(display), Some(surface)) => Surface::from_wayland(instance,
-                                                                display,
-                                                                surface,
-                                                                win.clone()),
+        (Some(display), Some(surface)) => {
+            Surface::from_wayland(instance, display, surface, win.clone())
+        }
         _ => {
             // No wayland display found, check if we can use xlib.
             // If not, we use xcb.
 
             if instance.loaded_extensions().khr_xlib_surface {
-                Surface::from_xlib(instance,
-                                   win.get_xlib_display().unwrap(),
-                                   win.get_xlib_window().unwrap() as _,
-                                   win.clone())
+                Surface::from_xlib(
+                    instance,
+                    win.get_xlib_display().unwrap(),
+                    win.get_xlib_window().unwrap() as _,
+                    win.clone(),
+                )
             } else {
-                Surface::from_xcb(instance,
-                                  win.get_xcb_connection().unwrap(),
-                                  win.get_xlib_window().unwrap() as _,
-                                  win.clone())
+                Surface::from_xcb(
+                    instance,
+                    win.get_xcb_connection().unwrap(),
+                    win.get_xlib_window().unwrap() as _,
+                    win.clone(),
+                )
             }
-        },
+        }
     }
 }
 
 #[cfg(target_os = "windows")]
-pub unsafe fn winit_to_surface(instance: Arc<Instance>, win: AMWin)
-                           -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
+pub unsafe fn winit_to_surface(
+    instance: Arc<Instance>,
+    win: AMWin,
+) -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
     use winit::os::windows::WindowExt;
     let hwnd = win.get_hwnd();
-    Surface::from_hwnd(instance,
-                       ptr::null() as *const (), // FIXME
-                       hwnd,
-                       win.clone() )
+    Surface::from_hwnd(
+        instance,
+        ptr::null() as *const (), // FIXME
+        hwnd,
+        win.clone(),
+    )
 }
 
 #[cfg(target_os = "macos")]
-pub unsafe fn winit_to_surface(instance: Arc<Instance>, win: AMWin)
-                           -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
+pub unsafe fn winit_to_surface(
+    instance: Arc<Instance>,
+    win: AMWin,
+) -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
     use winit::os::macos::WindowExt;
 
     let wnd: cocoa_id = mem::transmute(&win.get_nswindow());
