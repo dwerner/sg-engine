@@ -9,9 +9,6 @@ build = "build.rs"
 name = "engine"
 crate-type = ["rlib"]
 
-[[bin]]
-name = "something_good"
-
 [dependencies]
 # LibLoader
 libloading = "0.3" # 0.5
