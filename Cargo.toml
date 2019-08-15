@@ -12,9 +12,8 @@ crate-type = ["rlib"]
 
 [dependencies]
 # LibLoader
-libloading = "0.3" # 0.5
-ansi_term = "0.9" # 0.11
-time = "0.1"
+libloading = "0.5" # 0.5
+ansi_term = "0.12" # 0.11
 
 [dependencies.game_state]
 path = "game_state"

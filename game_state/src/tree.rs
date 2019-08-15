@@ -1,40 +1,40 @@
-use std::rc::{ Rc, Weak };
-use std::fmt;
 use std::cell::RefCell;
-
 use std::collections::VecDeque;
+use std::fmt;
+use std::rc::{Rc, Weak};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 type NodeMut<T> = RefCell<Node<T>>;
 pub type RcNode<T> = Rc<NodeMut<T>>;
 pub type WeakNode<T> = Weak<NodeMut<T>>;
 
+static GLOBAL_NODE_ID: AtomicUsize = AtomicUsize::new(0);
+
 pub trait NodeVisitor<T> {
-    fn visit<F: FnMut(&T)->()>(&mut self, func: F);
+    fn visit<F: FnMut(&T) -> ()>(&mut self, func: F);
     fn has_next(&self) -> bool;
 }
-
-use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-
-static GLOBAL_NODE_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub struct Node<T> {
     pub id: usize,
     parent: Option<WeakNode<T>>,
     children: Vec<RcNode<T>>,
-    pub data: T
+    pub data: T,
 }
 
 pub struct BreadthFirstIterator<T> {
-    queue: VecDeque<RcNode<T>>
+    queue: VecDeque<RcNode<T>>,
 }
-impl <T> BreadthFirstIterator <T> {
+
+impl<T> BreadthFirstIterator<T> {
     pub fn new(root: RcNode<T>) -> Self {
         let mut queue = VecDeque::new();
         queue.push_back(root);
-        BreadthFirstIterator{ queue:queue }
+        BreadthFirstIterator { queue: queue }
     }
 }
-impl <T> Iterator for BreadthFirstIterator<T> {
+
+impl<T> Iterator for BreadthFirstIterator<T> {
     type Item = (usize, RcNode<T>);
     fn next(&mut self) -> Option<Self::Item> {
         match self.queue.pop_front() {
@@ -44,24 +44,26 @@ impl <T> Iterator for BreadthFirstIterator<T> {
                 }
                 let id = n.borrow().id;
                 Some((id, n.clone()))
-            },
-            None => None
+            }
+            None => None,
         }
     }
 }
 
 pub struct BreadthFirstVisitor<T> {
-    queue: VecDeque<RcNode<T>>
+    queue: VecDeque<RcNode<T>>,
 }
-impl <T> BreadthFirstVisitor <T> {
+
+impl<T> BreadthFirstVisitor<T> {
     pub fn new(root: RcNode<T>) -> Self {
         let mut queue = VecDeque::new();
         queue.push_back(root);
-        BreadthFirstVisitor{ queue:queue }
+        BreadthFirstVisitor { queue: queue }
     }
 }
-impl <T> NodeVisitor<T> for BreadthFirstVisitor<T> {
-    fn visit<F: FnMut(&T)->()>(&mut self, func: F) {
+
+impl<T> NodeVisitor<T> for BreadthFirstVisitor<T> {
+    fn visit<F: FnMut(&T) -> ()>(&mut self, func: F) {
         let mut func = func;
         match self.queue.pop_front() {
             Some(ref n) => {
@@ -69,7 +71,7 @@ impl <T> NodeVisitor<T> for BreadthFirstVisitor<T> {
                     self.queue.push_back(child.clone());
                 }
                 (func)(&n.borrow().data);
-            },
+            }
             None => {}
         };
     }
@@ -78,43 +80,36 @@ impl <T> NodeVisitor<T> for BreadthFirstVisitor<T> {
     }
 }
 
-impl <T> Drop for Node<T> {
+impl<T> Drop for Node<T> {
     fn drop(&mut self) {
         println!("Dropping node {}", self.id);
     }
 }
 
-impl <T> fmt::Display for Node<T> {
+impl<T> fmt::Display for Node<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let p = match self.parent {
             Some(_) => "*",
-            None => "*root"
+            None => "*root",
         };
         write!(f, "{} ->(id: {})", p, self.id).expect("unable to display node");
         Ok(())
     }
 }
 
-impl <T> Node<T> {
-
+impl<T> Node<T> {
     pub fn create(data: T, parent: Option<RcNode<T>>) -> RcNode<T> {
         let prt = match parent {
-            Some(ref p) => {
-                Some(Rc::downgrade(p))
-            },
-            None => None
+            Some(ref p) => Some(Rc::downgrade(p)),
+            None => None,
         };
 
-        let node = Rc::new(
-            RefCell::new(
-                Node::new(data, prt)
-            )
-        );
+        let node = Rc::new(RefCell::new(Node::new(data, prt)));
 
         match parent {
             Some(ref p) => {
                 p.borrow_mut().add_child(node.clone());
-            },
+            }
             None => {}
         };
 
@@ -124,7 +119,7 @@ impl <T> Node<T> {
     pub fn find_root(node: RcNode<T>) -> RcNode<T> {
         match node.borrow().parent() {
             Some(p) => Node::find_root(p.clone()),
-            None => return node.clone()
+            None => return node.clone(),
         }
     }
 
@@ -133,10 +128,10 @@ impl <T> Node<T> {
             id: GLOBAL_NODE_ID.fetch_add(1, Ordering::SeqCst),
             parent: match parent {
                 Some(p) => Some(p),
-                None => None
+                None => None,
             },
             children: Vec::new(),
-            data: data
+            data: data,
         }
     }
 
@@ -149,8 +144,8 @@ impl <T> Node<T> {
                 } else {
                     Node::is_child_of(p, parent)
                 }
-            },
-            None => false
+            }
+            None => false,
         }
     }
 
@@ -158,11 +153,12 @@ impl <T> Node<T> {
         if child.borrow().id == target.borrow().id {
             return Err("Cannot make node a child of itself.".to_string());
         }
-        if  !Node::is_child_of(target.clone(), child.clone()) { // check for cycles
+        if !Node::is_child_of(target.clone(), child.clone()) {
+            // check for cycles
             match child.borrow().parent() {
                 Some(old_parent) => {
                     old_parent.borrow_mut().remove_child(child.clone());
-                },
+                }
                 None => {}
             }
             child.borrow_mut().parent = Some(Rc::downgrade(&target.clone()));
@@ -185,31 +181,30 @@ impl <T> Node<T> {
         match idx {
             Some(i) => {
                 self.children.remove(i);
-            },
+            }
             _ => {}
         };
     }
 
     pub fn find_child(&self, id: usize) -> Option<RcNode<T>> {
-        let option: Option<&RcNode<T>> =
-            self.children.iter().find(|x| x.borrow().id == id);
+        let option: Option<&RcNode<T>> = self.children.iter().find(|x| x.borrow().id == id);
         match option {
             Some(obj_ref) => Some(obj_ref.clone()),
-            None => None
+            None => None,
         }
     }
 
     pub fn siblings(&self) -> Option<Vec<RcNode<T>>> {
         match self.parent() {
-            Some(p) => {
-                Some(
-                    p.borrow().children.iter()
-                        .filter(|x| x.borrow().id != self.id)
-                        .map(|x| x.clone())
-                        .collect()
-                )
-            },
-            None => None
+            Some(p) => Some(
+                p.borrow()
+                    .children
+                    .iter()
+                    .filter(|x| x.borrow().id != self.id)
+                    .map(|x| x.clone())
+                    .collect(),
+            ),
+            None => None,
         }
     }
 
@@ -231,7 +226,7 @@ impl <T> Node<T> {
     pub fn parent(&self) -> Option<RcNode<T>> {
         match self.parent {
             Some(ref p) => Some(p.upgrade().unwrap()),
-            None => None
+            None => None,
         }
     }
 
@@ -251,8 +246,7 @@ impl <T> Node<T> {
             c
         );
         for child in &self.children {
-            child.borrow().debug_draw(lvl+1);
+            child.borrow().debug_draw(lvl + 1);
         }
     }
-
 }

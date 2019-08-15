@@ -1,7 +1,8 @@
-use cgmath::{Angle, InnerSpace, Matrix4, PerspectiveFov, Rad, SquareMatrix, Vector3};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
-use super::time::Duration;
+use cgmath::{Angle, InnerSpace, Matrix4, PerspectiveFov, Rad, SquareMatrix, Vector3};
+
 use crate::{create_next_identity, model, Identifyable, Identity};
 
 pub enum FacetIndex {
@@ -167,7 +168,7 @@ impl CameraFacet {
 
     pub fn update(&mut self, dt: &Duration) {
         {
-            let amount = (dt.num_milliseconds() as f64 / 100.0) as f32;
+            let amount = (dt.as_millis() as f64 / 100.0) as f32;
             if let Some(move_dir) = &self.movement_dir {
                 let m = self.movement_speed * amount;
                 let d = match move_dir {

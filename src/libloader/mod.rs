@@ -3,12 +3,9 @@ use game_state::state;
 use libloading::{Library, Symbol};
 
 use std::fs;
-use std::path::Path;
-use std::time::{Duration, UNIX_EPOCH};
-
 use std::io::Error;
-use time::Duration as TDuration;
-use time::PreciseTime;
+use std::path::Path;
+use std::time::{Duration, Instant, UNIX_EPOCH};
 
 ///
 /// TODO:
@@ -169,12 +166,12 @@ impl LibLoader {
     /// Call to the mod to update the state with the "update" normative lifecycle event
     ///
     // External interface prefers time::Duration (TDuration)
-    pub fn update(&self, state: &mut state::State, delta_time: &TDuration) -> TDuration {
+    pub fn update(&self, state: &mut state::State, delta_time: &Duration) -> Duration {
         let method_name = format!("mod_{}_update", self.mod_name);
         // todo:
-        let start_time = PreciseTime::now();
+        let start_time = Instant::now();
         self.call_update(&method_name, state, delta_time);
-        start_time.to(PreciseTime::now())
+        start_time.elapsed()
     }
 
     ///
@@ -224,13 +221,13 @@ impl LibLoader {
     ///
     /// call a method in the module by name, passing &mut State and a delta_time duration
     ///
-    fn call_update(&self, method_name: &str, state: &mut state::State, delta_time: &TDuration) {
+    fn call_update(&self, method_name: &str, state: &mut state::State, delta_time: &Duration) {
         match self.lib {
             Some(ref lib) => unsafe {
                 let method = method_name.as_bytes();
 
                 let maybe_func: Result<
-                    Symbol<unsafe extern "C" fn(&mut state::State, &TDuration)>,
+                    Symbol<unsafe extern "C" fn(&mut state::State, &Duration)>,
                     Error,
                 > = lib.get(method);
 
@@ -257,8 +254,8 @@ impl LibLoader {
                 match maybe_func {
                     Ok(func) => func(state),
                     Err(e) => println!(
-                        "Unable to call function: {} - method does not exist in lib: {:?}",
-                        method_name, lib
+                        "Unable to call function: {} - method does not exist in lib: {:?} - {:?}",
+                        method_name, lib, e
                     ),
                 }
             },

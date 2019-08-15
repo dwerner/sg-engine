@@ -1,12 +1,12 @@
-use crate::create_next_identity;
-use crate::Identifyable;
-use crate::Identity;
-
-use crate::image;
 use cgmath::Matrix4;
 use cgmath::SquareMatrix;
 
+// TODO: still need to refactor nom-obj to take BufReader, among other things
 use nom_obj::model::{Interleaved, Obj};
+
+use crate::create_next_identity;
+use crate::Identifyable;
+use crate::Identity;
 
 #[derive(Clone)]
 pub struct Material {
@@ -33,7 +33,7 @@ impl Model {
             .map(|&(v, vt, vn)| Vertex::create(v.0, v.1, v.2, vt.0, vt.1, vt.2, vn.0, vn.1, vn.0))
             .collect::<Vec<_>>();
 
-        assert!(verts.len() > 0);
+        assert!(!verts.is_empty());
 
         let indices = idx.iter().map(|x: &usize| *x as u16).collect::<Vec<_>>();
 
@@ -133,7 +133,7 @@ impl Vertex {
         }
     }
 
-    pub fn from(v: Vector, u: UVW, n: Normal) -> Self {
+    pub fn from_parts(v: Vector, u: UVW, n: Normal) -> Self {
         Vertex {
             position: v,
             uvw: u,

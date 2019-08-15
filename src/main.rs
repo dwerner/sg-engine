@@ -1,13 +1,9 @@
-extern crate time;
-
-extern crate game_state;
-
 #[macro_use]
 extern crate engine;
 use engine::libloader::LibLoader;
 
 use game_state::state;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use std::thread;
 
@@ -40,31 +36,31 @@ fn main() {
 
     mods.push(load_mod!(input));
 
-    for mut m in mods.iter_mut() {
+    for m in mods.iter_mut() {
         m.check_update(&mut state);
     }
 
     let mut frame = 0;
-    let frame_budget = 16000i64; // for 60 fps
-    let mut last_update = time::now();
+    let frame_budget = 16000u128; // for 60 fps
+    let mut last_update = Instant::now();
 
     loop {
         // TODO: gather delta time instead
 
-        let mut total_time = 0i64;
+        let mut total_time = 0;
         for m in mods.iter() {
-            let mut start_update = time::now();
-            let duration: time::Duration = m.update(&mut state, &(start_update - last_update));
+            let start_update = Instant::now();
+            let duration = m.update(&mut state, &(start_update - last_update));
             if frame % 300 == 0 {
                 print!(
                     "|> {}: {total_time:>6} μs ",
                     name = m.get_name(),
-                    total_time = duration.num_microseconds().unwrap_or(0)
+                    total_time = duration.as_micros()
                 );
             }
-            total_time += duration.num_microseconds().unwrap_or(0);
+            total_time += duration.as_micros();
         }
-        last_update = time::now();
+        last_update = Instant::now();
         if frame % 300 == 0 {
             println!(
                 "|>= total time: {total_time:>6} μs",
@@ -72,7 +68,7 @@ fn main() {
             );
         }
         if frame % 30 == 0 {
-            for mut m in mods.iter_mut() {
+            for m in mods.iter_mut() {
                 m.check_update(&mut state);
             }
         }

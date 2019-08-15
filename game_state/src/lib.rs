@@ -1,45 +1,27 @@
-pub mod state;
-pub mod tree;
-pub mod model;
-
-pub mod ui;
-pub mod input;
-pub mod event;
-pub mod utils;
-pub mod thing;
-
-extern crate cgmath;
-extern crate nom_obj;
-extern crate image;
-
-pub extern crate time;
+// opinion here? reexport winit or import in other libs...?
 pub extern crate winit;
 
-// #[macro_use]
-// extern crate serde_derive;
-// extern crate bincode;
-// extern crate serde_json;
+pub mod model;
+pub mod state;
+pub mod tree;
 
-use cgmath::Matrix4;
+pub mod event;
+pub mod input;
+pub mod thing;
+pub mod ui;
+pub mod utils;
 
-use model::Mesh;
 use std::sync::Arc;
-
-use state::SceneGraph;
-
-use tree::RcNode;
+use std::time::Duration;
 
 use input::InputSource;
+use state::SceneGraph;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use thing::CameraFacet;
 
-// Represents the public interface for mods
-// traits for implementing behavior of state objects should exist here
-// but the impls for those traits can be in mods
+static GLOBAL_IDENITY_CURSOR: AtomicUsize = AtomicUsize::new(0);
 
-pub type Identity = u64; // really?
-
-use std::sync::atomic::{ AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-static GLOBAL_IDENITY_CURSOR: AtomicUsize = ATOMIC_USIZE_INIT;
-
+pub type Identity = u64;
 pub fn create_next_identity() -> Identity {
     GLOBAL_IDENITY_CURSOR.fetch_add(1, Ordering::SeqCst) as Identity
 }
@@ -48,11 +30,7 @@ pub trait Identifyable {
     fn identify(&self) -> Identity;
 }
 
-use state::State;
-use thing::CameraFacet;
-
-pub trait Renderer : Identifyable + InputSource {
-
+pub trait Renderer: Identifyable + InputSource {
     /// load()
     /// provide a hook for a mod to notify the renderer that it is about to be used
     fn load(&mut self);
@@ -68,10 +46,8 @@ pub trait Renderer : Identifyable + InputSource {
     /// present()
     /// Actually render the image, compositing render layers in the order they were queued
     fn present(&mut self, camera: &CameraFacet);
-
 }
 
 pub trait Behavior {
-    fn update(delta_time: &time::Duration);
+    fn update(delta_time: &Duration);
 }
-

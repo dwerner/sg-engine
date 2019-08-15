@@ -1,23 +1,18 @@
-use super::Renderer;
-// use ui::view::UIView;
-
 use std::collections::VecDeque;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-use crate::input::events::InputEvent;
-use crate::input::InputSource;
-use crate::ui::events::UIEvent;
-
-use crate::Identity;
-
-use crate::state::{SceneGraph, State, WindowWithEvents, World};
-
-use super::Model;
-
+//TODO reexported or implicit?
 use winit::dpi::LogicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
+
+use super::Model;
+use super::Renderer;
+use crate::input::events::InputEvent;
+use crate::input::InputSource;
+use crate::state::{SceneGraph, State, WindowWithEvents, World};
+use crate::ui::events::UIEvent;
+use crate::Identity;
 
 pub trait WorldAccess {
     fn get_world(&mut self) -> &mut World;

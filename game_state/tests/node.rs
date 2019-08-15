@@ -1,9 +1,7 @@
-extern crate game_state;
-
 #[cfg(test)]
 mod tests {
 
-    use game_state::tree::{ Node, NodeVisitor, BreadthFirstVisitor, RcNode };
+    use game_state::tree::{BreadthFirstVisitor, Node, NodeVisitor, RcNode};
 
     #[test]
     fn traverse_nodes() {
@@ -27,12 +25,12 @@ mod tests {
         let child = Node::create(0, Some(root.clone()));
         assert!(Node::is_child_of(child.clone(), root.clone()));
         let r = Node::create(0, None);
-        assert!( !Node::is_child_of(child.clone(), r.clone()) );
+        assert!(!Node::is_child_of(child.clone(), r.clone()));
     }
 
     #[test]
     fn reparent() {
-        let root = Node::create(0,None);
+        let root = Node::create(0, None);
 
         let child = Node::create(0, Some(root.clone()));
         let original_child = root.borrow().find_child(child.borrow().id);
@@ -56,22 +54,21 @@ mod tests {
         let root = Node::create(0, None);
         let im = Node::create(0, Some(root.clone()));
         let child = Node::create(0, Some(im.clone()));
-        assert!( Node::is_child_of(child.clone(), im.clone()) );
-        assert!( Node::is_child_of(child.clone(), root.clone()) );
+        assert!(Node::is_child_of(child.clone(), im.clone()));
+        assert!(Node::is_child_of(child.clone(), root.clone()));
 
         let root2 = Node::create(0, None);
         let result = Node::reparent(im.clone(), root2.clone());
 
-        assert!( result.is_ok() );
-        assert!( Node::is_child_of(child.clone(), root2.clone()) );
+        assert!(result.is_ok());
+        assert!(Node::is_child_of(child.clone(), root2.clone()));
     }
-
 
     #[test]
     fn fails_to_reparent_to_self() {
         let root = Node::create(0, None);
         let result = Node::reparent(root.clone(), root.clone());
-        assert!( result.is_err() );
+        assert!(result.is_err());
     }
 
     #[test]
@@ -81,7 +78,7 @@ mod tests {
         let sibling = Node::create(0, Some(root.clone()));
 
         let result = Node::reparent(root.clone(), sibling.clone());
-        assert!( result.is_err() );
+        assert!(result.is_err());
     }
 
     #[test]
@@ -92,13 +89,12 @@ mod tests {
 
         let maybe_siblings = child.borrow().siblings();
         let siblings = maybe_siblings.unwrap();
-        assert!( siblings.len() == 1 );
-        assert!( sibling.borrow().id == siblings[0].borrow().id );
+        assert!(siblings.len() == 1);
+        assert!(sibling.borrow().id == siblings[0].borrow().id);
     }
 
     #[test]
     fn visitor() {
-
         // master branch
         let root = Node::create(5u32, None);
         let grandparent = Node::create(4, Some(root.clone()));
@@ -112,19 +108,16 @@ mod tests {
         let cousin = Node::create(2, Some(uncle.clone()));
         let _niece = Node::create(1, Some(cousin.clone()));
 
-
         struct SummingVisitor<T> {
             x: T,
-            current_node: Option<RcNode<T>>
+            current_node: Option<RcNode<T>>,
         }
         impl NodeVisitor<u32> for SummingVisitor<u32> {
-            fn visit<F: FnMut(&u32)->()>(&mut self, func: F) {
+            fn visit<F: FnMut(&u32) -> ()>(&mut self, func: F) {
                 let mut func = func;
                 let (val, maybe_parent) = match self.current_node {
-                    Some(ref n) => {
-                        (n.borrow().data, n.borrow().parent())
-                    },
-                    None => (0, None)
+                    Some(ref n) => (n.borrow().data, n.borrow().parent()),
+                    None => (0, None),
                 };
                 self.x += val;
                 (func)(&self.x);
@@ -132,10 +125,8 @@ mod tests {
             }
             fn has_next(&self) -> bool {
                 let maybe_parent = match self.current_node {
-                    Some(ref n) => {
-                        n.borrow().parent()
-                    },
-                    None => None
+                    Some(ref n) => n.borrow().parent(),
+                    None => None,
                 };
                 maybe_parent.is_some()
             }
@@ -143,7 +134,7 @@ mod tests {
 
         let mut v = SummingVisitor {
             x: 0,
-            current_node: Some(grandchild.clone())
+            current_node: Some(grandchild.clone()),
         };
 
         while v.has_next() {
@@ -155,7 +146,6 @@ mod tests {
 
     #[test]
     fn breadth_first_visitor() {
-
         // master branch
         let root = Node::create(5u32, None);
         let grandparent = Node::create(4, Some(root.clone()));
@@ -175,7 +165,7 @@ mod tests {
         let mut loop_ctr = 0;
         while visitor.has_next() {
             loop_ctr += 1;
-            visitor.visit(|x| counter += *x );
+            visitor.visit(|x| counter += *x);
         }
         assert_eq!(loop_ctr, 9);
         assert_eq!(counter, 25);
