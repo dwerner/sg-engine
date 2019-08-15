@@ -1,4 +1,4 @@
-use Identity;
+use crate::Identity;
 
 #[derive(Debug, Copy, Clone)]
 pub enum UIEvent {

@@ -116,7 +116,7 @@ type ThisPipelineType = GraphicsPipeline<
     Arc<vulkano::framebuffer::RenderPassAbstract + Send + Sync>,
 >;
 
-type AMWin = Arc<winit::Window>;
+type AMWin = Arc<winit::window::Window>;
 pub struct VulkanoRenderer {
     id: Identity,
     instance: Arc<Instance>,
@@ -127,7 +127,7 @@ pub struct VulkanoRenderer {
     #[allow(dead_code)]
     surface: Arc<Surface<AMWin>>,
     depth_buffer: Arc<ImageViewAccess + Send + Sync>,
-    events_loop: Arc<Mutex<winit::EventsLoop>>,
+    events_loop: Arc<Mutex<Option<winit::event_loop::EventLoop<()>>>>,
     device: Arc<Device>,
     queue: Arc<Queue>,
     swapchain: Arc<Swapchain<AMWin>>,
@@ -283,7 +283,7 @@ impl VulkanoRenderer {
 
     pub fn new<'a>(
         window: AMWin,
-        events_loop: Arc<Mutex<winit::EventsLoop>>,
+        events_loop: Arc<Mutex<Option<winit::event_loop::EventLoop<()>>>>,
         draw_mode: DrawMode,
     ) -> Result<Self, Box<Error>> {
         let instance = {

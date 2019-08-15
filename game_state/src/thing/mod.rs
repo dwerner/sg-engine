@@ -1,32 +1,12 @@
-use {
-    create_next_identity,
-    Identity,
-    Identifyable,
-    model,
-};
-
-use cgmath::{
-    Vector3,
-    Point3,
-    Matrix4,
-    PerspectiveFov,
-    Rad,
-    SquareMatrix,
-    InnerSpace,
-    Angle,
-};
-
-
-use std::sync::{
-    Arc,
-    Mutex,
-};
+use cgmath::{Angle, InnerSpace, Matrix4, PerspectiveFov, Rad, SquareMatrix, Vector3};
+use std::sync::{Arc, Mutex};
 
 use super::time::Duration;
+use crate::{create_next_identity, model, Identifyable, Identity};
 
 pub enum FacetIndex {
     Physical(usize), // does it have mass?
-    Health(usize),  // can it be hurt? die?
+    Health(usize),   // can it be hurt? die?
     Camera(usize),
     Model(usize),
     // Input(usize),
@@ -38,16 +18,16 @@ pub enum FacetIndex {
 
 pub struct ModelInstanceFacet<U = f32> {
     pub transform: Matrix4<U>,
-    model: Arc<model::Model>
+    model: Arc<model::Model>,
 }
 
 pub struct HealthFacet {
-    hp: u32
+    hp: u32,
 }
 
 impl HealthFacet {
     fn new(hp: u32) -> Self {
-        HealthFacet{ hp }
+        HealthFacet { hp }
     }
     fn take_dmg(&mut self, dmg: u32) {
         if dmg > self.hp {
@@ -56,7 +36,9 @@ impl HealthFacet {
             self.hp -= dmg;
         }
     }
-    fn is_alive(&self) -> bool { self.hp > 0 }
+    fn is_alive(&self) -> bool {
+        self.hp > 0
+    }
 }
 
 pub enum Shape {
@@ -94,35 +76,54 @@ pub enum Direction {
     Left,
     Right,
     Forward,
-    Backward
+    Backward,
 }
 
 impl CameraFacet {
-
     pub fn new(pos: Vector3<f32>, rotation: Vector3<f32>) -> Self {
-        let mut c = CameraFacet{
+        let mut c = CameraFacet {
             pos,
             rotation,
-            rotation_speed : 1.0,
-            movement_speed : 1.0,
+            rotation_speed: 1.0,
+            movement_speed: 1.0,
             movement_dir: None,
-            dirty : false,
+            dirty: false,
             view: Matrix4::<f32>::identity(),
 
             // TODO fix default perspective values
-            perspective: PerspectiveFov{ fovy: Rad(0.75), aspect: 1.7, near: 0.0, far: 100.0 }
+            perspective: PerspectiveFov {
+                fovy: Rad(0.75),
+                aspect: 1.7,
+                near: 0.0,
+                far: 100.0,
+            },
         };
         c.update_view_matrix();
         c
     }
 
     pub fn set_perspective(&mut self, fov: f32, aspect: f32, near: f32, far: f32) {
-        self.perspective = PerspectiveFov{ fovy: Rad(fov), aspect, near, far };
+        self.perspective = PerspectiveFov {
+            fovy: Rad(fov),
+            aspect,
+            near,
+            far,
+        };
     }
 
     pub fn update_aspect_ratio(&mut self, aspect: f32) {
-        let PerspectiveFov{ fovy, aspect: _aspect, near, far} = self.perspective;
-        self.perspective = PerspectiveFov{ fovy, aspect, near, far };
+        let PerspectiveFov {
+            fovy,
+            aspect: _aspect,
+            near,
+            far,
+        } = self.perspective;
+        self.perspective = PerspectiveFov {
+            fovy,
+            aspect,
+            near,
+            far,
+        };
     }
 
     pub fn set_pos(&mut self, pos: Vector3<f32>) {
@@ -149,26 +150,19 @@ impl CameraFacet {
     pub fn forward(&self) -> Vector3<f32> {
         let r = &self.rotation;
         let (rx, ry) = (Rad(r.x), Rad(r.y));
-        let f = Vector3::new(
-            -(rx.cos()) * ry.sin(),
-            rx.sin(),
-            rx.cos() * ry.cos()
-        ).normalize();
-        f
+        Vector3::new(-(rx.cos()) * ry.sin(), rx.sin(), rx.cos() * ry.cos()).normalize()
     }
 
     #[inline]
     pub fn right(&self) -> Vector3<f32> {
         let y = Vector3::new(0.0, 1.0, 0.0);
-        let r = y.cross(self.forward()).normalize();
-        r
+        y.cross(self.forward()).normalize()
     }
 
     #[inline]
     pub fn up(&self) -> Vector3<f32> {
         let x = Vector3::new(1.0, 0.0, 0.0);
-        let r = x.cross(self.forward()).normalize();
-        r
+        x.cross(self.forward()).normalize()
     }
 
     pub fn update(&mut self, dt: &Duration) {
@@ -177,12 +171,12 @@ impl CameraFacet {
             if let Some(move_dir) = &self.movement_dir {
                 let m = self.movement_speed * amount;
                 let d = match move_dir {
-                    Direction::Forward =>  self.forward(),
+                    Direction::Forward => self.forward(),
                     Direction::Backward => -self.forward(),
-                    Direction::Right =>    self.right(),
-                    Direction::Left =>     -self.right(),
-                    Direction::Up =>       self.up(),
-                    Direction::Down =>     -self.up(),
+                    Direction::Right => self.right(),
+                    Direction::Left => -self.right(),
+                    Direction::Up => self.up(),
+                    Direction::Down => -self.up(),
                 };
                 self.pos += d * m;
             }
@@ -192,10 +186,9 @@ impl CameraFacet {
     }
 
     fn update_view_matrix(&mut self) {
-
-        let rot = Matrix4::from_angle_x(Rad(self.rotation.x)) *
-                  Matrix4::from_angle_y(Rad(self.rotation.y)) *
-                  Matrix4::from_angle_z(Rad(self.rotation.z));
+        let rot = Matrix4::from_angle_x(Rad(self.rotation.x))
+            * Matrix4::from_angle_y(Rad(self.rotation.y))
+            * Matrix4::from_angle_z(Rad(self.rotation.z));
 
         let trans = Matrix4::from_translation(self.pos);
 
@@ -203,7 +196,6 @@ impl CameraFacet {
 
         self.dirty = true;
     }
-
 }
 
 // TODO implement the rest of the facets
@@ -220,7 +212,7 @@ pub struct WorldFacets {
 
 impl WorldFacets {
     pub fn new() -> Self {
-        WorldFacets{
+        WorldFacets {
             cameras: Vec::new(),
             physical: Vec::new(),
             models: Vec::new(),
@@ -235,18 +227,17 @@ pub struct World {
 }
 
 impl World {
-
     pub fn new() -> Self {
-        World{
+        World {
             things: Vec::new(),
-            facets: WorldFacets::new()
+            facets: WorldFacets::new(),
         }
     }
 
     pub fn start_thing(&mut self) -> ThingBuilder {
-        ThingBuilder{
+        ThingBuilder {
             world: self,
-            facets: Vec::new()
+            facets: Vec::new(),
         }
     }
 
@@ -264,8 +255,7 @@ pub struct ThingBuilder<'a> {
     facets: Vec<FacetIndex>,
 }
 
-impl <'a> ThingBuilder <'a> {
-
+impl<'a> ThingBuilder<'a> {
     pub fn with_camera(mut self, camera: CameraFacet) -> Self {
         let idx = self.world.facets.cameras.len();
         self.world.facets.cameras.push(camera);
@@ -275,7 +265,10 @@ impl <'a> ThingBuilder <'a> {
 
     pub fn with_model(mut self, transform: Matrix4<f32>, model: Arc<model::Model>) -> Self {
         let idx = self.world.facets.models.len();
-        self.world.facets.models.push(ModelInstanceFacet{ transform, model });
+        self.world
+            .facets
+            .models
+            .push(ModelInstanceFacet { transform, model });
         self.facets.push(FacetIndex::Camera(idx));
         self
     }
@@ -286,7 +279,6 @@ impl <'a> ThingBuilder <'a> {
         self.world.things.push(a.clone());
         a
     }
-
 }
 
 pub struct Thing {
@@ -295,21 +287,24 @@ pub struct Thing {
 }
 
 impl Thing {
-
     pub fn new(facets: Vec<FacetIndex>) -> Self {
         let id = create_next_identity();
-        Thing{ id, facets }
+        Thing { id, facets }
     }
 
     pub fn get_camera_fi(&mut self) -> Option<&FacetIndex> {
         self.facets.iter().find(|i| {
-            if let FacetIndex::Camera(_) = i { true } else { false }
+            if let FacetIndex::Camera(_) = i {
+                true
+            } else {
+                false
+            }
         })
     }
-
 }
 
 impl Identifyable for Thing {
-    fn identify(&self) -> u64 { self.id }
+    fn identify(&self) -> u64 {
+        self.id
+    }
 }
-

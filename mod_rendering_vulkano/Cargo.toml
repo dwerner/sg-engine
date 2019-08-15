@@ -1,4 +1,7 @@
 [package]
+publish = false
+# TODO: switch to shaderc
+#edition = "2018"
 name = "mod_rendering_vulkano"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]

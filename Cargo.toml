@@ -4,6 +4,7 @@ version = "0.2.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
 publish = false
 build = "build.rs"
+edition = "2018"
 
 [lib]
 name = "engine"

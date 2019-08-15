@@ -1,32 +1,23 @@
-use super::{
-    Renderer,
-};
+use super::Renderer;
 // use ui::view::UIView;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use input::InputSource;
-use input::events::InputEvent;
-use ui::events::UIEvent;
+use crate::input::events::InputEvent;
+use crate::input::InputSource;
+use crate::ui::events::UIEvent;
 
-use Identity;
+use crate::Identity;
 
-use state::{
-    State,
-    World,
-    SceneGraph,
-    WindowWithEvents,
-};
+use crate::state::{SceneGraph, State, WindowWithEvents, World};
 
-use super::thing::Thing;
 use super::Model;
 
-use winit::Window;
-use winit::EventsLoop;
-use winit::WindowBuilder;
 use winit::dpi::LogicalSize;
+use winit::event_loop::EventLoop;
+use winit::window::{Window, WindowBuilder};
 
 pub trait WorldAccess {
     fn get_world(&mut self) -> &mut World;
@@ -106,22 +97,20 @@ impl WorldAccess for State {
 
 impl WindowAccess for State {
     fn add_window(&mut self, w: u32, h: u32, title: String) {
+        let events_loop = Arc::new(Mutex::new(Some(EventLoop::new())));
 
-        let events_loop = Arc::new(Mutex::new(EventsLoop::new()));
-
-        let window: Window  = {
+        let window: Window = {
             let maybe_window = WindowBuilder::new();
             let maybe_window = maybe_window.with_title(title);
-            let maybe_window = maybe_window.with_dimensions(LogicalSize::new(w as f64, h as f64));
-            maybe_window.build(&events_loop.lock().unwrap())
-        }.expect("unable to create window");
+            let maybe_window = maybe_window.with_resizable(true);
+            let maybe_window = maybe_window.with_inner_size(LogicalSize::new(w.into(), h.into()));
+            maybe_window.build(events_loop.lock().unwrap().as_ref().unwrap())
+        }
+        .expect("unable to create window");
 
-        self.render_state.windows.push(
-            WindowWithEvents::new(
-                Arc::new(window),
-                events_loop
-            )
-        );
+        self.render_state
+            .windows
+            .push(WindowWithEvents::new(Arc::new(window), events_loop));
     }
 
     fn get_windows(&mut self) -> &Vec<WindowWithEvents> {
@@ -131,8 +120,8 @@ impl WindowAccess for State {
     fn add_window_builder(&mut self, w: f64, h: f64, title: String) {
         let maybe_window = WindowBuilder::new();
         let maybe_window = maybe_window.with_title(title);
-        let w = maybe_window.with_dimensions(LogicalSize::new(w,h));
-        self.render_state.window_builders.push( w );
+        let w = maybe_window.with_inner_size(LogicalSize::new(w, h));
+        self.render_state.window_builders.push(w);
     }
 
     fn get_window_builders(&self) -> &Vec<WindowBuilder> {
@@ -141,7 +130,6 @@ impl WindowAccess for State {
 }
 
 impl RenderLayerAccess for State {
-
     fn get_render_layers(&mut self) -> &Vec<Arc<SceneGraph>> {
         &mut self.render_state.render_layers
     }
@@ -153,7 +141,6 @@ impl RenderLayerAccess for State {
     fn clear_render_layers(&mut self) {
         self.render_state.render_layers.clear();
     }
-
 }
 
 impl RenderAccess for State {
@@ -212,7 +199,6 @@ impl RenderAccess for State {
     }
 }
 
-
 impl InputAccess for State {
     fn has_pending_input_events(&self) -> bool {
         !self.input_state.pending_input_events.is_empty()
@@ -238,20 +224,19 @@ impl InputAccess for State {
         // we want to clear that queue each tick, regardless of if we dealt with the events
 
         // Now we want to
-        for i in 0 .. self.render_state.renderers.len() {
+        for i in 0..self.render_state.renderers.len() {
             let mut events = self.render_state.renderers[i].get_input_events();
-            if events.len() > 0 {
+            if !events.is_empty() {
                 self.input_state.pending_input_events.append(&mut events);
             }
         }
 
         for i in 0..self.input_state.other_input_sources.len() {
             let mut events = self.input_state.other_input_sources[i].get_input_events();
-            if events.len() > 0 {
+            if !events.is_empty() {
                 self.input_state.pending_input_events.append(&mut events);
             }
         }
-
     }
 
     fn add_input_source(&mut self, source: Box<InputSource>) {

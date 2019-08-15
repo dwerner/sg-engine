@@ -27,12 +27,10 @@ pub extern "C" fn mod_input_load(state: &mut State) {
 
 #[no_mangle]
 pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
-    /*
     state.clear_input_events();
     state.gather_input_events();
 
     if state.has_pending_input_events() {
-
         let events = state.get_input_events().clone();
         for e in events {
             let mut camera = &mut state.get_world().get_facets().cameras[0];
@@ -45,18 +43,16 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                         }
                         _ => {}
                     }
-                },
+                }
                 InputEvent::JoyButtonUp(_src, _id, btn) => {
                     camera.movement_dir = None;
-                },
-                InputEvent::JoyButtonDown(_src, _id, btn) => {
-                    match btn {
-                        JoyButton::DPadUp => camera.movement_dir = Some(Direction::Forward),
-                        JoyButton::DPadLeft => camera.movement_dir = Some(Direction::Left),
-                        JoyButton::DPadDown => camera.movement_dir = Some(Direction::Backward),
-                        JoyButton::DPadRight => camera.movement_dir = Some(Direction::Right),
-                        _ => {}
-                    }
+                }
+                InputEvent::JoyButtonDown(_src, _id, btn) => match btn {
+                    JoyButton::DPadUp => camera.movement_dir = Some(Direction::Forward),
+                    JoyButton::DPadLeft => camera.movement_dir = Some(Direction::Left),
+                    JoyButton::DPadDown => camera.movement_dir = Some(Direction::Backward),
+                    JoyButton::DPadRight => camera.movement_dir = Some(Direction::Right),
+                    _ => {}
                 },
                 InputEvent::KeyDown(_id, keycode) => {
                     //
@@ -73,9 +69,9 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                         18 => camera.movement_dir = Some(Direction::Up),
                         // c
                         46 => camera.movement_dir = Some(Direction::Down),
-                          // w
+                        // w
                         17 => camera.movement_dir = Some(Direction::Forward),
-                         // a
+                        // a
                         30 => camera.movement_dir = Some(Direction::Left),
                         // s
                         31 => camera.movement_dir = Some(Direction::Backward),
@@ -83,29 +79,25 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                         32 => camera.movement_dir = Some(Direction::Right),
                         _ => {}
                     }
-                },
+                }
                 InputEvent::MouseMove(_id, _sp, delta) => {
                     let sensitivity = 100.0;
                     let (dx, dy) = (delta.delta_x as f32, delta.delta_y as f32);
                     let xa = dx / sensitivity;
                     let ya = dy / sensitivity;
-                    camera.rotate(
-                        cgmath::Vector3::new(-ya, -xa, 0.0)
-                    );
-                },
+                    camera.rotate(cgmath::Vector3::new(-ya, -xa, 0.0));
+                }
                 evt => {
                     println!("event {:?}", evt);
                 }
             }
         }
-
     }
 
     {
         let mut camera = &mut state.get_world().get_facets().cameras[0];
         camera.update(dt);
     }
-        */
 }
 
 #[no_mangle]

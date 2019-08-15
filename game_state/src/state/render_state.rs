@@ -1,20 +1,12 @@
-use Identity;
+use std::sync::{Arc, Mutex};
 
-use std::sync::{
-    Arc,
-    Mutex,
-};
+use winit::event_loop::EventLoop;
+use winit::window::{Window, WindowBuilder};
 
-use super::Model;
-use super::Renderer;
+use super::{Model, Renderer};
+use crate::tree::RcNode;
+use crate::Identity;
 
-use winit::{
-    Window,
-    EventsLoop,
-    WindowBuilder,
-};
-
-use tree::{ RcNode };
 pub struct SceneGraph {
     pub root: RcNode<Identity>,
 }
@@ -23,17 +15,17 @@ pub struct SceneGraph {
 pub enum DrawMode {
     Wireframe,
     Points,
-    Colored
+    Colored,
 }
 
 #[derive(Clone)]
 pub struct WindowWithEvents {
     window: Arc<Window>,
-    event_loop: Arc<Mutex<EventsLoop>>
+    event_loop: Arc<Mutex<Option<EventLoop<()>>>>,
 }
 
 impl WindowWithEvents {
-    pub fn new( window: Arc<Window>, event_loop: Arc<Mutex<EventsLoop>> ) -> Self {
+    pub fn new(window: Arc<Window>, event_loop: Arc<Mutex<Option<EventLoop<()>>>>) -> Self {
         WindowWithEvents { window, event_loop }
     }
 
@@ -41,7 +33,7 @@ impl WindowWithEvents {
         &self.window
     }
 
-    pub fn get_event_loop(&self) -> &Arc<Mutex<EventsLoop>> {
+    pub fn get_event_loop(&self) -> &Arc<Mutex<Option<EventLoop<()>>>> {
         &self.event_loop
     }
 }
@@ -55,12 +47,12 @@ pub struct RenderState {
 }
 impl RenderState {
     pub fn new() -> Self {
-        RenderState{
+        RenderState {
             models: Vec::new(),
             windows: Vec::new(),
             window_builders: Vec::new(), // glutin requires a builder
             renderers: Vec::new(),
-            render_layers: Vec::new()
+            render_layers: Vec::new(),
         }
     }
 }

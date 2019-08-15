@@ -12,35 +12,25 @@ use game_state::time::Duration;
 
 use game_state::winit::EventsLoop;
 
-use std::sync::{
-    Arc,
-    Mutex
-};
+use std::sync::{Arc, Mutex};
 
 mod renderer;
 
-use game_state::state::{
-    State,
-    RenderAccess,
-    WindowAccess,
-    DrawMode
-};
+use game_state::state::{DrawMode, RenderAccess, State, WindowAccess};
 
-use renderer::opengl::{
-    OpenGLRenderer,
-};
+use renderer::opengl::OpenGLRenderer;
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_opengl_load( state: &mut State ) {
-    let events_loop = Arc::new(Mutex::new(EventsLoop::new()));
-    let windows = state.get_window_builders().iter().map(|x| x.clone()).collect::<Vec<_>>();
+pub extern "C" fn mod_rendering_opengl_load(state: &mut State) {
+    let events_loop = Arc::new(Mutex::new(Some(EventsLoop::new())));
+    let windows = state
+        .get_window_builders()
+        .iter()
+        .map(|x| x.clone())
+        .collect::<Vec<_>>();
 
     for w in windows {
-        state.add_renderer(
-            Box::new(
-                OpenGLRenderer::new(w, events_loop.clone())
-            ),
-        );
+        state.add_renderer(Box::new(OpenGLRenderer::new(w, events_loop.clone())));
     }
 
     state.on_render_load();
@@ -53,9 +43,7 @@ pub extern "C" fn mod_rendering_opengl_update(state: &mut State, dt: &Duration) 
     state.present_all();
 }
 
-
 #[no_mangle]
-pub extern "C" fn mod_rendering_opengl_unload(state: &mut State ) {
-
+pub extern "C" fn mod_rendering_opengl_unload(state: &mut State) {
     state.on_render_unload();
 }

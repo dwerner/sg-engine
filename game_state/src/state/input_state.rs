@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use input::events::InputEvent;
-use input::InputSource;
+use crate::input::events::InputEvent;
+use crate::input::InputSource;
 
 pub struct InputState {
     pub pending_input_events: VecDeque<InputEvent>,

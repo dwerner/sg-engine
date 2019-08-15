@@ -7,8 +7,6 @@ use vulkano::swapchain::SurfaceCreationError;
 
 use std::sync::Arc;
 
-use std::ptr;
-
 pub fn required_extensions() -> InstanceExtensions {
     let ideal = InstanceExtensions {
         khr_surface: true,
@@ -29,14 +27,14 @@ pub fn required_extensions() -> InstanceExtensions {
     }
 }
 
-type AMWin = Arc<winit::Window>;
+type AMWin = Arc<winit::window::Window>;
 
 #[cfg(target_os = "android")]
 pub unsafe fn winit_to_surface(
     instance: Arc<Instance>,
     win: AMWin,
 ) -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
-    use winit::os::android::WindowExt;
+    use winit::platform::android::WindowExt;
     Surface::from_anativewindow(instance, &win.get_native_window(), win.clone())
 }
 
@@ -45,8 +43,8 @@ pub unsafe fn winit_to_surface(
     instance: Arc<Instance>,
     win: AMWin,
 ) -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
-    use winit::os::unix::WindowExt;
-    match (&win.get_wayland_display(), win.get_wayland_surface()) {
+    use winit::platform::unix::WindowExtUnix;
+    match (&win.wayland_display(), win.wayland_surface()) {
         (Some(display), Some(surface)) => {
             Surface::from_wayland(instance, display, surface, win.clone())
         }
@@ -57,15 +55,15 @@ pub unsafe fn winit_to_surface(
             if instance.loaded_extensions().khr_xlib_surface {
                 Surface::from_xlib(
                     instance,
-                    win.get_xlib_display().unwrap(),
-                    win.get_xlib_window().unwrap() as _,
+                    win.xlib_display().unwrap(),
+                    win.xlib_window().unwrap() as _,
                     win.clone(),
                 )
             } else {
                 Surface::from_xcb(
                     instance,
-                    win.get_xcb_connection().unwrap(),
-                    win.get_xlib_window().unwrap() as _,
+                    win.xcb_connection().unwrap(),
+                    win.xlib_window().unwrap() as _,
                     win.clone(),
                 )
             }
@@ -78,7 +76,7 @@ pub unsafe fn winit_to_surface(
     instance: Arc<Instance>,
     win: AMWin,
 ) -> Result<Arc<Surface<AMWin>>, SurfaceCreationError> {
-    use winit::os::windows::WindowExt;
+    use winit::platform::windows::WindowExt;
     let hwnd = win.get_hwnd();
     Surface::from_hwnd(
         instance,
