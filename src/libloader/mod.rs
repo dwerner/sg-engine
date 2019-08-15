@@ -11,6 +11,10 @@ use time::Duration as TDuration;
 use time::PreciseTime;
 
 ///
+/// TODO:
+///     Add async futures layer over this - allowing module calls to be composed
+///     together as futures.
+///
 /// TODO: support a dynamically *defined* and dynamically loaded lib
 /// --> Load module definitions at runtime, even watch a mod folder and load them based on a def
 ///
@@ -88,14 +92,13 @@ impl LibLoader {
     ///
     pub fn new(filename: &str, mod_name: &str) -> Self {
         let modified = Duration::from_millis(0);
-        let loader = LibLoader {
+        LibLoader {
             filename: filename.to_string(),
             lib: None,
-            modified: modified,
             version: 0,
             mod_name: mod_name.to_string(),
-        };
-        loader
+            modified,
+        }
     }
 
     ///
@@ -233,7 +236,7 @@ impl LibLoader {
 
                 match maybe_func {
                     Ok(func) => func(state, delta_time),
-                    Err(e) => println!(
+                    Err(_) => println!(
                         "Unable to call function: {} - method does not exist in lib: {:?}",
                         method_name, lib
                     ),

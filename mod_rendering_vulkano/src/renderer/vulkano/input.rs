@@ -3,11 +3,9 @@ use std::collections::VecDeque;
 use super::VulkanoRenderer;
 
 use game_state::input::events::{InputEvent, MouseButton};
-use game_state::winit;
-
 use game_state::input::screen::{DeltaVector, ScreenPoint, ScreenRect};
-
 use game_state::input::InputSource;
+use game_state::winit;
 
 // TODO: probably extract this to game_state
 impl VulkanoRenderer {
@@ -111,9 +109,16 @@ impl VulkanoRenderer {
 // TODO: simply From<winit::Event> for InputEvent
 impl InputSource for VulkanoRenderer {
     fn get_input_events(&mut self) -> VecDeque<InputEvent> {
-        //println!("get_input_events");
         let mut events = VecDeque::new();
+        events
+
+        /*
+        //println!("get_input_events");
         {
+
+            // TODO inject futures::mpsc::channel and send events over that instead
+            // of using "get_input_events"
+
             let el = &mut *self.events_loop.lock().unwrap();
             let mut event_loop = std::mem::replace(el, None);
 
@@ -133,7 +138,7 @@ impl InputSource for VulkanoRenderer {
         let mut converted_events = VecDeque::with_capacity(events.len());
 
         for e in events {
-            match e {
+            match &e {
                 // TODO: examine if we should be using DeviceEvent as our input rather than WindowEvent
                 // this would prevent the need to wrap the cursor when grabbed
                 winit::event::Event::DeviceEvent {
@@ -287,5 +292,6 @@ impl InputSource for VulkanoRenderer {
             };
         }
         converted_events
+            */
     }
 }
