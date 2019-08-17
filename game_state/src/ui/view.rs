@@ -21,11 +21,11 @@ impl UIView {
         }
     }
 
-    fn hit_test(&self, point: &ScreenPoint) -> bool {
-        self.bounds.intersects(point)
+    fn hit_test(&self, point: ScreenPoint) -> bool {
+        self.bounds.intersects(&point)
     }
 
-    pub fn move_to_point(&mut self, point: &ScreenPoint) {
+    pub fn move_to_point(&mut self, point: ScreenPoint) {
         self.bounds.x = point.x;
         self.bounds.y = point.y;
     }
@@ -60,7 +60,7 @@ impl UIWindow {
             active_handlers: HashMap::new(),
         }
     }
-    pub fn perform_click(&mut self, p: &ScreenPoint) {
+    pub fn perform_click(&mut self, p: ScreenPoint) {
         if self.view.hit_test(p) {
             let event = UIEvent::Clicked(self.id);
             self.event_producer.publish(event);
@@ -76,7 +76,7 @@ impl UIWindow {
         // Window will own it's handlers:
         self.active_handlers
             .entry(tag.to_string())
-            .or_insert(event_handler.clone());
+            .or_insert_with(|| event_handler.clone());
         self.event_producer
             .add_handler(tag.to_string(), &event_handler);
     }
@@ -100,10 +100,9 @@ mod tests {
         let generic = UIView::new("dunno".to_string(), ScreenRect::new(5, 5, 5, 5));
         let hit = ScreenPoint::new(15, 15);
         let miss = ScreenPoint::new(5, 5);
-        window.view.move_to_point(&hit);
-        assert!(generic.id() == "dunno".to_string());
-        assert!(window.view.hit_test(&hit));
-        assert!(!window.view.hit_test(&miss));
+        window.view.move_to_point(hit);
+        assert!(window.view.hit_test(hit));
+        assert!(!window.view.hit_test(miss));
     }
 
     #[test]
@@ -119,7 +118,7 @@ mod tests {
         assert!(*flag.lock().unwrap() == 0);
 
         let point = ScreenPoint::new(15, 15);
-        window.perform_click(&point);
+        window.perform_click(point);
 
         assert!(*flag.lock().unwrap() == 1);
     }

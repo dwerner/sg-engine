@@ -1,4 +1,4 @@
-use nalgebra::{Matrix4, SquareMatrix};
+use nalgebra::Matrix4;
 
 // TODO: still need to refactor nom-obj to take BufReader, among other things
 use nom_obj::model::{Interleaved, Obj};
@@ -76,12 +76,7 @@ impl Model {
 }
 
 #[test]
-fn load_teapot_obj() {
-    let model = Model::create("teapot.obj", Matrix4::<f32>::identity());
-    assert_eq!(model.mesh.vertices.len(), 42);
-}
-
-#[test]
+#[cfg(test)]
 fn slice_windows_learning() {
     let vec1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     let vec2 = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
@@ -148,11 +143,8 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn create(v: Vec<Vertex>, i: Vec<u16>) -> Self {
-        Mesh {
-            vertices: v,
-            indices: i,
-        }
+    pub fn create(vertices: Vec<Vertex>, indices: Vec<u16>) -> Self {
+        Mesh { vertices, indices }
     }
 }
 

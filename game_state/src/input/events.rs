@@ -82,7 +82,7 @@ pub enum InputEvent {
 mod tests {
     use super::*;
 
-    use event::{CopyingEventProducer, EventProducer};
+    use crate::event::{CopyingEventProducer, EventProducer};
 
     use std::sync::{Arc, Mutex};
 
@@ -100,6 +100,7 @@ mod tests {
 
     #[test]
     fn input_publisher_publishes_events() {
+        let id = 0u64 as Identity;
         let s1 = KeydownState {
             keys_down: [false; 256],
         };
@@ -108,10 +109,10 @@ mod tests {
 
         let handler1 = CopyingEventProducer::<InputEvent>::create_handler(
             move |event: InputEvent| match event {
-                InputEvent::KeyDown(code) => {
+                InputEvent::KeyDown(_id, code) => {
                     closed_state.lock().unwrap().keys_down[code as usize] = true;
                 }
-                InputEvent::KeyUp(code) => {
+                InputEvent::KeyUp(_id, code) => {
                     closed_state.lock().unwrap().keys_down[code as usize] = false;
                 }
                 _ => {
@@ -120,8 +121,8 @@ mod tests {
             },
         );
 
-        let down_event = InputEvent::KeyDown(42);
-        let up_event = InputEvent::KeyUp(42);
+        let down_event = InputEvent::KeyDown(id, 42);
+        let up_event = InputEvent::KeyUp(id, 42);
 
         let mut producer = CopyingEventProducer::<InputEvent>::new();
 
@@ -145,7 +146,7 @@ mod tests {
         let pressed = state.lock().unwrap().get_keys()[42];
         assert!(!pressed);
 
-        let evt = InputEvent::KeyDown(69);
+        let evt = InputEvent::KeyDown(id, 69);
         producer.publish(evt);
     }
 
