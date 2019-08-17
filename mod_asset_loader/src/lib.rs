@@ -1,31 +1,22 @@
-extern crate game_state;
-extern crate cgmath;
+use std::sync::Arc;
+use std::time::Duration;
 
-use game_state::state::State;
-use game_state::state::RenderLayerAccess;
-
-use game_state::model::{ Model };
-use game_state::tree::{ Node };
-use game_state::state::{ SceneGraph };
-
-use game_state::time::Duration;
-
-use game_state::thing::ThingBuilder;
-use game_state::thing::CameraFacet;
-
-use game_state::state::ModelAccess;
-use game_state::state::WorldAccess;
-
-use std::sync::{
-    Arc,
-};
-
+// TODO: switch to nalgebra
 use cgmath::Matrix4;
 use cgmath::Vector3;
 
+use game_state::model::Model;
+use game_state::state::ModelAccess;
+use game_state::state::RenderLayerAccess;
+use game_state::state::SceneGraph;
+use game_state::state::State;
+use game_state::state::WorldAccess;
+use game_state::thing::CameraFacet;
+use game_state::tree::Node;
+
 #[no_mangle]
-pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
-    assert!(state.get_render_layers().len() == 0);
+pub extern "C" fn mod_asset_loader_load(state: &mut State) {
+    assert!(state.get_render_layers().is_empty());
 
     let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0)) * Matrix4::from_scale(1.0);
 
@@ -42,25 +33,24 @@ pub extern "C" fn mod_asset_loader_load( state: &mut State ) {
     {
         let world = state.get_world();
         // build the actual entity
-        let thing = world.start_thing()
-            .with_camera(
-                CameraFacet::new(
-                    cgmath::Vector3::new(0.0, 0.0, 0.0),   // pos
-                    cgmath::Vector3::new(0.0, 1.0, 0.0)  // rotation
-                )
-            )
+        let _thing = world
+            .start_thing()
+            .with_camera(CameraFacet::new(
+                cgmath::Vector3::new(0.0, 0.0, 0.0), // pos
+                cgmath::Vector3::new(0.0, 1.0, 0.0), // rotation
+            ))
             .with_model(mx, am)
-            .build(); 
+            .build();
     }
 
-    let root = Node::create( 0, None );
-    let child = Node::create( 1, Some(root.clone()) );
+    let root = Node::create(0, None);
+    let _child = Node::create(1, Some(root.clone()));
 
-    state.add_render_layer(Arc::new(SceneGraph{root:root}));
+    state.add_render_layer(Arc::new(SceneGraph { root }));
 }
 
 #[no_mangle]
-pub extern "C" fn mod_asset_loader_update( _state: &mut State, dt: &Duration ) {
+pub extern "C" fn mod_asset_loader_update(_state: &mut State, _dt: &Duration) {
     //
     // this module might look for unused assets, or requests for loading new ones?
     // for instance, instead of blindly loading an asset and pushing it into state, we COULD be loading files
@@ -69,6 +59,6 @@ pub extern "C" fn mod_asset_loader_update( _state: &mut State, dt: &Duration ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_asset_loader_unload( state: &mut State ) {
+pub extern "C" fn mod_asset_loader_unload(state: &mut State) {
     state.clear_render_layers();
 }

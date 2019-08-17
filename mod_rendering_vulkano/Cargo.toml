@@ -1,10 +1,11 @@
 [package]
 publish = false
-# TODO: switch to shaderc
-#edition = "2018"
 name = "mod_rendering_vulkano"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
+
+# TODO: switch to shaderc
+#edition = "2018"
 
 [features]
 default = []
@@ -15,9 +16,10 @@ name = "mod_rendering_vulkano"
 crate-type=["dylib"]
 
 [dependencies]
-# Vulkano Renderer
 vulkano = "0.12"
 vulkano-shaders = "0.12"
+
+# TODO shaderc: newer spriv library!
 glsl-to-spirv = "0.1"
 
 cgmath = "0.16"

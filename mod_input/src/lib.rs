@@ -1,24 +1,20 @@
-extern crate cgmath;
-extern crate game_state;
-
-use game_state::{Identifyable, Identity};
+use std::collections::VecDeque;
+use std::time::Duration;
 
 use game_state::input::events::InputEvent;
-use game_state::input::screen::ScreenPoint;
-use game_state::state::{InputAccess, State, WorldAccess};
-
-use std::collections::VecDeque;
-
 use game_state::input::events::JoyButton;
+use game_state::input::screen::ScreenPoint;
 use game_state::input::InputSource;
-
-use game_state::time::Duration;
-
+use game_state::state::{InputAccess, State, WorldAccess};
 use game_state::thing::Direction;
+use game_state::{Identifyable, Identity};
 
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
 // mapping user settings to keyboard and mouse bindings
+//
+// TODO: VecDeque -> (Event Channel)
+//
 
 #[no_mangle]
 pub extern "C" fn mod_input_load(state: &mut State) {
@@ -94,10 +90,8 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
         }
     }
 
-    {
-        let mut camera = &mut state.get_world().get_facets().cameras[0];
-        camera.update(dt);
-    }
+    let mut camera = &mut state.get_world().get_facets().cameras[0];
+    camera.update(dt);
 }
 
 #[no_mangle]

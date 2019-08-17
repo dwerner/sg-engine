@@ -1,50 +1,41 @@
 extern crate game_state;
-use game_state::winit;
 
 extern crate cgmath;
-#[macro_use] extern crate vulkano;
+#[macro_use]
+extern crate vulkano;
 
 extern crate glsl_to_spirv;
-extern crate vulkano_shaders;
 extern crate image;
+extern crate vulkano_shaders;
 
-use game_state::time::Duration;
+use std::time::Duration;
+
 use game_state::state::ModelAccess;
+use game_state::state::{DrawMode, RenderAccess, State, WindowAccess};
+use game_state::winit;
 
 mod renderer;
-
-use game_state::state::{
-    State,
-    RenderAccess,
-    WindowAccess,
-    DrawMode,
-};
-
-use renderer::vulkano::{
-    VulkanoRenderer,
-};
+use renderer::vulkano::VulkanoRenderer;
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
-
+pub extern "C" fn mod_rendering_vulkano_load(state: &mut State) {
     let windows = state.get_windows().clone();
 
     for w in windows {
-        let maybe_renderer =
-            VulkanoRenderer::new(
-                w.get_window().clone(),
-                w.get_event_loop().clone(),
-                DrawMode::Colored
-            );
+        let maybe_renderer = VulkanoRenderer::new(
+            w.get_window().clone(),
+            w.get_event_loop().clone(),
+            DrawMode::Colored,
+        );
 
         match maybe_renderer {
             Ok(mut renderer) => {
                 for model in state.get_models().iter() {
-                    renderer.upload_model( model.clone() );
+                    renderer.upload_model(model.clone());
                 }
-                state.add_renderer( Box::new(renderer) );
+                state.add_renderer(Box::new(renderer));
             }
-            Err(err) => println!("Failed to load renderer. {}", err)
+            Err(err) => println!("Failed to load renderer. {}", err),
         }
     }
 
@@ -52,15 +43,13 @@ pub extern "C" fn mod_rendering_vulkano_load( state: &mut State ) {
 }
 
 #[no_mangle]
-pub extern "C" fn mod_rendering_vulkano_update(state: &mut State, dt: &Duration) {
+pub extern "C" fn mod_rendering_vulkano_update(state: &mut State, _dt: &Duration) {
     // queue each existing render layers for rendering
     state.push_render_layers();
     state.present_all();
 }
 
-
 #[no_mangle]
-pub extern "C" fn mod_rendering_vulkano_unload(state: &mut State ) {
-
+pub extern "C" fn mod_rendering_vulkano_unload(state: &mut State) {
     state.on_render_unload();
 }

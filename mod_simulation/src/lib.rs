@@ -1,18 +1,14 @@
-extern crate game_state;
+use std::time::Duration;
 
 use game_state::state;
-use game_state::time::Duration;
 
 #[no_mangle]
-pub extern "C" fn mod_simulation_load( s: &mut state::State ) {
-
-}
+pub extern "C" fn mod_simulation_load(_s: &mut state::State) {}
 
 #[no_mangle]
-pub extern "C" fn mod_simulation_update( s: &mut state::State, dt: &Duration) {
+pub extern "C" fn mod_simulation_update(_s: &mut state::State, _dt: &Duration) {
     //println!("sim tick, probably need deltatime (since this mod was last ticked)");
 }
 
 #[no_mangle]
-pub extern "C" fn mod_simulation_unload( s: &mut state::State ) {
-}
+pub extern "C" fn mod_simulation_unload(_s: &mut state::State) {}

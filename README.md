@@ -37,7 +37,6 @@ in particular [null program](http://nullprogram.com/blog/2014/12/23/) and theref
 [handmade hero](https://handmadehero.org/). I should really get around to watching those videos.
 
 
-
 ## `game_state`
  
 The system is comprised of a base library for shared state, in addition to modules. `game_state` defines all shared,

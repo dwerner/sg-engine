@@ -1,16 +1,18 @@
-use ansi_term::Color::{Cyan, Green, Yellow};
-use game_state::state;
-use libloading::{Library, Symbol};
-
 use std::fs;
 use std::io::Error;
 use std::path::Path;
 use std::time::{Duration, Instant, UNIX_EPOCH};
 
+use ansi_term::Color::{Cyan, Green, Yellow};
+use game_state::state;
+use libloading::{Library, Symbol};
+
 ///
 /// TODO:
 ///     Add async futures layer over this - allowing module calls to be composed
 ///     together as futures.
+///
+///     (*)- Perhaps load modules into an evmap for lock-free concurrency?
 ///
 /// TODO: support a dynamically *defined* and dynamically loaded lib
 /// --> Load module definitions at runtime, even watch a mod folder and load them based on a def
@@ -165,7 +167,6 @@ impl LibLoader {
     ///
     /// Call to the mod to update the state with the "update" normative lifecycle event
     ///
-    // External interface prefers time::Duration (TDuration)
     pub fn update(&self, state: &mut state::State, delta_time: &Duration) -> Duration {
         let method_name = format!("mod_{}_update", self.mod_name);
         // todo:

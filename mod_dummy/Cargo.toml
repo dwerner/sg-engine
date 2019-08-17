@@ -1,9 +1,9 @@
 [package]
 publish = false
-edition = "2018"
 name = "mod_dummy"
 version = "0.1.0"
 authors = ["Daniel Werner <dan.werner@gmail.com>"]
+edition = "2018"
 
 [features]
 default = []

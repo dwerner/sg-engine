@@ -1,14 +1,4 @@
-extern crate game_state;
-
-// OpenGL Renderer
-extern crate gl;
-extern crate glutin;
-
-extern crate cgmath;
-extern crate image;
-
-use game_state::time;
-use game_state::time::Duration;
+use std::time::Duration;
 
 use game_state::winit::EventsLoop;
 
