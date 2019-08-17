@@ -1,6 +1,5 @@
 extern crate game_state;
 
-extern crate cgmath;
 #[macro_use]
 extern crate vulkano;
 

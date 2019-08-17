@@ -21,8 +21,6 @@ vulkano-shaders = "0.12"
 
 # TODO shaderc: newer spriv library!
 glsl-to-spirv = "0.1"
-
-cgmath = "0.16"
 image = "0.17"
 
 [dependencies.game_state]

@@ -14,7 +14,6 @@ name = "mod_input"
 crate-type=["dylib"]
 
 [dependencies]
-cgmath = "0.16"
 
 [dependencies.game_state]
 path = "../game_state"

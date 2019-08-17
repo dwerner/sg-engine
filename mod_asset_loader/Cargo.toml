@@ -14,7 +14,6 @@ name = "mod_asset_loader"
 crate-type=["dylib"]
 
 [dependencies]
-cgmath = "0.16"
 
 [dependencies.game_state]
 path = "../game_state"

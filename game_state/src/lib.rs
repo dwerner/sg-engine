@@ -1,4 +1,5 @@
 // opinion here? reexport winit or import in other libs...?
+pub extern crate nalgebra;
 pub extern crate winit;
 
 pub mod model;

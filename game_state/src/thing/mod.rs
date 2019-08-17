@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use cgmath::{Angle, InnerSpace, Matrix4, PerspectiveFov, Rad, SquareMatrix, Vector3};
+use nalgebra::{Matrix4, Perspective3, Scalar, Vector3};
 
 use crate::{create_next_identity, model, Identifyable, Identity};
 
@@ -17,7 +17,10 @@ pub enum FacetIndex {
     // AI(usize),
 }
 
-pub struct ModelInstanceFacet<U = f32> {
+pub struct ModelInstanceFacet<U = f32>
+where
+    U: Scalar,
+{
     pub transform: Matrix4<U>,
     model: Arc<model::Model>,
 }
@@ -66,7 +69,7 @@ pub struct CameraFacet {
     pub movement_speed: f32,
 
     pub view: Matrix4<f32>,
-    pub perspective: PerspectiveFov<f32>,
+    pub perspective: Perspective3<f32>,
     pub movement_dir: Option<Direction>,
 }
 
@@ -92,39 +95,23 @@ impl CameraFacet {
             view: Matrix4::<f32>::identity(),
 
             // TODO fix default perspective values
-            perspective: PerspectiveFov {
-                fovy: Rad(0.75),
-                aspect: 1.7,
-                near: 0.0,
-                far: 100.0,
-            },
+            perspective: Perspective3::<f32>::new(
+                1.7,   //aspect
+                0.75,  //fovy
+                0.0,   // near
+                100.0, //far
+            ),
         };
         c.update_view_matrix();
         c
     }
 
     pub fn set_perspective(&mut self, fov: f32, aspect: f32, near: f32, far: f32) {
-        self.perspective = PerspectiveFov {
-            fovy: Rad(fov),
-            aspect,
-            near,
-            far,
-        };
+        self.perspective = Perspective3::<f32>::new(aspect, fov, near, far);
     }
 
     pub fn update_aspect_ratio(&mut self, aspect: f32) {
-        let PerspectiveFov {
-            fovy,
-            aspect: _aspect,
-            near,
-            far,
-        } = self.perspective;
-        self.perspective = PerspectiveFov {
-            fovy,
-            aspect,
-            near,
-            far,
-        };
+        self.perspective.set_aspect(aspect);
     }
 
     pub fn set_pos(&mut self, pos: Vector3<f32>) {
@@ -150,20 +137,22 @@ impl CameraFacet {
     #[inline]
     pub fn forward(&self) -> Vector3<f32> {
         let r = &self.rotation;
-        let (rx, ry) = (Rad(r.x), Rad(r.y));
+        let (rx, ry) = (r.x, r.y);
         Vector3::new(-(rx.cos()) * ry.sin(), rx.sin(), rx.cos() * ry.cos()).normalize()
     }
 
     #[inline]
     pub fn right(&self) -> Vector3<f32> {
         let y = Vector3::new(0.0, 1.0, 0.0);
-        y.cross(self.forward()).normalize()
+        let forward = self.forward();
+        let cross = y.cross(&forward);
+        cross.normalize()
     }
 
     #[inline]
     pub fn up(&self) -> Vector3<f32> {
         let x = Vector3::new(1.0, 0.0, 0.0);
-        x.cross(self.forward()).normalize()
+        x.cross(&self.forward()).normalize()
     }
 
     pub fn update(&mut self, dt: &Duration) {
@@ -187,14 +176,9 @@ impl CameraFacet {
     }
 
     fn update_view_matrix(&mut self) {
-        let rot = Matrix4::from_angle_x(Rad(self.rotation.x))
-            * Matrix4::from_angle_y(Rad(self.rotation.y))
-            * Matrix4::from_angle_z(Rad(self.rotation.z));
-
-        let trans = Matrix4::from_translation(self.pos);
-
+        let rot = Matrix4::new_rotation(self.rotation);
+        let trans = Matrix4::new_translation(&self.pos);
         self.view = rot * trans;
-
         self.dirty = true;
     }
 }
@@ -204,6 +188,7 @@ impl CameraFacet {
 // this is a premature optimization for the Thing/Facet system in general to avoid losing cache
 // coherency whilst traversing a series of objects. Probably we want to integrate concurrency
 // safety here.
+#[derive(Default)]
 pub struct WorldFacets {
     pub cameras: Vec<CameraFacet>,
     pub models: Vec<ModelInstanceFacet>,
@@ -213,15 +198,11 @@ pub struct WorldFacets {
 
 impl WorldFacets {
     pub fn new() -> Self {
-        WorldFacets {
-            cameras: Vec::new(),
-            physical: Vec::new(),
-            models: Vec::new(),
-            health: Vec::new(),
-        }
+        Default::default()
     }
 }
 
+#[derive(Default)]
 pub struct World {
     things: Vec<Arc<Mutex<Thing>>>,
     facets: WorldFacets,
@@ -229,10 +210,7 @@ pub struct World {
 
 impl World {
     pub fn new() -> Self {
-        World {
-            things: Vec::new(),
-            facets: WorldFacets::new(),
-        }
+        Default::default()
     }
 
     pub fn start_thing(&mut self) -> ThingBuilder {

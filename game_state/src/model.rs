@@ -1,5 +1,4 @@
-use cgmath::Matrix4;
-use cgmath::SquareMatrix;
+use nalgebra::{Matrix4, SquareMatrix};
 
 // TODO: still need to refactor nom-obj to take BufReader, among other things
 use nom_obj::model::{Interleaved, Obj};

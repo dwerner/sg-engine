@@ -2,8 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 // TODO: switch to nalgebra
-use cgmath::Matrix4;
-use cgmath::Vector3;
+use game_state::nalgebra::{Matrix4, Vector3};
 
 use game_state::model::Model;
 use game_state::state::ModelAccess;
@@ -18,7 +17,8 @@ use game_state::tree::Node;
 pub extern "C" fn mod_asset_loader_load(state: &mut State) {
     assert!(state.get_render_layers().is_empty());
 
-    let mx = Matrix4::from_translation(Vector3::new(0.0, 0.0, 0.0)) * Matrix4::from_scale(1.0);
+    let origin = Vector3::new(0.0, 0.0, 0.0);
+    let mx = Matrix4::new_translation(&origin) * Matrix4::new_scaling(1.0);
 
     // Conceptually here, we are loading one model, but we might instance it from many entities
     let model = Model::create("assets/models/pship.obj", mx);
@@ -36,8 +36,8 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
         let _thing = world
             .start_thing()
             .with_camera(CameraFacet::new(
-                cgmath::Vector3::new(0.0, 0.0, 0.0), // pos
-                cgmath::Vector3::new(0.0, 1.0, 0.0), // rotation
+                Vector3::new(0.0, 0.0, 0.0), // pos
+                Vector3::new(0.0, 1.0, 0.0), // rotation
             ))
             .with_model(mx, am)
             .build();

@@ -1,13 +1,18 @@
-use std::collections::VecDeque;
 use std::time::Duration;
 
 use game_state::input::events::InputEvent;
 use game_state::input::events::JoyButton;
-use game_state::input::screen::ScreenPoint;
-use game_state::input::InputSource;
 use game_state::state::{InputAccess, State, WorldAccess};
 use game_state::thing::Direction;
+
+/*
+ * TODO:
 use game_state::{Identifyable, Identity};
+use game_state::input::screen::ScreenPoint;
+use game_state::input::InputSource;
+*/
+
+use game_state::nalgebra::Vector3;
 
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
@@ -40,7 +45,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                         _ => {}
                     }
                 }
-                InputEvent::JoyButtonUp(_src, _id, btn) => {
+                InputEvent::JoyButtonUp(_src, _id, _btn) => {
                     camera.movement_dir = None;
                 }
                 InputEvent::JoyButtonDown(_src, _id, btn) => match btn {
@@ -81,7 +86,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                     let (dx, dy) = (delta.delta_x as f32, delta.delta_y as f32);
                     let xa = dx / sensitivity;
                     let ya = dy / sensitivity;
-                    camera.rotate(cgmath::Vector3::new(-ya, -xa, 0.0));
+                    camera.rotate(Vector3::new(-ya, -xa, 0.0));
                 }
                 evt => {
                     println!("event {:?}", evt);
@@ -90,7 +95,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
         }
     }
 
-    let mut camera = &mut state.get_world().get_facets().cameras[0];
+    let camera = &mut state.get_world().get_facets().cameras[0];
     camera.update(dt);
 }
 

@@ -16,7 +16,7 @@ crate-type=["rlib"]
 
 # needs to match all other modules
 winit = "0.20.0-alpha1"
-cgmath = "0.16"
+nalgebra = "0.18"
 image = "0.17"
 nom-obj = "0.1"
 
