@@ -3,7 +3,6 @@ extern crate game_state;
 #[macro_use]
 extern crate vulkano;
 
-extern crate glsl_to_spirv;
 extern crate image;
 extern crate vulkano_shaders;
 

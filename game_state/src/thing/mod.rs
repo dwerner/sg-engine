@@ -22,25 +22,25 @@ where
     U: Scalar,
 {
     pub transform: Matrix4<U>,
-    model: Arc<model::Model>,
+    pub model: Arc<model::Model>,
 }
 
 pub struct HealthFacet {
-    hp: u32,
+    pub hp: u32,
 }
 
 impl HealthFacet {
-    fn new(hp: u32) -> Self {
+    pub fn new(hp: u32) -> Self {
         HealthFacet { hp }
     }
-    fn take_dmg(&mut self, dmg: u32) {
+    pub fn take_dmg(&mut self, dmg: u32) {
         if dmg > self.hp {
             self.hp = 0;
         } else {
             self.hp -= dmg;
         }
     }
-    fn is_alive(&self) -> bool {
+    pub fn is_alive(&self) -> bool {
         self.hp > 0
     }
 }
@@ -61,6 +61,7 @@ pub struct PhysicalFacet {
 }
 
 pub struct CameraFacet {
+    // TODO: pos and rotation should be part of PhysicalFacet
     pub pos: Vector3<f32>,
     pub rotation: Vector3<f32>,
 
