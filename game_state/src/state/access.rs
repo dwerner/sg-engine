@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::error::Error;
 use std::sync::{Arc, Mutex};
 
 //TODO reexported or implicit?
@@ -9,7 +10,6 @@ use winit::window::{Window, WindowBuilder};
 use super::Model;
 use super::Renderer;
 use crate::input::events::InputEvent;
-use crate::input::InputSource;
 use crate::state::{SceneGraph, State, WindowWithEvents, World};
 use crate::ui::events::UIEvent;
 use crate::Identity;
@@ -34,8 +34,8 @@ pub trait WindowAccess {
 
 // Accessor trait for State by topic
 pub trait RenderAccess {
-    fn get_renderers(&mut self) -> &Vec<Box<Renderer>>;
-    fn add_renderer(&mut self, renderer: Box<Renderer>);
+    fn get_renderers(&mut self) -> &Vec<Box<dyn Renderer>>;
+    fn add_renderer(&mut self, renderer: Box<dyn Renderer>);
     fn clear_renderers(&mut self);
     fn present_all(&mut self);
     fn remove_renderer(&mut self, id: Identity);
@@ -54,15 +54,8 @@ pub trait RenderLayerAccess {
 pub trait InputAccess {
     fn has_pending_input_events(&self) -> bool;
     fn clear_input_events(&mut self);
-    fn get_input_events(&mut self) -> &mut VecDeque<InputEvent>;
-    fn queue_input_event(&mut self, event: InputEvent);
-
-    fn gather_input_events(&mut self);
-
-    fn add_input_source(&mut self, source: Box<InputSource>);
-    fn input_sources_len(&mut self) -> usize;
-    fn remove_input_source(&mut self, id: Identity);
-
+    fn get_input_events(&mut self) -> &VecDeque<InputEvent>;
+    fn send_input_event(&mut self, event: InputEvent) -> Result<(), Box<dyn Error>>;
     fn on_input_load(&mut self);
     fn on_input_unload(&mut self);
 }
@@ -139,11 +132,11 @@ impl RenderLayerAccess for State {
 }
 
 impl RenderAccess for State {
-    fn get_renderers(&mut self) -> &Vec<Box<Renderer>> {
+    fn get_renderers(&mut self) -> &Vec<Box<dyn Renderer>> {
         &self.render_state.renderers
     }
 
-    fn add_renderer(&mut self, renderer: Box<Renderer>) {
+    fn add_renderer(&mut self, renderer: Box<dyn Renderer>) {
         self.render_state.renderers.push(renderer);
     }
 
@@ -203,55 +196,15 @@ impl InputAccess for State {
         self.input_state.pending_input_events.clear();
     }
 
-    fn get_input_events(&mut self) -> &mut VecDeque<InputEvent> {
-        &mut self.input_state.pending_input_events
+    fn get_input_events(&mut self) -> &VecDeque<InputEvent> {
+        &self.input_state.pending_input_events
     }
 
     // Input events might also come from other subsystems, so we allow them to be queued as well
-    fn queue_input_event(&mut self, event: InputEvent) {
-        self.input_state.pending_input_events.push_back(event);
-    }
-    fn gather_input_events(&mut self) {
-        // Renderers own the input event loop associated with their
-        // internals: i.e. the window manager window
-        // - get input events and convert them to our internal format
-        // and push them into the input events queue
-        // we want to clear that queue each tick, regardless of if we dealt with the events
-
-        // Now we want to
-        for i in 0..self.render_state.renderers.len() {
-            let mut events = self.render_state.renderers[i].get_input_events();
-            if !events.is_empty() {
-                self.input_state.pending_input_events.append(&mut events);
-            }
-        }
-
-        for i in 0..self.input_state.other_input_sources.len() {
-            let mut events = self.input_state.other_input_sources[i].get_input_events();
-            if !events.is_empty() {
-                self.input_state.pending_input_events.append(&mut events);
-            }
-        }
+    fn send_input_event(&mut self, event: InputEvent) -> Result<(), Box<dyn Error>> {
+        self.input_state.send(event)
     }
 
-    fn add_input_source(&mut self, source: Box<InputSource>) {
-        self.input_state.other_input_sources.push(source);
-    }
-    fn input_sources_len(&mut self) -> usize {
-        self.input_state.other_input_sources.len()
-    }
-
-    fn remove_input_source(&mut self, id: Identity) {
-        let mut found = None;
-        for i in 0..self.input_state.other_input_sources.len() {
-            if self.input_state.other_input_sources[i].identify() == id {
-                found = Some(i as usize);
-            }
-        }
-        if found.is_some() {
-            self.input_state.other_input_sources.remove(found.unwrap());
-        }
-    }
     fn on_input_load(&mut self) {
         self.input_state.clear();
     }

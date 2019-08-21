@@ -12,12 +12,13 @@ crate-type = ["rlib"]
 
 [dependencies]
 # LibLoader
-libloading = "0.5" # 0.5
-ansi_term = "0.12" # 0.11
+libloading = "0.5"
+ansi_term = "0.12"
 
 [dependencies.game_state]
 path = "game_state"
 
+# TODO: explore this again, look at release strategies:
 # mods don't need to be deps, but can be
 # to get cargo to build them when the main project is built
 # this builds them and puts them in the target for the main output

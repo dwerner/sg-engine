@@ -1,10 +1,3 @@
-use std::collections::VecDeque;
-
-mod access;
-mod input_state;
-mod render_state;
-mod ui_state;
-
 use super::model::Model;
 use super::Renderer;
 use crate::thing::World;
@@ -15,6 +8,11 @@ pub use self::access::{
 pub use self::input_state::InputState;
 pub use self::render_state::{DrawMode, RenderState, SceneGraph, WindowWithEvents};
 use self::ui_state::UIState;
+
+mod access;
+mod input_state;
+mod render_state;
+mod ui_state;
 
 ///
 /// This is the central, and global, state passed to each mod during the main loop

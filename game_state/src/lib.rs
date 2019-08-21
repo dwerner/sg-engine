@@ -15,7 +15,6 @@ pub mod utils;
 use std::sync::Arc;
 use std::time::Duration;
 
-use input::InputSource;
 use state::SceneGraph;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use thing::CameraFacet;
@@ -31,7 +30,7 @@ pub trait Identifyable {
     fn identify(&self) -> Identity;
 }
 
-pub trait Renderer: Identifyable + InputSource {
+pub trait Renderer: Identifyable {
     /// load()
     /// provide a hook for a mod to notify the renderer that it is about to be used
     fn load(&mut self);
