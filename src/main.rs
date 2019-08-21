@@ -2,7 +2,7 @@
 extern crate engine;
 use engine::libloader::LibLoader;
 
-use game_state::state;
+use game_state::state::State;
 use std::time::{Duration, Instant};
 
 use std::thread;
@@ -10,7 +10,7 @@ use std::thread;
 use game_state::state::WindowAccess;
 
 fn main() {
-    let mut state = state::State::new();
+    let mut state = State::default();
 
     // TODO mod_audio
     // TODO mod_gui

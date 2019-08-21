@@ -19,6 +19,7 @@ use self::ui_state::UIState;
 ///
 /// This is the central, and global, state passed to each mod during the main loop
 ///
+#[derive(Default)]
 pub struct State {
     /// Root container of the Thing/Facet system (game world state)
     world: World,
@@ -31,19 +32,4 @@ pub struct State {
 
     /// Container for all UI related state
     ui_state: UIState,
-}
-
-impl State {
-    /// Create a new, empty State object
-    pub fn new() -> Self {
-        State {
-            world: World::new(),
-            render_state: RenderState::new(),
-            input_state: InputState {
-                pending_input_events: VecDeque::new(),
-                other_input_sources: Vec::new(), // input sources added at runtime
-            },
-            ui_state: UIState::new(),
-        }
-    }
 }

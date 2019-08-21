@@ -15,6 +15,7 @@ pub trait NodeVisitor<T> {
     fn has_next(&self) -> bool;
 }
 
+#[derive(Default)]
 pub struct Node<T> {
     pub id: usize,
     parent: Option<WeakNode<T>>,
@@ -30,7 +31,7 @@ impl<T> BreadthFirstIterator<T> {
     pub fn new(root: RcNode<T>) -> Self {
         let mut queue = VecDeque::new();
         queue.push_back(root);
-        BreadthFirstIterator { queue: queue }
+        BreadthFirstIterator { queue }
     }
 }
 
@@ -58,7 +59,7 @@ impl<T> BreadthFirstVisitor<T> {
     pub fn new(root: RcNode<T>) -> Self {
         let mut queue = VecDeque::new();
         queue.push_back(root);
-        BreadthFirstVisitor { queue: queue }
+        BreadthFirstVisitor { queue }
     }
 }
 
@@ -119,7 +120,7 @@ impl<T> Node<T> {
     pub fn find_root(node: RcNode<T>) -> RcNode<T> {
         match node.borrow().parent() {
             Some(p) => Node::find_root(p.clone()),
-            None => return node.clone(),
+            None => node.clone(),
         }
     }
 
@@ -131,7 +132,7 @@ impl<T> Node<T> {
                 None => None,
             },
             children: Vec::new(),
-            data: data,
+            data,
         }
     }
 

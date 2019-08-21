@@ -93,12 +93,14 @@ impl VulkanoRenderer {
     // WIN32 WARNING grabbing the cursor and hiding it MUST be done before the set_fullscreen call
     // due to a deadlock in the win32 implementation - https://github.com/tomaka/winit/issues/574
     fn toggle_fullscreen(&mut self) {
+        use game_state::winit::window::Fullscreen;
         let is_fullscreen = !self.fullscreen;
         println!("toggle_fullscreen {} -> {}", self.fullscreen, is_fullscreen);
         if is_fullscreen {
             let current = self.window.current_monitor();
             println!("current monitor {:?}", current);
-            self.window.set_fullscreen(Some(current));
+            self.window
+                .set_fullscreen(Some(Fullscreen::Borderless(current)));
         } else {
             self.window.set_fullscreen(None);
         }

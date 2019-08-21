@@ -490,7 +490,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mod_asset_loader"
+name = "mod_dummy"
 version = "0.1.0"
 dependencies = [
  "game_state 0.1.0",
