@@ -1,11 +1,11 @@
+use std::sync::Arc;
+
 use game_state::winit;
 
 use vulkano::instance::Instance;
 use vulkano::instance::InstanceExtensions;
 use vulkano::swapchain::Surface;
 use vulkano::swapchain::SurfaceCreationError;
-
-use std::sync::Arc;
 
 pub fn required_extensions() -> InstanceExtensions {
     let ideal = InstanceExtensions {

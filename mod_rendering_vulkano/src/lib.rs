@@ -1,10 +1,5 @@
-extern crate game_state;
-
 #[macro_use]
 extern crate vulkano;
-
-extern crate image;
-extern crate vulkano_shaders;
 
 use std::time::Duration;
 
