@@ -28,12 +28,10 @@ pub extern "C" fn mod_input_load(state: &mut State) {
 
 #[no_mangle]
 pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
-    state.clear_input_events();
-    state.gather_input_events();
-
     if state.has_pending_input_events() {
         let events = state.get_input_events().clone();
         for e in events {
+            let mpos = state.get_mouse_pos().clone();
             let mut camera = &mut state.get_world().get_facets().cameras[0];
             match e {
                 InputEvent::KeyUp(_id, keycode) => {
@@ -81,12 +79,15 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                         _ => {}
                     }
                 }
-                InputEvent::MouseMove(_id, _sp, delta) => {
+                InputEvent::MouseMove(_id, sp) => {
                     let sensitivity = 100.0;
-                    let (dx, dy) = (delta.delta_x as f32, delta.delta_y as f32);
+                    let delta_x = sp.x - mpos.x;
+                    let delta_y = sp.x - mpos.y;
+                    let (dx, dy) = (delta_x as f32, delta_y as f32);
                     let xa = dx / sensitivity;
                     let ya = dy / sensitivity;
                     camera.rotate(Vector3::new(-ya, -xa, 0.0));
+                    state.set_mouse_pos(sp);
                 }
                 evt => {
                     println!("event {:?}", evt);
@@ -97,6 +98,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
 
     let camera = &mut state.get_world().get_facets().cameras[0];
     camera.update(dt);
+    state.clear_input_events();
 }
 
 #[no_mangle]

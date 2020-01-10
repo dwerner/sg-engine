@@ -1,11 +1,10 @@
-use std::collections::VecDeque;
-
 use super::VulkanoRenderer;
+use std::sync::Arc;
 
 use game_state::input::events::{InputEvent, MouseButton};
-use game_state::input::screen::{DeltaVector, ScreenPoint, ScreenRect};
-use game_state::input::InputSource;
-use game_state::winit;
+use game_state::input::screen::{DeltaVector, ScreenPoint};
+use game_state::sdl2;
+use game_state::Identity;
 
 // TODO: probably extract this to game_state
 impl VulkanoRenderer {
@@ -14,15 +13,15 @@ impl VulkanoRenderer {
     fn handle_event(&mut self, e: InputEvent) {
         match e {
             InputEvent::KeyDown(ref _id, c) => match c {
-                35 => self.toggle_wrap_cursor(),
-                34 => self.grab_n_hide_cursor(),
+                //        35 => self.toggle_wrap_cursor(),
+                //        34 => self.grab_n_hide_cursor(),
                 33 => {
                     self.toggle_fullscreen();
                 }
                 _ => {}
             },
-            InputEvent::MouseMove(_id, pos, _delta) if self.cursor_wrapped => {
-                self.wrap_cursor(pos);
+            InputEvent::MouseMove(_id, pos) if self.cursor_wrapped => {
+                //self.wrap_cursor(pos);
             }
             _ => {}
         }
@@ -31,269 +30,200 @@ impl VulkanoRenderer {
     // TODO: Doesn't always work in windowed mode. Just ncrease the padding for wrapping in windowed mode?
     // TODO: add threshold param
     fn wrap_cursor(&mut self, pos: ScreenPoint) {
-        let winit::dpi::LogicalSize { width, height } = self.window.inner_size();
-        if pos.x > (width as i32) - 2 {
-            self.window
-                .set_cursor_position(winit::dpi::LogicalPosition::new(3.0, f64::from(pos.y)))
-                .unwrap_or_else(|_| println!("unable to set cursor position to 3.0,{}", pos.y));
-        } else if pos.x < 2 {
-            self.window
-                .set_cursor_position(winit::dpi::LogicalPosition::new(
-                    width - 3.0,
-                    f64::from(pos.y),
-                ))
-                .unwrap_or_else(|_| {
-                    println!("unable to set cursor position to {},{}", width - 3.0, pos.y)
-                });
-        }
-        if pos.y > (height as i32) - 2 {
-            self.window
-                .set_cursor_position(winit::dpi::LogicalPosition::new(pos.x.into(), 3.0))
-                .unwrap_or_else(|_| println!("unable to set cursor position to {},3.0", pos.x));
-        } else if pos.y < 2 {
-            self.window
-                .set_cursor_position(winit::dpi::LogicalPosition::new(
-                    f64::from(pos.x),
-                    height - 3.0,
-                ))
-                .unwrap_or_else(|_| {
-                    println!(
-                        "unable to set cursor position to {},{}",
-                        f64::from(pos.x),
-                        height - 3.0
-                    )
-                });
-        }
-    }
-
-    fn toggle_wrap_cursor(&mut self) {
-        self.cursor_wrapped = !self.cursor_wrapped;
-    }
-
-    fn grab_n_hide_cursor(&mut self) {
-        let new = !self.cursor_hidden;
-        self.window.set_cursor_visible(new);
-        self.cursor_hidden = new;
-        match self.window.set_cursor_grab(new) {
-            Ok(_) => {
-                println!(
-                    "{}",
-                    if new {
-                        "grabbed cursor"
-                    } else {
-                        "released cursor"
-                    }
-                );
-                self.cursor_grabbed = new;
+        if let Ok(sdl2::video::DisplayMode {
+            format,
+            w,
+            h,
+            refresh_rate,
+        }) = self.window.display_mode()
+        {
+            /*
+            if pos.x > (w as i32) - 2 {
+                self.window
+                    .set_cursor_position(winit::dpi::LogicalPosition::new(3.0, f64::from(pos.y)))
+                    .unwrap_or_else(|_| println!("unable to set cursor position to 3.0,{}", pos.y));
+            } else if pos.x < 2 {
+                self.window
+                    .set_cursor_position(winit::dpi::LogicalPosition::new(
+                        w - 3.0,
+                        f64::from(pos.y),
+                    ))
+                    .unwrap_or_else(|_| {
+                        println!("unable to set cursor position to {},{}", w - 3.0, pos.y)
+                    });
             }
-            Err(e) => println!("unable to grab or release cursor {:?}", e),
+            if pos.y > (h as i32) - 2 {
+                self.window
+                    .set_cursor_position(winit::dpi::LogicalPosition::new(pos.x.into(), 3.0))
+                    .unwrap_or_else(|_| println!("unable to set cursor position to {},3.0", pos.x));
+            } else if pos.y < 2 {
+                self.window
+                    .set_cursor_position(winit::dpi::LogicalPosition::new(
+                        f64::from(pos.x),
+                        h - 3.0,
+                    ))
+                    .unwrap_or_else(|_| {
+                        println!(
+                            "unable to set cursor position to {},{}",
+                            f64::from(pos.x),
+                            h - 3.0
+                        )
+                    });
+            }
+            */
         }
     }
 
     // WIN32 WARNING grabbing the cursor and hiding it MUST be done before the set_fullscreen call
     // due to a deadlock in the win32 implementation - https://github.com/tomaka/winit/issues/574
     fn toggle_fullscreen(&mut self) {
-        use game_state::winit::window::Fullscreen;
         let is_fullscreen = !self.fullscreen;
         println!("toggle_fullscreen {} -> {}", self.fullscreen, is_fullscreen);
         if is_fullscreen {
-            let current = self.window.current_monitor();
-            println!("current monitor {:?}", current);
-            self.window
-                .set_fullscreen(Some(Fullscreen::Borderless(current)));
-        } else {
-            self.window.set_fullscreen(None);
+            //self.window.set_fullscreen(sdl2::video::FullscreenType::Off);
+            //} else {
+            //self.window
+            //   .set_fullscreen(sdl2::video::FullscreenType::Desktop);
         }
         self.fullscreen = is_fullscreen;
     }
-}
 
-// TODO: simply From<winit::Event> for InputEvent
-impl InputSource for VulkanoRenderer {
-    fn get_input_events(&mut self) -> VecDeque<InputEvent> {
-        let mut events = VecDeque::new();
-        events
-
-        /*
-        //println!("get_input_events");
-        {
-
-            // TODO inject futures::mpsc::channel and send events over that instead
-            // of using "get_input_events"
-
-            let el = &mut *self.events_loop.lock().unwrap();
-            let mut event_loop = std::mem::replace(el, None);
-
-            event_loop = event_loop.map(|l| {
-                l.run(|e, _, control_flow| {
-                    events.push_back(e.clone());
-                    *control_flow = winit::event_loop::ControlFlow::Poll;
-                })
-            });
-
-            std::mem::replace(el, event_loop);
+    /*
+    pub fn store_events(&self) {
+        // HACK: using winit 0.19 to work around "better api" aka winit's hacky event loop
+        // https://users.rust-lang.org/t/winit-0-20-the-state-of-windowing-in-rust-and-a-request-for-help/29485/31
+        let id = self.id;
+        match &mut *self.events_loop.lock().unwrap() {
+            Some(ref mut el) => {
+                let events = Arc::downgrade(&self.events);
+                el.poll_events(|e| {
+                    if let Some(events) = events.upgrade() {
+                        if let Some(event) = VulkanoRenderer::convert_event(id, &e) {
+                            println!("got event {:?}", event);
+                            events.lock().unwrap().push_back(event);
+                        }
+                    }
+                });
+            }
+            None => {
+                println!("no event loop");
+            }
         }
+    }
 
-        let this_window_id = self.id as u64;
-        //test chg
-
-        let mut converted_events = VecDeque::with_capacity(events.len());
-
-        for e in events {
-            match &e {
+        fn convert_event(id: Identity, e: &winit::Event) -> Option<InputEvent> {
+            match e {
                 // TODO: examine if we should be using DeviceEvent as our input rather than WindowEvent
                 // this would prevent the need to wrap the cursor when grabbed
-                winit::event::Event::DeviceEvent {
+                winit::Event::DeviceEvent {
                     device_id,
                     ref event,
                 } => match event {
-                    winit::event::DeviceEvent::Added => {
+                    winit::DeviceEvent::Added => {
                         println!("device added  {:?} {:?}", device_id, event);
+                        None
                     }
-                    winit::event::DeviceEvent::Removed => {
+                    winit::DeviceEvent::Removed => {
                         println!("device removed {:?} {:?}", device_id, event);
+                        None
                     }
-                    _ => {} /*
-                            winit::DeviceEvent::MouseMotion { delta } => {}
-                            winit::DeviceEvent::MouseWheel { delta } => {}
-                            winit::DeviceEvent::Motion { axis, value } => {}
-                            winit::DeviceEvent::Button { button, state } => {}
-                            winit::DeviceEvent::Key(_input) => {}
-                            winit::DeviceEvent::Text { codepoint } => {}
-                            */
+                    _ => None, /*
+                               winit::DeviceEvent::MouseMotion { delta } => {}
+                               winit::DeviceEvent::MouseWheel { delta } => {}
+                               winit::DeviceEvent::Motion { axis, value } => {}
+                               winit::DeviceEvent::Button { button, state } => {}
+                               winit::DeviceEvent::Key(_input) => {}
+                               winit::DeviceEvent::Text { codepoint } => {}
+                               */
                 },
-                winit::event::Event::WindowEvent {
+                winit::Event::WindowEvent {
                     window_id,
                     ref event,
                 } => {
                     let maybe_converted_event = match event {
                         // Keyboard Events
-                        winit::event::WindowEvent::KeyboardInput { device_id, input } => {
+                        winit::WindowEvent::KeyboardInput { device_id, input } => {
                             let e = match input.state {
-                                winit::event::ElementState::Pressed => {
-                                    InputEvent::KeyDown(self.id, input.scancode)
-                                }
-                                winit::event::ElementState::Released => {
-                                    InputEvent::KeyUp(self.id, input.scancode)
-                                }
+                                winit::ElementState::Pressed => InputEvent::KeyDown(id, input.scancode),
+                                winit::ElementState::Released => InputEvent::KeyUp(id, input.scancode),
                             };
                             Some(e)
                         }
 
                         // Mouse Events
-                        winit::event::WindowEvent::CursorMoved {
+                        winit::WindowEvent::CursorMoved {
                             device_id,
                             position,
                             modifiers,
                         } => {
                             let winit::dpi::LogicalPosition { x, y } = position;
-                            let old_pos: ScreenPoint = *self.get_mouse_pos();
-                            // TODO: resolve f64 truncation to i32 here
                             let new_pos = ScreenPoint::new(*x as i32, *y as i32);
-                            let moved = InputEvent::MouseMove(
-                                self.id,
-                                new_pos,
-                                DeltaVector::from_points(&old_pos, &new_pos),
-                            );
-                            self.set_mouse_pos(new_pos);
+                            let moved = InputEvent::MouseMove(id, new_pos);
                             Some(moved)
                         }
 
-                        winit::event::WindowEvent::MouseInput {
+                        winit::WindowEvent::MouseInput {
                             device_id,
                             state,
                             button,
                             modifiers,
                         } => {
                             let b = match button {
-                                winit::event::MouseButton::Left => MouseButton::Left,
-                                winit::event::MouseButton::Right => MouseButton::Right,
-                                winit::event::MouseButton::Middle => MouseButton::Middle,
-                                winit::event::MouseButton::Other(n) => MouseButton::Other(*n),
+                                winit::MouseButton::Left => MouseButton::Left,
+                                winit::MouseButton::Right => MouseButton::Right,
+                                winit::MouseButton::Middle => MouseButton::Middle,
+                                winit::MouseButton::Other(n) => MouseButton::Other(*n),
                             };
                             let e = match state {
-                                winit::event::ElementState::Pressed => {
-                                    InputEvent::MouseDown(self.id, b, *self.get_mouse_pos())
-                                }
-                                winit::event::ElementState::Released => {
-                                    InputEvent::MouseUp(self.id, b, *self.get_mouse_pos())
-                                }
+                                winit::ElementState::Pressed => InputEvent::MouseDown(id, b),
+                                winit::ElementState::Released => InputEvent::MouseUp(id, b),
                             };
                             Some(e)
                         }
 
-                        winit::event::WindowEvent::MouseWheel {
+                        winit::WindowEvent::MouseWheel {
                             device_id,
                             delta,
                             phase,
                             modifiers,
                         } => {
                             let e = match delta {
-                                winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                                    InputEvent::MouseWheel(
-                                        self.id,
-                                        *self.get_mouse_pos(),
-                                        DeltaVector::new(*x as i32, *y as i32),
-                                    )
+                                winit::MouseScrollDelta::LineDelta(x, y) => {
+                                    InputEvent::MouseWheel(id, DeltaVector::new(*x as i32, *y as i32))
                                 }
-                                winit::event::MouseScrollDelta::PixelDelta(
-                                    winit::dpi::LogicalPosition { x, y },
-                                ) => InputEvent::MouseWheel(
-                                    self.id,
-                                    *self.get_mouse_pos(),
-                                    DeltaVector::new(*x as i32, *y as i32),
-                                ),
+                                winit::MouseScrollDelta::PixelDelta(winit::dpi::LogicalPosition {
+                                    x,
+                                    y,
+                                }) => {
+                                    InputEvent::MouseWheel(id, DeltaVector::new(*x as i32, *y as i32))
+                                }
                             };
 
                             Some(e)
                         }
 
                         // Window Manager events
-                        winit::event::WindowEvent::CloseRequested => {
-                            Some(InputEvent::CloseRequested(self.id))
-                        }
-                        winit::event::WindowEvent::Destroyed => {
-                            Some(InputEvent::Destroyed(self.id))
-                        }
-                        winit::event::WindowEvent::Focused(f) => Some(if *f {
-                            InputEvent::GainedFocus(self.id)
+                        winit::WindowEvent::CloseRequested => Some(InputEvent::CloseRequested(id)),
+                        winit::WindowEvent::Destroyed => Some(InputEvent::Destroyed(id)),
+                        winit::WindowEvent::Focused(f) => Some(if *f {
+                            InputEvent::GainedFocus(id)
                         } else {
-                            InputEvent::LostFocus(self.id)
+                            InputEvent::LostFocus(id)
                         }),
-                        winit::event::WindowEvent::Moved(winit::dpi::LogicalPosition { x, y }) => {
-                            let new_rect =
-                                ScreenRect::new(*x as i32, *y as i32, self.rect.w, self.rect.h);
-                            let e =
-                                InputEvent::Moved(self.id, ScreenPoint::new(*x as i32, *y as i32));
-                            self.set_rect(new_rect);
+                        winit::WindowEvent::Moved(winit::dpi::LogicalPosition { x, y }) => {
+                            let e = InputEvent::Moved(id, ScreenPoint::new(*x as i32, *y as i32));
                             Some(e)
                         }
-                        winit::event::WindowEvent::Resized(winit::dpi::LogicalSize {
-                            width,
-                            height,
-                        }) => {
-                            let new_rect = ScreenRect::new(
-                                self.rect.x,
-                                self.rect.y,
-                                *width as i32,
-                                *height as i32,
-                            );
-                            let e = InputEvent::Resized(self.id, new_rect);
-                            self.set_rect(new_rect);
+                        winit::WindowEvent::Resized(winit::dpi::LogicalSize { width, height }) => {
+                            let e = InputEvent::Resized(id, *width as f32, *height as f32);
                             Some(e)
                         }
                         _ => None,
                     };
-                    if let Some(converted_event) = maybe_converted_event {
-                        // Allow this renderer to peek into and handle specific events immediately
-                        self.handle_event(converted_event);
-                        converted_events.push_back(converted_event);
-                    }
+                    maybe_converted_event
                 }
-                _ => {}
-            };
+                _ => None,
+            }
         }
-        converted_events
-            */
-    }
+    */
 }

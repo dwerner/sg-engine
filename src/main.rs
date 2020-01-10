@@ -74,7 +74,12 @@ fn main() {
         }
         frame += 1;
 
-        let wait = (frame_budget - total_time) / 1000;
+        let wait = if frame_budget >= total_time {
+            (frame_budget - total_time) / 1000
+        } else {
+            0
+        };
+
         if wait > 0 {
             thread::sleep(Duration::from_millis(wait as u64));
         }

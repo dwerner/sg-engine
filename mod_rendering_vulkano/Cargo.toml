@@ -14,7 +14,7 @@ name = "mod_rendering_vulkano"
 crate-type=["dylib"]
 
 [dependencies]
-vulkano = "0.14"
+vulkano = "0.16"
 vulkano-shaders = "0.14"
 image = "0.17"
 

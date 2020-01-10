@@ -1,16 +1,14 @@
 use std::collections::VecDeque;
 use std::error::Error;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-//TODO reexported or implicit?
-use winit::dpi::LogicalSize;
-use winit::event_loop::EventLoop;
-use winit::window::{Window, WindowBuilder};
+use sdl2::video::Window;
 
 use super::Model;
 use super::Renderer;
 use crate::input::events::InputEvent;
-use crate::state::{SceneGraph, State, WindowWithEvents, World};
+use crate::input::screen::ScreenPoint;
+use crate::state::{SceneGraph, State, World};
 use crate::ui::events::UIEvent;
 use crate::Identity;
 
@@ -25,11 +23,7 @@ pub trait ModelAccess {
 
 pub trait WindowAccess {
     fn add_window(&mut self, w: u32, h: u32, title: String);
-    fn get_windows(&mut self) -> &Vec<WindowWithEvents>;
-
-    // glium uses a builder rather than a winit::Window... :P
-    fn add_window_builder(&mut self, w: f64, h: f64, title: String);
-    fn get_window_builders(&self) -> &Vec<WindowBuilder>;
+    fn get_windows(&mut self) -> &Vec<Arc<Window>>;
 }
 
 // Accessor trait for State by topic
@@ -58,6 +52,8 @@ pub trait InputAccess {
     fn send_input_event(&mut self, event: InputEvent) -> Result<(), Box<dyn Error>>;
     fn on_input_load(&mut self);
     fn on_input_unload(&mut self);
+    fn get_mouse_pos(&self) -> &ScreenPoint;
+    fn set_mouse_pos(&mut self, sp: ScreenPoint);
 }
 
 pub trait UIAccess {
@@ -84,36 +80,28 @@ impl WorldAccess for State {
 }
 
 impl WindowAccess for State {
+    // TODO: make fallible
     fn add_window(&mut self, w: u32, h: u32, title: String) {
-        let events_loop = Arc::new(Mutex::new(Some(EventLoop::new())));
+        let window = {
+            let video = self
+                .sdl_context
+                .video()
+                .expect("unable to create video sdl2 context");
+            video
+                .window(&title, w, h)
+                .resizable()
+                .allow_highdpi()
+                .vulkan()
+                .build()
+                .unwrap()
+        };
 
-        let window: Window = {
-            let maybe_window = WindowBuilder::new();
-            let maybe_window = maybe_window.with_title(title);
-            let maybe_window = maybe_window.with_resizable(true);
-            let maybe_window = maybe_window.with_inner_size(LogicalSize::new(w.into(), h.into()));
-            maybe_window.build(events_loop.lock().unwrap().as_ref().unwrap())
-        }
-        .expect("unable to create window");
-
-        self.render_state
-            .windows
-            .push(WindowWithEvents::new(Arc::new(window), events_loop));
+        let window = Arc::new(window);
+        self.render_state.windows.push(window);
     }
 
-    fn get_windows(&mut self) -> &Vec<WindowWithEvents> {
+    fn get_windows(&mut self) -> &Vec<Arc<Window>> {
         &self.render_state.windows
-    }
-
-    fn add_window_builder(&mut self, w: f64, h: f64, title: String) {
-        let maybe_window = WindowBuilder::new();
-        let maybe_window = maybe_window.with_title(title);
-        let w = maybe_window.with_inner_size(LogicalSize::new(w, h));
-        self.render_state.window_builders.push(w);
-    }
-
-    fn get_window_builders(&self) -> &Vec<WindowBuilder> {
-        &self.render_state.window_builders
     }
 }
 
@@ -158,8 +146,8 @@ impl RenderAccess for State {
                 found = Some(i as usize);
             }
         }
-        if found.is_some() {
-            self.render_state.renderers.remove(found.unwrap());
+        if let Some(found) = found {
+            self.render_state.renderers.remove(found);
         }
     }
 
@@ -189,15 +177,15 @@ impl RenderAccess for State {
 
 impl InputAccess for State {
     fn has_pending_input_events(&self) -> bool {
-        !self.input_state.pending_input_events.is_empty()
+        !self.input_state.get_input_events().is_empty()
     }
 
     fn clear_input_events(&mut self) {
-        self.input_state.pending_input_events.clear();
+        self.input_state.clear();
     }
 
     fn get_input_events(&mut self) -> &VecDeque<InputEvent> {
-        &self.input_state.pending_input_events
+        &self.input_state.get_input_events()
     }
 
     // Input events might also come from other subsystems, so we allow them to be queued as well
@@ -211,6 +199,14 @@ impl InputAccess for State {
 
     fn on_input_unload(&mut self) {
         self.input_state.clear();
+    }
+
+    fn get_mouse_pos(&self) -> &ScreenPoint {
+        self.input_state.get_mouse_pos()
+    }
+
+    fn set_mouse_pos(&mut self, sp: ScreenPoint) {
+        self.input_state.set_mouse_pos(sp)
     }
 }
 

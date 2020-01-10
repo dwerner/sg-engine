@@ -9,7 +9,7 @@ pub type WeakEventHandler<T> = Weak<Mutex<Box<EventHandler<T>>>>;
 
 pub trait EventProducer<T>
 where
-    T: Copy + Clone,
+    T: Clone,
 {
     fn add_handler(&mut self, id: String, handler: &ArcEventHandler<T>);
     fn remove_handler(&mut self, id: &str);
@@ -36,7 +36,7 @@ impl<T> CopyingEventProducer<T> {
 
 impl<T> EventProducer<T> for CopyingEventProducer<T>
 where
-    T: Copy + Clone,
+    T: Clone,
 {
     fn add_handler(&mut self, id: String, handler: &ArcEventHandler<T>) {
         let wh: WeakEventHandler<T> = Arc::downgrade(handler);
@@ -51,7 +51,7 @@ where
         for (_id, handler) in self.handlers.iter() {
             match handler.upgrade() {
                 Some(a) => {
-                    (*a.lock().unwrap())(event);
+                    (*a.lock().unwrap())(event.clone());
                 }
                 None => {} //arc has been dropped, TODO: notify or log?
             }

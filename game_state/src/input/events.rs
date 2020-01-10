@@ -1,7 +1,7 @@
-use crate::input::screen::{DeltaVector, ScreenPoint, ScreenRect};
+use crate::input::screen::{DeltaVector, ScreenPoint};
 use crate::Identity;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum MouseButton {
     Left,
     Middle,
@@ -11,7 +11,7 @@ pub enum MouseButton {
 
 pub type DeviceId = usize;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum JoyAxis {
     LeftStickX,
     LeftStickY,
@@ -24,7 +24,7 @@ pub enum JoyAxis {
     Unknown,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum JoyButton {
     South,
     East,
@@ -48,15 +48,15 @@ pub enum JoyButton {
     Unknown,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum InputEvent {
     KeyDown(Identity, u32),
     KeyUp(Identity, u32),
 
-    MouseDown(Identity, MouseButton, ScreenPoint),
-    MouseUp(Identity, MouseButton, ScreenPoint),
-    MouseMove(Identity, ScreenPoint, DeltaVector),
-    MouseWheel(Identity, ScreenPoint, DeltaVector),
+    MouseDown(Identity, MouseButton),
+    MouseUp(Identity, MouseButton),
+    MouseMove(Identity, ScreenPoint),
+    MouseWheel(Identity, DeltaVector),
 
     MouseEntered(Identity),
     MouseLeft(Identity),
@@ -72,7 +72,7 @@ pub enum InputEvent {
 
     CloseRequested(Identity),
     Destroyed(Identity),
-    Resized(Identity, ScreenRect),
+    Resized(Identity, f32, f32),
     GainedFocus(Identity),
     LostFocus(Identity),
     Moved(Identity, ScreenPoint),

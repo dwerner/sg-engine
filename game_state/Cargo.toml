@@ -15,11 +15,9 @@ crate-type=["rlib"]
 [dependencies]
 
 # needs to match all other modules
-winit = "0.20.0-alpha3"
+sdl2 = "0.32"
 nalgebra = "0.18"
 image = "0.17"
 nom-obj = "0.1"
 serde = "1"
-
-# TODO: update to stable once async/await lands
-futures-preview="0.3.0-alpha.18"
+futures="0.3.1"

@@ -5,7 +5,6 @@ use std::time::Duration;
 
 use game_state::state::ModelAccess;
 use game_state::state::{DrawMode, RenderAccess, State, WindowAccess};
-use game_state::winit;
 
 mod renderer;
 use renderer::vulkano::VulkanoRenderer;
@@ -15,11 +14,7 @@ pub extern "C" fn mod_rendering_vulkano_load(state: &mut State) {
     let windows = state.get_windows().clone();
 
     for w in windows {
-        let maybe_renderer = VulkanoRenderer::new(
-            w.get_window().clone(),
-            w.get_event_loop().clone(),
-            DrawMode::Colored,
-        );
+        let maybe_renderer = VulkanoRenderer::new(w.clone(), DrawMode::Colored);
 
         match maybe_renderer {
             Ok(mut renderer) => {

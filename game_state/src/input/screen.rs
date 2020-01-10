@@ -1,4 +1,4 @@
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct ScreenPoint {
     pub x: i32,
     pub y: i32,
@@ -10,7 +10,7 @@ impl ScreenPoint {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct ScreenRect {
     pub x: i32,
     pub y: i32,
@@ -30,7 +30,7 @@ impl ScreenRect {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct DeltaVector {
     pub delta_x: i32,
     pub delta_y: i32,
