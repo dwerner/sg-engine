@@ -83,11 +83,8 @@ impl WindowAccess for State {
     // TODO: make fallible
     fn add_window(&mut self, w: u32, h: u32, title: String) {
         let window = {
-            let video = self
-                .sdl_context
-                .video()
-                .expect("unable to create video sdl2 context");
-            video
+            self.sdl_subsystems
+                .video
                 .window(&title, w, h)
                 .resizable()
                 .allow_highdpi()

@@ -13,6 +13,7 @@ use game_state::input::InputSource;
 */
 
 use game_state::nalgebra::Vector3;
+use game_state::sdl2::event::Event as SdlEvent;
 
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
@@ -28,6 +29,15 @@ pub extern "C" fn mod_input_load(state: &mut State) {
 
 #[no_mangle]
 pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
+    for event in state.sdl_subsystems.event_pump.poll_iter() {
+        match event {
+            SdlEvent::Quit { .. } => {
+                println!("quitting...");
+                std::process::exit(0);
+            }
+            _ => {}
+        }
+    }
     if state.has_pending_input_events() {
         let events = state.get_input_events().clone();
         for e in events {

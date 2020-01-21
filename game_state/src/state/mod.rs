@@ -19,6 +19,7 @@ mod ui_state;
 ///
 pub struct State {
     pub sdl_context: sdl2::Sdl,
+    pub sdl_subsystems: SdlSubsystems,
 
     /// Root container of the Thing/Facet system (game world state)
     world: World,
@@ -33,10 +34,19 @@ pub struct State {
     ui_state: UIState,
 }
 
+pub struct SdlSubsystems {
+    pub video: sdl2::VideoSubsystem,
+    pub event_pump: sdl2::EventPump,
+}
+
 impl Default for State {
     fn default() -> Self {
+        let ctx = sdl2::init().expect("unable to create sdl2 context");
+        let video = ctx.video().expect("unable to create video subsystem");
+        let event_pump = ctx.event_pump().expect("unable to create event pump");
         Self {
-            sdl_context: sdl2::init().expect("unable to create sdl2 context"),
+            sdl_context: ctx,
+            sdl_subsystems: SdlSubsystems { video, event_pump },
             world: Default::default(),
             render_state: Default::default(),
             input_state: Default::default(),
