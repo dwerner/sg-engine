@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use game_state::input::events::InputEvent;
 use game_state::input::events::JoyButton;
-use game_state::state::{InputAccess, State, WorldAccess};
+use game_state::sdl2::video::Window;
+use game_state::state::{InputAccess, State, WindowAccess, WorldAccess};
 use game_state::thing::Direction;
 
 /*
@@ -14,6 +15,8 @@ use game_state::input::InputSource;
 
 use game_state::nalgebra::Vector3;
 use game_state::sdl2::event::Event as SdlEvent;
+use game_state::sdl2::keyboard::Keycode;
+use game_state::sdl2::video::FullscreenType;
 
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
@@ -29,11 +32,64 @@ pub extern "C" fn mod_input_load(state: &mut State) {
 
 #[no_mangle]
 pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
-    for event in state.sdl_subsystems.event_pump.poll_iter() {
+    let sdlwin = state.get_windows()[0].clone();
+    let mut window = unsafe { Window::from_ref(sdlwin) };
+
+    let frame_events = state
+        .sdl_subsystems
+        .event_pump
+        .poll_iter()
+        .collect::<Vec<_>>();
+
+    for event in frame_events {
+        let mut camera = &mut state.get_world().get_facets().cameras[0];
         match event {
             SdlEvent::Quit { .. } => {
                 println!("quitting...");
                 std::process::exit(0);
+            }
+            SdlEvent::KeyDown {
+                keycode: Some(code),
+                ..
+            } => match code {
+                Keycode::Q => {
+                    println!("user pressed 'q' : hard exit.");
+                    std::process::exit(0);
+                }
+                Keycode::E => camera.movement_dir = Some(Direction::Up),
+                Keycode::C => camera.movement_dir = Some(Direction::Down),
+                Keycode::W => camera.movement_dir = Some(Direction::Forward),
+                Keycode::A => camera.movement_dir = Some(Direction::Left),
+                Keycode::S => camera.movement_dir = Some(Direction::Backward),
+                Keycode::D => camera.movement_dir = Some(Direction::Right),
+                Keycode::F => match window.fullscreen_state() {
+                    FullscreenType::Off => window
+                        .set_fullscreen(FullscreenType::Desktop)
+                        .expect("unable to set fs"),
+                    _ => window
+                        .set_fullscreen(FullscreenType::Off)
+                        .expect("unable to set fs"),
+                },
+                _ => {}
+            },
+            SdlEvent::KeyUp {
+                keycode: Some(code),
+                ..
+            } => {
+                match code {
+                    // TODO: support multiple keypresses
+                    Keycode::E | Keycode::C | Keycode::W | Keycode::A | Keycode::S | Keycode::D => {
+                        camera.movement_dir = None;
+                    }
+                    _ => {}
+                }
+            }
+            SdlEvent::MouseMotion { xrel, yrel, .. } => {
+                let sensitivity = 100.0;
+                let (dx, dy) = (xrel as f32, yrel as f32);
+                let xa = dx / sensitivity;
+                let ya = dy / sensitivity;
+                camera.rotate(Vector3::new(-ya, -xa, 0.0));
             }
             _ => {}
         }
@@ -44,15 +100,6 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
             let mpos = state.get_mouse_pos().clone();
             let mut camera = &mut state.get_world().get_facets().cameras[0];
             match e {
-                InputEvent::KeyUp(_id, keycode) => {
-                    match keycode {
-                        // TODO: support multiple keypresses
-                        17 | 18 | 30 | 31 | 32 | 46 => {
-                            camera.movement_dir = None;
-                        }
-                        _ => {}
-                    }
-                }
                 InputEvent::JoyButtonUp(_src, _id, _btn) => {
                     camera.movement_dir = None;
                 }
@@ -63,42 +110,6 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                     JoyButton::DPadRight => camera.movement_dir = Some(Direction::Right),
                     _ => {}
                 },
-                InputEvent::KeyDown(_id, keycode) => {
-                    //
-                    // user released 17
-                    // user released 30
-                    // user released 31
-                    // user released 32
-                    match keycode {
-                        16 => {
-                            println!("user pressed 'q' : hard exit.");
-                            std::process::exit(0);
-                        }
-                        // e
-                        18 => camera.movement_dir = Some(Direction::Up),
-                        // c
-                        46 => camera.movement_dir = Some(Direction::Down),
-                        // w
-                        17 => camera.movement_dir = Some(Direction::Forward),
-                        // a
-                        30 => camera.movement_dir = Some(Direction::Left),
-                        // s
-                        31 => camera.movement_dir = Some(Direction::Backward),
-                        // d
-                        32 => camera.movement_dir = Some(Direction::Right),
-                        _ => {}
-                    }
-                }
-                InputEvent::MouseMove(_id, sp) => {
-                    let sensitivity = 100.0;
-                    let delta_x = sp.x - mpos.x;
-                    let delta_y = sp.x - mpos.y;
-                    let (dx, dy) = (delta_x as f32, delta_y as f32);
-                    let xa = dx / sensitivity;
-                    let ya = dy / sensitivity;
-                    camera.rotate(Vector3::new(-ya, -xa, 0.0));
-                    state.set_mouse_pos(sp);
-                }
                 evt => {
                     println!("event {:?}", evt);
                 }

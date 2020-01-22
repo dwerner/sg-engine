@@ -3,6 +3,8 @@ extern crate vulkano;
 
 use std::time::Duration;
 
+use game_state::sdl2::video::Window;
+
 use game_state::state::ModelAccess;
 use game_state::state::{DrawMode, RenderAccess, State, WindowAccess};
 
@@ -14,7 +16,13 @@ pub extern "C" fn mod_rendering_vulkano_load(state: &mut State) {
     let windows = state.get_windows().clone();
 
     for w in windows {
-        let maybe_renderer = VulkanoRenderer::new(w.clone(), DrawMode::Colored);
+        // hack for sdl to own this "window", but pass it's surface to the underlying swapchain
+        let win_ptr = {
+            let sdlwin = unsafe { Window::from_ref(w) };
+            let c = unsafe { &*sdlwin.raw() };
+            crate::renderer::vulkano::vulkano_sdl2::WinPtr { raw: c as *const _ }
+        };
+        let maybe_renderer = VulkanoRenderer::new(win_ptr, DrawMode::Colored);
 
         match maybe_renderer {
             Ok(mut renderer) => {

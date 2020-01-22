@@ -20,7 +20,7 @@ pub enum DrawMode {
 
 pub struct RenderState {
     pub models: Vec<Arc<Model>>,
-    pub windows: Vec<Arc<Window>>,
+    pub windows: Vec<Window>,
     pub renderers: Vec<Box<dyn Renderer>>,
     pub render_layers: Vec<Arc<SceneGraph>>,
 }

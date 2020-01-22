@@ -17,23 +17,15 @@ fn main() {
     // TODO mod_network
 
     // because of #[no_mangle], each library needs it's own unique method name as well... sigh
+    state.add_window(800, 600, "sg-shell 1 (vulkano)".to_string());
+    state.add_window(800, 600, "sg-shell 2 (vulkano)".to_string());
 
     let mut mods = Vec::new();
     mods.push(load_mod!(gamepad));
     mods.push(load_mod!(asset_loader));
     mods.push(load_mod!(simulation));
 
-    state.add_window(800, 600, "sg-shell 1 (vulkano)".to_string());
-    //state.add_window(800, 600, "sg-shell 2 (voodoo)".to_string());
     mods.push(load_mod!(rendering_vulkano));
-
-    //mods.push(load_mod!(rendering_voodoo));
-
-    //state.add_window_builder(800, 600, "sg-shell (OpenGL/glutin)".to_string());
-
-    // For now this is incompatible
-    //mods.push(load_mod!(rendering_opengl));
-
     mods.push(load_mod!(input));
 
     for m in mods.iter_mut() {

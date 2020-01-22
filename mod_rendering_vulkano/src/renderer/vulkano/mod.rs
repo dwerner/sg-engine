@@ -5,8 +5,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use game_state::sdl2::video::Window;
-
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
 use vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
@@ -45,7 +43,6 @@ use game_state::nalgebra::Matrix4;
 pub mod vertex;
 use self::vertex::Vertex;
 
-mod input;
 pub mod vulkano_sdl2;
 
 use vulkano_sdl2::WinPtr;
@@ -120,7 +117,6 @@ type ThisFramebufferType = Arc<dyn FramebufferAbstract + Send + Sync + 'static>;
 pub struct VulkanoRenderer {
     id: Identity,
     instance: Arc<Instance>,
-    window: Arc<Window>,
     surface: Arc<Surface<WinPtr>>,
     depth_buffer: Arc<dyn ImageViewAccess + Send + Sync>,
     events: Arc<Mutex<VecDeque<game_state::input::events::InputEvent>>>,
@@ -275,13 +271,7 @@ impl VulkanoRenderer {
             .collect::<Vec<_>>()
     }
 
-    pub fn new(window: Arc<Window>, draw_mode: DrawMode) -> Result<Self, Box<dyn Error>> {
-        // hack for sdl to own this "window", but pass it's surface to the underlying swapchain
-        let win_ptr = {
-            let c = unsafe { &*window.raw() };
-            WinPtr { raw: c as *const _ }
-        };
-
+    pub fn new(win_ptr: WinPtr, draw_mode: DrawMode) -> Result<Self, Box<dyn Error>> {
         let instance = {
             let extensions = vulkano_sdl2::required_extensions(win_ptr).unwrap();
             let app_info = app_info_from_cargo_toml!();
@@ -454,7 +444,6 @@ impl VulkanoRenderer {
         Ok(VulkanoRenderer {
             id: game_state::create_next_identity(),
             instance,
-            window,
             surface,
             events,
             device,

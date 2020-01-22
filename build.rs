@@ -28,7 +28,7 @@ fn main() {
             let file_name = assets + path.file_name().unwrap().to_str().unwrap();
             println!("Filename: {}", file_name);
             let dest = get_out_path(&root_dir, &file_name);
-            println!("Destionation Path: {}", dest.display());
+            println!("Destination Path: {}", dest.display());
             match fs::copy(&path, dest) {
                 Ok(s) => println!("Copied: {}", s),
                 Err(err) => println!("Error: {}", err),

@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
 use std::error::Error;
+use std::rc::Rc;
 use std::sync::Arc;
 
-use sdl2::video::Window;
+use sdl2::video::WindowContext;
 
 use super::Model;
 use super::Renderer;
@@ -23,7 +24,7 @@ pub trait ModelAccess {
 
 pub trait WindowAccess {
     fn add_window(&mut self, w: u32, h: u32, title: String);
-    fn get_windows(&mut self) -> &Vec<Arc<Window>>;
+    fn get_windows(&mut self) -> Vec<Rc<WindowContext>>;
 }
 
 // Accessor trait for State by topic
@@ -93,12 +94,15 @@ impl WindowAccess for State {
                 .unwrap()
         };
 
-        let window = Arc::new(window);
         self.render_state.windows.push(window);
     }
 
-    fn get_windows(&mut self) -> &Vec<Arc<Window>> {
-        &self.render_state.windows
+    fn get_windows(&mut self) -> Vec<Rc<WindowContext>> {
+        self.render_state
+            .windows
+            .iter()
+            .map(|w| w.context())
+            .collect::<Vec<_>>()
     }
 }
 
