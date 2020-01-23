@@ -14,7 +14,7 @@ const vec3 LIGHT = vec3(0.5, 0.5, 0.5);
 
 void main() {
     float brightness = dot(normalize(v_normal), normalize(LIGHT));
-    vec3 dark_color = vec3(0.5, 0.5, 0.5);
+    vec3 dark_color = vec3(0.3, 0.3, 0.3);
     vec3 regular_color = vec3(1.0, 1.0, 1.0);
 
     f_color = texture(tex, v_uv) * vec4(mix(dark_color, regular_color, brightness), 1.0);

@@ -13,10 +13,12 @@ use game_state::input::screen::ScreenPoint;
 use game_state::input::InputSource;
 */
 
-use game_state::nalgebra::Vector3;
+use game_state::nalgebra::{Matrix4, Vector3};
 use game_state::sdl2::event::Event as SdlEvent;
 use game_state::sdl2::keyboard::Keycode;
 use game_state::sdl2::video::FullscreenType;
+
+use game_state::state::Variable;
 
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
@@ -41,8 +43,8 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
         .poll_iter()
         .collect::<Vec<_>>();
 
+    let mut camera = &mut state.get_world().get_facets().cameras[0];
     for event in frame_events {
-        let mut camera = &mut state.get_world().get_facets().cameras[0];
         match event {
             SdlEvent::Quit { .. } => {
                 println!("quitting...");
@@ -52,8 +54,8 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                 keycode: Some(code),
                 ..
             } => match code {
-                Keycode::Q => {
-                    println!("user pressed 'q' : hard exit.");
+                Keycode::Escape => {
+                    println!("user pressed 'Esc' : hard exit.");
                     std::process::exit(0);
                 }
                 Keycode::E => camera.movement_dir = Some(Direction::Up),
@@ -70,6 +72,12 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                         .set_fullscreen(FullscreenType::Off)
                         .expect("unable to set fs"),
                 },
+
+                Keycode::Num9 => {
+                    println!("{}", camera.perspective.fovy());
+                }
+                Keycode::Num0 => camera.perspective.set_fovy(camera.perspective.fovy() - 1.0),
+
                 _ => {}
             },
             SdlEvent::KeyUp {
@@ -89,37 +97,18 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                 let (dx, dy) = (xrel as f32, yrel as f32);
                 let xa = dx / sensitivity;
                 let ya = dy / sensitivity;
-                camera.rotate(Vector3::new(-ya, -xa, 0.0));
+
+                camera.rotation += Vector3::new(ya, xa, 0.0);
+                let rot = Matrix4::new_rotation(camera.rotation);
+                let trans = Matrix4::new_translation(&camera.pos);
+
+                camera.view = trans * rot;
+                camera.update_view_matrix();
             }
             _ => {}
         }
     }
-    if state.has_pending_input_events() {
-        let events = state.get_input_events().clone();
-        for e in events {
-            let mpos = state.get_mouse_pos().clone();
-            let mut camera = &mut state.get_world().get_facets().cameras[0];
-            match e {
-                InputEvent::JoyButtonUp(_src, _id, _btn) => {
-                    camera.movement_dir = None;
-                }
-                InputEvent::JoyButtonDown(_src, _id, btn) => match btn {
-                    JoyButton::DPadUp => camera.movement_dir = Some(Direction::Forward),
-                    JoyButton::DPadLeft => camera.movement_dir = Some(Direction::Left),
-                    JoyButton::DPadDown => camera.movement_dir = Some(Direction::Backward),
-                    JoyButton::DPadRight => camera.movement_dir = Some(Direction::Right),
-                    _ => {}
-                },
-                evt => {
-                    println!("event {:?}", evt);
-                }
-            }
-        }
-    }
-
-    let camera = &mut state.get_world().get_facets().cameras[0];
     camera.update(dt);
-    state.clear_input_events();
 }
 
 #[no_mangle]

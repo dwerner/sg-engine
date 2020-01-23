@@ -80,7 +80,7 @@ pub struct ModelData {
     pub vertices: Arc<CpuAccessibleBuffer<[Vertex]>>,
     pub indices: Arc<CpuAccessibleBuffer<[u16]>>,
     pub diffuse_map: Arc<CpuAccessibleBuffer<[[u8; 4]]>>,
-    pub material_data: MaterialRenderData<vulkano::format::R8G8B8A8Unorm>,
+    pub material_data: MaterialRenderData<vulkano::format::R8G8B8A8Srgb>,
 }
 
 // MaterialData holds the Vulkano handles to GPU images - `init` and `read` here alias the same
@@ -218,7 +218,7 @@ impl VulkanoRenderer {
         queue: Arc<Queue>,
         pipeline: Arc<ThisPipelineType>,
         id: usize,
-        texture: Arc<ImmutableImage<vulkano::format::R8G8B8A8Unorm>>,
+        texture: Arc<ImmutableImage<vulkano::format::R8G8B8A8Srgb>>,
         width: u32,
         height: u32,
     ) -> Arc<dyn DescriptorSet + Send + Sync> {
@@ -339,7 +339,7 @@ impl VulkanoRenderer {
             vulkano::buffer::BufferUsage::all(),
             vs::ty::Data { proj: proj.into() },
         )
-        .expect("failed to create buffer");
+        .expect("failed to create uniform buffer");
 
         // ----------------------------------
 
@@ -362,7 +362,7 @@ impl VulkanoRenderer {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: ImageAccess::format(&images[0]),
+                    format: swapchain.format(),//ImageAccess::format(&images[0]),
                     samples: 1,
                 },
                 depth: {
@@ -407,11 +407,10 @@ impl VulkanoRenderer {
 
         let p = GraphicsPipeline::start()
             .vertex_input_single_buffer()
-            .cull_mode_back()
             .polygon_mode_fill()
             .depth_clamp(true)
-            .front_face_clockwise()
-            .line_width(2.0)
+            .cull_mode_front()
+            .front_face_counter_clockwise()
             .vertex_shader(vs.main_entry_point(), ())
             .triangle_list()
             .viewports_dynamic_scissors_irrelevant(1)
@@ -425,8 +424,7 @@ impl VulkanoRenderer {
                 )
                 .unwrap(),
             )
-            .build(device.clone())
-            .unwrap();
+            .build(device.clone())?;
 
         let pipeline = Arc::new(p);
 
@@ -535,7 +533,7 @@ impl VulkanoRenderer {
                     width: 2048,
                     height: 2048,
                 },
-                vulkano::format::R8G8B8A8Unorm,
+                vulkano::format::R8G8B8A8Srgb,
                 MipmapsCount::One,
                 ImageUsage {
                     transfer_source: true, // for blits

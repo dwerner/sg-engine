@@ -121,6 +121,7 @@ impl CameraFacet {
     }
 
     pub fn rotate(&mut self, delta: Vector3<f32>) {
+        //self.rotation += delta;
         self.rotation += delta;
         self.update_view_matrix();
     }
@@ -176,8 +177,9 @@ impl CameraFacet {
         self.update_view_matrix();
     }
 
-    fn update_view_matrix(&mut self) {
-        let rot = Matrix4::new_rotation(self.rotation);
+    pub fn update_view_matrix(&mut self) {
+        //let rot = Matrix4::new_rotation(self.rotation);
+        let rot = Matrix4::from_euler_angles(self.rotation.x, self.rotation.y, 0.0);
         let trans = Matrix4::new_translation(&self.pos);
         self.view = rot * trans;
         self.dirty = true;

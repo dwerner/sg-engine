@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::model::Model;
 use super::Renderer;
 use crate::thing::World;
@@ -32,6 +34,14 @@ pub struct State {
 
     /// Container for all UI related state
     ui_state: UIState,
+
+    // TEMPORARY container for general purpose state variables
+    pub variables: HashMap<&'static str, Variable>,
+}
+
+#[derive(Copy, Clone)]
+pub enum Variable {
+    Bool(bool),
 }
 
 pub struct SdlSubsystems {
@@ -51,6 +61,7 @@ impl Default for State {
             render_state: Default::default(),
             input_state: Default::default(),
             ui_state: Default::default(),
+            variables: HashMap::new(),
         }
     }
 }
