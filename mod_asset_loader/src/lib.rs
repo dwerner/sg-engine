@@ -20,19 +20,16 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
     let origin = Vector3::new(0.0, 0.0, 0.0);
     let mx = Matrix4::new_translation(&origin) * Matrix4::new_scaling(1.0);
 
-    // Conceptually here, we are loading one model, but we might instance it from many entities
     let model = Model::create("assets/models/pship.obj", mx);
     let thing2 = Model::create("assets/models/textured_thing.obj", mx);
     let am = Arc::new(model);
 
-    // state.models is rendering state - we upload these to the GPU when appropriate
-    // models are only ever added once
     state.add_model(am.clone());
     state.add_model(Arc::new(thing2));
 
     {
         let world = state.get_world();
-        // build the actual entity
+        // build the actual entity within the world
         let _thing = world
             .start_thing()
             .with_camera(CameraFacet::new(
@@ -43,6 +40,8 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
             .build();
     }
 
+    // NOTE: there's some index-mirroring happening here, we probably want to associate somehow
+    // other than this - it's going to be easy to get wrong
     let root = Node::create(0, None);
     let _child = Node::create(1, Some(root.clone()));
 

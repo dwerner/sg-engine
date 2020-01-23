@@ -8,9 +8,8 @@ use game_state::thing::Direction;
 
 /*
  * TODO:
-use game_state::{Identifyable, Identity};
-use game_state::input::screen::ScreenPoint;
-use game_state::input::InputSource;
+ * 1. simultaneous keypresses
+ * 2. FPS camera rotation, clamp camera angles
 */
 
 use game_state::nalgebra::{Matrix4, Vector3};
