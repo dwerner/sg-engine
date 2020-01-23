@@ -5,7 +5,8 @@ use super::Renderer;
 use crate::thing::World;
 
 pub use self::access::{
-    InputAccess, ModelAccess, RenderAccess, RenderLayerAccess, WindowAccess, WorldAccess,
+    InputAccess, ModelAccess, RenderAccess, RenderLayerAccess, VariableAccess, WindowAccess,
+    WorldAccess,
 };
 pub use self::input_state::InputState;
 pub use self::render_state::{DrawMode, RenderState, SceneGraph};

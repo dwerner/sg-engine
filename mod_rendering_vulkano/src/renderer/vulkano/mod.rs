@@ -432,9 +432,6 @@ impl VulkanoRenderer {
         let (x, y) = (0.0, 0.0);
         let (width, height) = (800.0, 600.0);
 
-        // TODO: get actual mouse position... or does it matter at this point when we get it in the
-        // event loop instead
-
         let previous_frame_end = Box::new(now(device.clone())) as Box<dyn GpuFuture>;
         let instance = instance.clone();
         let events = Arc::new(Mutex::new(VecDeque::new()));

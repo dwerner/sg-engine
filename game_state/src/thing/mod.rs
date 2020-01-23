@@ -145,7 +145,7 @@ impl CameraFacet {
 
     #[inline]
     pub fn right(&self) -> Vector3<f32> {
-        let y = Vector3::new(0.0, 1.0, 0.0);
+        let y = Vector3::new(0.0, -1.0, 0.0);
         let forward = self.forward();
         let cross = y.cross(&forward);
         cross.normalize()

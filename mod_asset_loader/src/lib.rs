@@ -36,8 +36,8 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
         let _thing = world
             .start_thing()
             .with_camera(CameraFacet::new(
-                Vector3::new(0.0, 0.0, 0.0), // pos
-                Vector3::new(0.0, 1.0, 0.0), // rotation
+                Vector3::new(1.0, 1.0, 0.0), // pos
+                Vector3::new(0.0, 0.0, 0.0), // rotation
             ))
             .with_model(mx, am)
             .build();

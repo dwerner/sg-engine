@@ -13,6 +13,8 @@ use crate::state::{SceneGraph, State, World};
 use crate::ui::events::UIEvent;
 use crate::Identity;
 
+use crate::state::Variable;
+
 pub trait WorldAccess {
     fn get_world(&mut self) -> &mut World;
 }
@@ -20,6 +22,14 @@ pub trait WorldAccess {
 pub trait ModelAccess {
     fn get_models(&self) -> &Vec<Arc<Model>>;
     fn add_model(&mut self, model: Arc<Model>);
+}
+
+pub trait VariableAccess {
+    fn get_bool(&self, key: &'static str) -> Option<bool>;
+    fn set_bool(&mut self, key: &'static str, value: bool);
+    fn bool_exists(&self, key: &'static str) -> bool {
+        self.get_bool(key).is_some()
+    }
 }
 
 pub trait WindowAccess {
@@ -62,6 +72,16 @@ pub trait UIAccess {
     fn queue_ui_event(&mut self, event: UIEvent);
     fn on_ui_load(&mut self);
     fn on_ui_unload(&mut self);
+}
+
+impl VariableAccess for State {
+    fn get_bool(&self, key: &'static str) -> Option<bool> {
+        self.variables.get(key).map(|Variable::Bool(v)| *v)
+    }
+
+    fn set_bool(&mut self, key: &'static str, value: bool) {
+        self.variables.insert(key, Variable::Bool(value));
+    }
 }
 
 impl ModelAccess for State {
