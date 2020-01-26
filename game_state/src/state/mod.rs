@@ -10,11 +10,13 @@ pub use self::access::{
 };
 pub use self::input_state::InputState;
 pub use self::render_state::{DrawMode, RenderState, SceneGraph};
+pub use self::simulation_state::SimulationState;
 use self::ui_state::UIState;
 
 mod access;
 mod input_state;
 mod render_state;
+mod simulation_state;
 mod ui_state;
 
 ///
@@ -38,6 +40,8 @@ pub struct State {
 
     // TEMPORARY container for general purpose state variables
     pub variables: HashMap<&'static str, Variable>,
+
+    pub simulation_state: SimulationState,
 }
 
 #[derive(Copy, Clone)]
@@ -61,6 +65,7 @@ impl Default for State {
             world: Default::default(),
             render_state: Default::default(),
             input_state: Default::default(),
+            simulation_state: Default::default(),
             ui_state: Default::default(),
             variables: HashMap::new(),
         }

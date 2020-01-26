@@ -77,6 +77,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                 // TODO: pausing should prevent changes to the world, rather than guard input
                 //
                 Keycode::E if !paused => camera.movement_dir = Some(Direction::Up),
+                Keycode::C if !paused => camera.movement_dir = Some(Direction::Down),
                 Keycode::W if !paused => camera.movement_dir = Some(Direction::Forward),
                 Keycode::A if !paused => camera.movement_dir = Some(Direction::Left),
                 Keycode::S if !paused => camera.movement_dir = Some(Direction::Backward),
@@ -117,8 +118,32 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                     let xa = dx / sensitivity;
                     let ya = dy / sensitivity;
 
-                    camera.rotation += Vector3::new(0.0, xa, 0.0);
-                    let rot = Matrix4::new_rotation(camera.rotation);
+                    camera.rotation += Vector3::new(-ya, xa, 0.0);
+
+                    pub fn clamp(val: f32, min: f32, max: f32) -> f32 {
+                        assert!(min <= max);
+                        let mut x = val;
+                        if x < min {
+                            x = min;
+                        }
+                        if x > max {
+                            x = max;
+                        }
+                        x
+                    }
+
+                    // Clamp up/down rotation of the camera
+                    camera.rotation.x = clamp(
+                        camera.rotation.x,
+                        -(0.5 * std::f32::consts::PI),
+                        0.5 * std::f32::consts::PI,
+                    );
+
+                    let rot = Matrix4::from_euler_angles(
+                        camera.rotation.x,
+                        camera.rotation.y,
+                        camera.rotation.z,
+                    );
                     let trans = Matrix4::new_translation(&-camera.pos);
 
                     camera.view = trans * rot;
