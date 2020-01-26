@@ -64,6 +64,7 @@ pub struct CameraFacet {
     // TODO: pos and rotation should be part of PhysicalFacet
     pub pos: Vector3<f32>,
     pub rotation: Vector3<f32>,
+    pub up: Vector3<f32>,
 
     dirty: bool,
     pub rotation_speed: f32,
@@ -87,6 +88,7 @@ pub enum Direction {
 impl CameraFacet {
     pub fn new(pos: Vector3<f32>, rotation: Vector3<f32>) -> Self {
         let mut c = CameraFacet {
+            up: Vector3::new(1.0, 0.0, 0.0),
             pos,
             rotation,
             rotation_speed: 1.0,
@@ -144,7 +146,7 @@ impl CameraFacet {
 
     #[inline]
     pub fn right(&self) -> Vector3<f32> {
-        let y = Vector3::new(0.0, 1.0, 0.0);
+        let y = Vector3::new(0.0, -1.0, 0.0);
         let forward = self.forward();
         let cross = y.cross(&forward);
         cross.normalize()
@@ -176,8 +178,9 @@ impl CameraFacet {
         self.update_view_matrix();
     }
 
-    fn update_view_matrix(&mut self) {
-        let rot = Matrix4::new_rotation(self.rotation);
+    pub fn update_view_matrix(&mut self) {
+        //let rot = Matrix4::new_rotation(self.rotation);
+        let rot = Matrix4::from_euler_angles(self.rotation.x, self.rotation.y, 0.0);
         let trans = Matrix4::new_translation(&self.pos);
         self.view = rot * trans;
         self.dirty = true;

@@ -2,17 +2,22 @@ use std::time::Duration;
 
 use game_state::input::events::InputEvent;
 use game_state::input::events::JoyButton;
-use game_state::state::{InputAccess, State, WorldAccess};
+use game_state::sdl2::video::Window;
+use game_state::state::{InputAccess, State, VariableAccess, WindowAccess, WorldAccess};
 use game_state::thing::Direction;
 
 /*
  * TODO:
-use game_state::{Identifyable, Identity};
-use game_state::input::screen::ScreenPoint;
-use game_state::input::InputSource;
+ * 1. simultaneous keypresses
+ * 2. FPS camera rotation, clamp camera angles
 */
 
-use game_state::nalgebra::Vector3;
+use game_state::nalgebra::{Matrix4, Vector3};
+use game_state::sdl2::event::Event as SdlEvent;
+use game_state::sdl2::keyboard::Keycode;
+use game_state::sdl2::video::FullscreenType;
+
+use game_state::state::Variable;
 
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
@@ -28,75 +33,128 @@ pub extern "C" fn mod_input_load(state: &mut State) {
 
 #[no_mangle]
 pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
-    state.clear_input_events();
-    state.gather_input_events();
+    let sdlwin = state.get_windows()[0].clone();
+    let mut window = unsafe { Window::from_ref(sdlwin) };
 
-    if state.has_pending_input_events() {
-        let events = state.get_input_events().clone();
-        for e in events {
-            let mut camera = &mut state.get_world().get_facets().cameras[0];
-            match e {
-                InputEvent::KeyUp(_id, keycode) => {
-                    match keycode {
-                        // TODO: support multiple keypresses
-                        17 | 18 | 30 | 31 | 32 | 46 => {
-                            camera.movement_dir = None;
-                        }
-                        _ => {}
+    let mut paused = state.get_bool("paused").unwrap_or(false);
+
+    let frame_events = state
+        .sdl_subsystems
+        .event_pump
+        .poll_iter()
+        .collect::<Vec<_>>();
+
+    let mut camera = &mut state.get_world().get_facets().cameras[0];
+    for event in frame_events {
+        match event {
+            SdlEvent::Quit { .. } => {
+                println!("quitting...");
+                std::process::exit(0);
+            }
+            SdlEvent::KeyDown {
+                keycode: Some(code),
+                ..
+            } => match code {
+                Keycode::Escape => {
+                    if paused {
+                        println!("user pressed 'Esc' : unpaused.");
+                        paused = false;
+                    } else {
+                        println!("user pressed 'Esc' : paused.");
+                        camera.movement_dir = None;
+                        paused = true;
                     }
                 }
-                InputEvent::JoyButtonUp(_src, _id, _btn) => {
-                    camera.movement_dir = None;
+
+                Keycode::Q => {
+                    if paused {
+                        println!("user pressed 'q' while paused : hard exit.");
+                        std::process::exit(0);
+                    }
                 }
-                InputEvent::JoyButtonDown(_src, _id, btn) => match btn {
-                    JoyButton::DPadUp => camera.movement_dir = Some(Direction::Forward),
-                    JoyButton::DPadLeft => camera.movement_dir = Some(Direction::Left),
-                    JoyButton::DPadDown => camera.movement_dir = Some(Direction::Backward),
-                    JoyButton::DPadRight => camera.movement_dir = Some(Direction::Right),
-                    _ => {}
+
+                //
+                // TODO: pausing should prevent changes to the world, rather than guard input
+                //
+                Keycode::E if !paused => camera.movement_dir = Some(Direction::Up),
+                Keycode::C if !paused => camera.movement_dir = Some(Direction::Down),
+                Keycode::W if !paused => camera.movement_dir = Some(Direction::Forward),
+                Keycode::A if !paused => camera.movement_dir = Some(Direction::Left),
+                Keycode::S if !paused => camera.movement_dir = Some(Direction::Backward),
+                Keycode::D if !paused => camera.movement_dir = Some(Direction::Right),
+                Keycode::F => match window.fullscreen_state() {
+                    FullscreenType::Off => window
+                        .set_fullscreen(FullscreenType::Desktop)
+                        .expect("unable to set fs"),
+                    _ => window
+                        .set_fullscreen(FullscreenType::Off)
+                        .expect("unable to set fs"),
                 },
-                InputEvent::KeyDown(_id, keycode) => {
-                    //
-                    // user released 17
-                    // user released 30
-                    // user released 31
-                    // user released 32
-                    match keycode {
-                        16 => {
-                            println!("user pressed 'q' : hard exit.");
-                            std::process::exit(0);
-                        }
-                        // e
-                        18 => camera.movement_dir = Some(Direction::Up),
-                        // c
-                        46 => camera.movement_dir = Some(Direction::Down),
-                        // w
-                        17 => camera.movement_dir = Some(Direction::Forward),
-                        // a
-                        30 => camera.movement_dir = Some(Direction::Left),
-                        // s
-                        31 => camera.movement_dir = Some(Direction::Backward),
-                        // d
-                        32 => camera.movement_dir = Some(Direction::Right),
-                        _ => {}
+
+                Keycode::Num9 => {
+                    println!("{}", camera.perspective.fovy());
+                }
+                Keycode::Num0 => camera.perspective.set_fovy(camera.perspective.fovy() - 1.0),
+
+                _ => {}
+            },
+            SdlEvent::KeyUp {
+                keycode: Some(code),
+                ..
+            } => {
+                match code {
+                    // TODO: support multiple keypresses
+                    Keycode::E | Keycode::C | Keycode::W | Keycode::A | Keycode::S | Keycode::D => {
+                        camera.movement_dir = None;
                     }
-                }
-                InputEvent::MouseMove(_id, _sp, delta) => {
-                    let sensitivity = 100.0;
-                    let (dx, dy) = (delta.delta_x as f32, delta.delta_y as f32);
-                    let xa = dx / sensitivity;
-                    let ya = dy / sensitivity;
-                    camera.rotate(Vector3::new(-ya, -xa, 0.0));
-                }
-                evt => {
-                    println!("event {:?}", evt);
+                    _ => {}
                 }
             }
+            SdlEvent::MouseMotion { xrel, yrel, .. } => {
+                if !paused {
+                    println!("TODO: Clamping and pitch rotation {:?}", camera.rotation);
+                    let sensitivity = 100.0;
+                    let (dx, dy) = (xrel as f32, yrel as f32);
+                    let xa = dx / sensitivity;
+                    let ya = dy / sensitivity;
+
+                    camera.rotation += Vector3::new(-ya, xa, 0.0);
+
+                    pub fn clamp(val: f32, min: f32, max: f32) -> f32 {
+                        assert!(min <= max);
+                        let mut x = val;
+                        if x < min {
+                            x = min;
+                        }
+                        if x > max {
+                            x = max;
+                        }
+                        x
+                    }
+
+                    // Clamp up/down rotation of the camera
+                    camera.rotation.x = clamp(
+                        camera.rotation.x,
+                        -(0.5 * std::f32::consts::PI),
+                        0.5 * std::f32::consts::PI,
+                    );
+
+                    let rot = Matrix4::from_euler_angles(
+                        camera.rotation.x,
+                        camera.rotation.y,
+                        camera.rotation.z,
+                    );
+                    let trans = Matrix4::new_translation(&-camera.pos);
+
+                    camera.view = trans * rot;
+                    camera.update_view_matrix();
+                }
+            }
+            _ => {}
         }
     }
-
-    let camera = &mut state.get_world().get_facets().cameras[0];
     camera.update(dt);
+    state.set_bool("paused", paused);
 }
 
 #[no_mangle]

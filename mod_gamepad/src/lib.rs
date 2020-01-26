@@ -4,7 +4,7 @@ use std::time::Duration;
 use gilrs::{Axis, Button, Event, EventType, Gilrs};
 
 use game_state::input::events::{DeviceId, InputEvent, JoyAxis, JoyButton};
-use game_state::input::InputSource;
+//use game_state::input::InputSource;
 use game_state::state::{InputAccess, State};
 use game_state::thing::Direction;
 use game_state::{Identifyable, Identity};
@@ -68,6 +68,7 @@ fn convert_axis(a: &Axis) -> JoyAxis {
     }
 }
 
+/*
 // TODO: implement from<T> instead
 // TODO: VecDeque -> (Event Channel)
 impl InputSource for GamepadInput {
@@ -124,12 +125,14 @@ impl InputSource for GamepadInput {
         converted_events
     }
 }
+*/
 
 #[no_mangle]
 pub extern "C" fn mod_gamepad_load(state: &mut State) {
-    let gamepad_input = GamepadInput::new();
+  /*  let gamepad_input = GamepadInput::new();
     let gamepad_input = Box::new(gamepad_input) as Box<InputSource>;
     state.add_input_source(gamepad_input);
+  */
 }
 
 #[no_mangle]

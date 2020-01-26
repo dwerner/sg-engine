@@ -1,0 +1,20 @@
+#!/bin/bash
+# shortcut to recompile both game_state and mod_rendering, in case of working on rendering innards
+export RUST_BACKTRACE=full
+set -e
+
+pids=()
+modules=(
+    rendering_vulkano
+    input
+    gamepad
+    asset_loader
+    simulation
+)
+for module in "${modules[@]}"
+do
+    echo $module
+    bash b $module $1 &
+    pids+="$! "
+done
+wait $pids

@@ -1,6 +1,6 @@
 // opinion here? reexport winit or import in other libs...?
 pub extern crate nalgebra;
-pub extern crate winit;
+pub extern crate sdl2;
 
 pub mod model;
 pub mod state;
@@ -15,7 +15,6 @@ pub mod utils;
 use std::sync::Arc;
 use std::time::Duration;
 
-use input::InputSource;
 use state::SceneGraph;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use thing::CameraFacet;
@@ -31,7 +30,7 @@ pub trait Identifyable {
     fn identify(&self) -> Identity;
 }
 
-pub trait Renderer: Identifyable + InputSource {
+pub trait Renderer: Identifyable {
     /// load()
     /// provide a hook for a mod to notify the renderer that it is about to be used
     fn load(&mut self);
