@@ -1,29 +1,23 @@
 use std::time::Duration;
 
-use game_state::input::events::InputEvent;
-use game_state::input::events::JoyButton;
 use game_state::sdl2::video::Window;
 use game_state::state::{InputAccess, State, VariableAccess, WindowAccess, WorldAccess};
 use game_state::thing::Direction;
 
-/*
- * TODO:
- * 1. simultaneous keypresses
- * 2. FPS camera rotation, clamp camera angles
-*/
-
 use game_state::nalgebra::{Matrix4, Vector3};
-use game_state::sdl2::event::Event as SdlEvent;
-use game_state::sdl2::keyboard::Keycode;
-use game_state::sdl2::video::FullscreenType;
 
-use game_state::state::Variable;
+use game_state::sdl2::{
+    event::Event as SdlEvent, keyboard::Keycode, mouse::MouseUtil, video::FullscreenType,
+};
 
 // this module's purpose is to turn input events into meaningful application input
 // this might include closing windows, keyboard presses, mouse drags
 // mapping user settings to keyboard and mouse bindings
+
 //
-// TODO: VecDeque -> (Event Channel)
+// TODO:
+// 1. simultaneous keypresses
+// 2. FPS camera rotation, clamp camera angles
 //
 
 #[no_mangle]
@@ -35,14 +29,21 @@ pub extern "C" fn mod_input_load(state: &mut State) {
 pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
     let sdlwin = state.get_windows()[0].clone();
     let mut window = unsafe { Window::from_ref(sdlwin) };
+    let mouse = state.sdl_context.mouse();
 
     let mut paused = state.get_bool("paused").unwrap_or(false);
+    let mut mouse_grabbed = state.get_bool("mouse_grabbed").unwrap_or(false);
 
     let frame_events = state
         .sdl_subsystems
         .event_pump
         .poll_iter()
         .collect::<Vec<_>>();
+
+    fn grab_cursor(grab: bool, mouse: &MouseUtil) {
+        mouse.show_cursor(!grab);
+        mouse.set_relative_mouse_mode(grab);
+    }
 
     let mut camera = &mut state.get_world().get_facets().cameras[0];
     for event in frame_events {
@@ -59,10 +60,20 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                     if paused {
                         println!("user pressed 'Esc' : unpaused.");
                         paused = false;
+
+                        // re-grab the cursor if we are unpausing and it was grabbed
+                        if mouse_grabbed {
+                            grab_cursor(mouse_grabbed, &mouse);
+                        }
                     } else {
                         println!("user pressed 'Esc' : paused.");
                         camera.movement_dir = None;
                         paused = true;
+
+                        // un-grab the cursor if we are paused
+                        if mouse_grabbed {
+                            grab_cursor(false, &mouse);
+                        }
                     }
                 }
 
@@ -82,6 +93,11 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                 Keycode::A if !paused => camera.movement_dir = Some(Direction::Left),
                 Keycode::S if !paused => camera.movement_dir = Some(Direction::Backward),
                 Keycode::D if !paused => camera.movement_dir = Some(Direction::Right),
+                Keycode::G => {
+                    mouse_grabbed = !mouse_grabbed;
+                    mouse.show_cursor(!mouse_grabbed);
+                    mouse.set_relative_mouse_mode(mouse_grabbed);
+                }
                 Keycode::F => match window.fullscreen_state() {
                     FullscreenType::Off => window
                         .set_fullscreen(FullscreenType::Desktop)
@@ -155,6 +171,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
     }
     camera.update(dt);
     state.set_bool("paused", paused);
+    state.set_bool("mouse_grabbed", mouse_grabbed);
 }
 
 #[no_mangle]
