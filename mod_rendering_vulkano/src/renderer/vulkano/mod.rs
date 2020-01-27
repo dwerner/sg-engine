@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 use std::error::Error;
 use std::mem;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::time::Duration;
 
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
@@ -29,7 +28,6 @@ use vulkano::sync::now;
 use vulkano::sync::GpuFuture;
 
 use game_state;
-use game_state::input::screen::{ScreenPoint, ScreenRect};
 use game_state::model::Model;
 use game_state::state::DrawMode;
 use game_state::state::SceneGraph;
@@ -119,7 +117,6 @@ pub struct VulkanoRenderer {
     instance: Arc<Instance>,
     surface: Arc<Surface<WinPtr>>,
     depth_buffer: Arc<dyn ImageViewAccess + Send + Sync>,
-    events: Arc<Mutex<VecDeque<game_state::input::events::InputEvent>>>,
     device: Arc<Device>,
     queue: Arc<Queue>,
     swapchain: Arc<Swapchain<WinPtr>>,
@@ -136,9 +133,6 @@ pub struct VulkanoRenderer {
     render_layer_queue: VecDeque<Arc<SceneGraph>>,
     model_data: Vec<ModelData>,
 
-    rect: ScreenRect,
-    current_mouse_pos: ScreenPoint,
-
     // Enable vulkan debug layers? - need to install the vulkan sdk to get them
     #[allow(dead_code)]
     debug_callback: Option<vulkano::instance::debug::DebugCallback>,
@@ -146,10 +140,6 @@ pub struct VulkanoRenderer {
     previous_frame_end: Box<dyn GpuFuture>,
     recreate_swapchain: bool,
     dynamic_state: DynamicState,
-    fullscreen: bool,
-    cursor_grabbed: bool,
-    cursor_hidden: bool,
-    cursor_wrapped: bool,
 }
 
 impl VulkanoRenderer {
@@ -215,12 +205,8 @@ impl VulkanoRenderer {
     fn create_descriptor_set(
         device: Arc<Device>,
         uniform_buffer: Arc<CpuAccessibleBuffer<vs::ty::Data>>,
-        queue: Arc<Queue>,
         pipeline: Arc<ThisPipelineType>,
-        id: usize,
         texture: Arc<ImmutableImage<vulkano::format::R8G8B8A8Srgb>>,
-        width: u32,
-        height: u32,
     ) -> Arc<dyn DescriptorSet + Send + Sync> {
         let sampler = vulkano::sampler::Sampler::new(
             device,
@@ -356,7 +342,6 @@ impl VulkanoRenderer {
         )
         .unwrap();
 
-        #[allow(dead_code)]
         let renderpass = single_pass_renderpass!(device.clone(),
             attachments: {
                 color: {
@@ -390,6 +375,7 @@ impl VulkanoRenderer {
             depth_buffer.clone(),
         );
 
+        // TODO: re-enable this configuration, maybe at runtime?
         // -----------------------------------------------
         // Rendermodes, fill, lines, points
         let mut raster = Rasterization::default();
@@ -428,19 +414,13 @@ impl VulkanoRenderer {
 
         let pipeline = Arc::new(p);
 
-        // finish up by grabbing some initialization values for position and size
-        let (x, y) = (0.0, 0.0);
-        let (width, height) = (800.0, 600.0);
-
         let previous_frame_end = Box::new(now(device.clone())) as Box<dyn GpuFuture>;
         let instance = instance.clone();
-        let events = Arc::new(Mutex::new(VecDeque::new()));
 
         Ok(VulkanoRenderer {
             id: game_state::create_next_identity(),
             instance,
             surface,
-            events,
             device,
             queue,
             swapchain,
@@ -456,14 +436,6 @@ impl VulkanoRenderer {
             model_data: Vec::new(),
             render_layer_queue: VecDeque::new(),
             fps: fps::FPS::new(),
-            current_mouse_pos: ScreenPoint::new(0, 0),
-            rect: ScreenRect::new(x as i32, y as i32, width as i32, height as i32),
-
-            fullscreen: false,
-            cursor_grabbed: false,
-            cursor_hidden: false,
-            cursor_wrapped: false,
-            // TODO: should DynamicState be reset when the swapchain is rebuilt as well?
             dynamic_state: DynamicState {
                 line_width: None,
                 viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
@@ -476,31 +448,6 @@ impl VulkanoRenderer {
         })
     }
 
-    #[inline]
-    fn get_mouse_pos(&self) -> &ScreenPoint {
-        &self.current_mouse_pos
-    }
-
-    #[inline]
-    fn set_mouse_pos(&mut self, pos: ScreenPoint) {
-        self.current_mouse_pos = pos;
-    }
-
-    #[allow(dead_code)]
-    #[inline]
-    fn get_rect(&self) -> &ScreenRect {
-        &self.rect
-    }
-
-    #[inline]
-    fn set_rect(&mut self, new_rect: ScreenRect) {
-        // TODO: let the renderer know to change things up because we were resized?
-        self.flag_recreate_swapchain();
-
-        // TODO: determine a delta here?
-        self.rect = new_rect;
-    }
-
     pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) {
         {
             // save model+material in VulkanoRenderer buffer cache
@@ -509,7 +456,7 @@ impl VulkanoRenderer {
 
             let pixel_buffer = {
                 let image = model.material.diffuse_map.to_rgba();
-                let image_data = image.into_raw().clone();
+                let image_data = image.into_raw();
 
                 let image_data_chunks = image_data.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]);
 
@@ -548,12 +495,8 @@ impl VulkanoRenderer {
             let pipeline_set = Self::create_descriptor_set(
                 self.device.clone(),
                 self.uniform_buffer.clone(),
-                self.queue.clone(),
                 self.pipeline.clone(),
-                0, // we intend this descriptor_set to fit in with the pipeline at set 0
                 texture.clone(),
-                2048,
-                2048,
             );
 
             let item = ModelData {
@@ -572,11 +515,14 @@ impl VulkanoRenderer {
                 .expect("Unable to create buffer"),
                 diffuse_map: pixel_buffer,
                 material_data: MaterialRenderData::new(
-                    texture.clone(),
+                    texture,
                     texture_init.clone(),
                     pipeline_set.clone(),
                 ),
             };
+
+            // TODO: think about a thread-based executor like tokio for dispatching CmdBuffer
+            // building to a thread pool.
 
             // upload to GPU memory
             let cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
@@ -736,7 +682,7 @@ impl VulkanoRenderer {
         // modify the data in the uniform buffer for this renderer == our camera
         match self.uniform_buffer.write() {
             Ok(mut uniform) => uniform.proj = proj_mat.into(),
-            Err(err) => {} // println!("Error writing to uniform buffer {:?}", err),
+            Err(_err) => {} // println!("Error writing to uniform buffer {:?}", err),
         }
 
         while let Some(next_layer) = self.render_layer_queue.pop_front() {

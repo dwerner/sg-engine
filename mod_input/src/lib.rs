@@ -19,33 +19,38 @@ use game_state::sdl2::{
 // 1. simultaneous keypresses
 // 2. FPS camera rotation, clamp camera angles
 //
+fn grab_cursor(grab: bool, mouse: &MouseUtil) {
+    mouse.show_cursor(!grab);
+    mouse.set_relative_mouse_mode(grab);
+}
 
 #[no_mangle]
 pub extern "C" fn mod_input_load(state: &mut State) {
     state.on_input_load();
+
+    let mouse = state.sdl_context.mouse();
+    let mouse_grabbed = state.get_bool("mouse_grabbed").unwrap_or(true);
+    grab_cursor(mouse_grabbed, &mouse);
 }
 
 #[no_mangle]
 pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
-    let sdlwin = state.get_windows()[0].clone();
-    let mut window = unsafe { Window::from_ref(sdlwin) };
-    let mouse = state.sdl_context.mouse();
-
-    let mut paused = state.get_bool("paused").unwrap_or(false);
-    let mut mouse_grabbed = state.get_bool("mouse_grabbed").unwrap_or(false);
-
     let frame_events = state
         .sdl_subsystems
         .event_pump
         .poll_iter()
         .collect::<Vec<_>>();
 
-    fn grab_cursor(grab: bool, mouse: &MouseUtil) {
-        mouse.show_cursor(!grab);
-        mouse.set_relative_mouse_mode(grab);
-    }
+    // TODO: wrap unsafe call in State, particularly WindowAccess
+    let sdlwin = state.get_windows()[0].clone();
+    let mut window = unsafe { Window::from_ref(sdlwin) };
+    //
 
+    let mut paused = state.get_bool("paused").unwrap_or(false);
+    let mouse = state.sdl_context.mouse();
+    let mut mouse_grabbed = state.get_bool("mouse_grabbed").unwrap_or(true);
     let mut camera = &mut state.get_world().get_facets().cameras[0];
+
     for event in frame_events {
         match event {
             SdlEvent::Quit { .. } => {
@@ -63,7 +68,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
 
                         // re-grab the cursor if we are unpausing and it was grabbed
                         if mouse_grabbed {
-                            grab_cursor(mouse_grabbed, &mouse);
+                            grab_cursor(true, &mouse);
                         }
                     } else {
                         println!("user pressed 'Esc' : paused.");
@@ -93,10 +98,9 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                 Keycode::A if !paused => camera.movement_dir = Some(Direction::Left),
                 Keycode::S if !paused => camera.movement_dir = Some(Direction::Backward),
                 Keycode::D if !paused => camera.movement_dir = Some(Direction::Right),
-                Keycode::G => {
+                Keycode::G if !paused => {
                     mouse_grabbed = !mouse_grabbed;
-                    mouse.show_cursor(!mouse_grabbed);
-                    mouse.set_relative_mouse_mode(mouse_grabbed);
+                    grab_cursor(mouse_grabbed, &mouse);
                 }
                 Keycode::F => match window.fullscreen_state() {
                     FullscreenType::Off => window
@@ -134,8 +138,6 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                     let xa = dx / sensitivity;
                     let ya = dy / sensitivity;
 
-                    camera.rotation += Vector3::new(-ya, xa, 0.0);
-
                     pub fn clamp(val: f32, min: f32, max: f32) -> f32 {
                         assert!(min <= max);
                         let mut x = val;
@@ -148,6 +150,10 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                         x
                     }
 
+                    camera.rotation += Vector3::new(
+                        0.0, //-ya,
+                        xa, 0.0,
+                    );
                     // Clamp up/down rotation of the camera
                     camera.rotation.x = clamp(
                         camera.rotation.x,
@@ -156,9 +162,9 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                     );
 
                     let rot = Matrix4::from_euler_angles(
+                        -camera.rotation.y,
                         camera.rotation.x,
-                        camera.rotation.y,
-                        camera.rotation.z,
+                        0.0, //camera.rotation.z,
                     );
                     let trans = Matrix4::new_translation(&-camera.pos);
 
