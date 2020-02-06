@@ -11,16 +11,21 @@ pub struct SceneGraph {
     pub root: RcNode<Identity>,
 }
 
-#[allow(dead_code)]
+#[derive(Copy, Clone)]
 pub enum DrawMode {
-    Wireframe,
+    Wireframe(f32),
     Points,
-    Colored,
+    Textured,
+}
+
+pub struct WindowWithAttrs {
+    pub window: Window,
+    pub draw_mode: DrawMode,
 }
 
 pub struct RenderState {
     pub models: Vec<Arc<Model>>,
-    pub windows: Vec<Window>,
+    pub windows: Vec<WindowWithAttrs>,
     pub renderers: Vec<Box<dyn Renderer>>,
     pub render_layers: Vec<Arc<SceneGraph>>,
 }

@@ -63,8 +63,8 @@ pub struct PhysicalFacet {
 pub struct CameraFacet {
     // TODO: pos and rotation should be part of PhysicalFacet
     pub pos: Vector3<f32>,
-    pub rotation: Vector3<f32>,
-    pub up: Vector3<f32>,
+    pub pitch: f32,
+    pub yaw: f32,
 
     dirty: bool,
     pub rotation_speed: f32,
@@ -86,11 +86,11 @@ pub enum Direction {
 }
 
 impl CameraFacet {
-    pub fn new(pos: Vector3<f32>, rotation: Vector3<f32>) -> Self {
+    pub fn new(pos: Vector3<f32>, pitch: f32, yaw: f32) -> Self {
         let mut c = CameraFacet {
-            up: Vector3::new(1.0, 0.0, 0.0),
             pos,
-            rotation,
+            pitch,
+            yaw,
             rotation_speed: 1.0,
             movement_speed: 1.0,
             movement_dir: None,
@@ -99,10 +99,10 @@ impl CameraFacet {
 
             // TODO fix default perspective values
             perspective: Perspective3::<f32>::new(
-                1.7,   //aspect
-                0.75,  //fovy
-                0.0,   // near
-                100.0, //far
+                1.7,    //aspect
+                0.75,   //fovy
+                0.0,    // near
+                1000.0, //far
             ),
         };
         c.update_view_matrix();
@@ -117,72 +117,45 @@ impl CameraFacet {
         self.perspective.set_aspect(aspect);
     }
 
-    pub fn set_pos(&mut self, pos: Vector3<f32>) {
-        self.pos = pos;
-        self.update_view_matrix();
-    }
-
-    pub fn rotate(&mut self, delta: Vector3<f32>) {
-        self.rotation += delta;
-        self.update_view_matrix();
-    }
-
-    pub fn translate(&mut self, delta: Vector3<f32>) {
-        self.pos += delta;
-        self.update_view_matrix();
-    }
-
-    pub fn set_rotation(&mut self, rotation: Vector3<f32>) {
-        self.rotation = rotation;
-        self.update_view_matrix();
-    }
-
-    #[inline]
     pub fn forward(&self) -> Vector3<f32> {
-        let r = &self.rotation;
-        let (rx, ry) = (r.x, r.y);
+        let rx = self.pitch;
+        let ry = self.yaw;
         Vector3::new(-(rx.cos()) * ry.sin(), rx.sin(), rx.cos() * ry.cos()).normalize()
     }
 
-    #[inline]
     pub fn right(&self) -> Vector3<f32> {
-        let y = Vector3::new(0.0, -1.0, 0.0);
+        let y = Vector3::new(1.0, 0.0, 0.0);
         let forward = self.forward();
         let cross = y.cross(&forward);
         cross.normalize()
     }
 
-    #[inline]
     pub fn up(&self) -> Vector3<f32> {
-        let x = Vector3::new(1.0, 0.0, 0.0);
+        let x = Vector3::new(0.0, 1.0, 0.0);
         x.cross(&self.forward()).normalize()
     }
 
     pub fn update(&mut self, dt: &Duration) {
-        {
-            let amount = (dt.as_millis() as f64 / 100.0) as f32;
-            if let Some(move_dir) = &self.movement_dir {
-                let m = self.movement_speed * amount;
-                let d = match move_dir {
-                    Direction::Forward => self.forward(),
-                    Direction::Backward => -self.forward(),
-                    Direction::Right => self.right(),
-                    Direction::Left => -self.right(),
-                    Direction::Up => self.up(),
-                    Direction::Down => -self.up(),
-                };
-                self.pos += d * m;
-            }
+        let amount = (dt.as_millis() as f64 / 100.0) as f32;
+        if let Some(move_dir) = &self.movement_dir {
+            let m = self.movement_speed * amount;
+            let d = match move_dir {
+                Direction::Forward => self.forward(),
+                Direction::Backward => -self.forward(),
+                Direction::Right => self.right(),
+                Direction::Left => -self.right(),
+                Direction::Up => self.up(),
+                Direction::Down => -self.up(),
+            };
+            self.pos += d * m;
         }
-
         self.update_view_matrix();
     }
 
     pub fn update_view_matrix(&mut self) {
-        //let rot = Matrix4::new_rotation(self.rotation);
-        let rot = Matrix4::from_euler_angles(self.rotation.x, self.rotation.y, 0.0);
+        let rot = Matrix4::from_euler_angles(0.0, self.pitch, self.yaw);
         let trans = Matrix4::new_translation(&self.pos);
-        self.view = rot * trans;
+        self.view = trans * rot;
         self.dirty = true;
     }
 }

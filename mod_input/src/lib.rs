@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use game_state::sdl2::video::Window;
 use game_state::state::{InputAccess, State, VariableAccess, WindowAccess, WorldAccess};
-use game_state::thing::Direction;
+use game_state::thing::{CameraFacet, Direction};
 
-use game_state::nalgebra::{Matrix4, Vector3};
+use game_state::nalgebra::{Matrix4, Rotation3, Vector3};
 
 use game_state::sdl2::{
     event::Event as SdlEvent, keyboard::Keycode, mouse::MouseUtil, video::FullscreenType,
@@ -42,7 +42,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
         .collect::<Vec<_>>();
 
     // TODO: wrap unsafe call in State, particularly WindowAccess
-    let sdlwin = state.get_windows()[0].clone();
+    let (sdlwin, _) = state.get_windows()[0].clone();
     let mut window = unsafe { Window::from_ref(sdlwin) };
     //
 
@@ -132,44 +132,44 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
             }
             SdlEvent::MouseMotion { xrel, yrel, .. } => {
                 if !paused {
-                    println!("TODO: Clamping and pitch rotation {:?}", camera.rotation);
+                    println!(
+                        "pos {:?} pitch {}, yaw {}",
+                        camera.pos, camera.pitch, camera.yaw
+                    );
                     let sensitivity = 100.0;
                     let (dx, dy) = (xrel as f32, yrel as f32);
                     let xa = dx / sensitivity;
                     let ya = dy / sensitivity;
 
-                    pub fn clamp(val: f32, min: f32, max: f32) -> f32 {
-                        assert!(min <= max);
-                        let mut x = val;
-                        if x < min {
-                            x = min;
+                    #[inline(always)]
+                    fn _rotate_camera(camera: &mut CameraFacet, xa: f32, ya: f32) {
+                        const TWO_PI: f32 = 2.0 * std::f32::consts::PI;
+                        const HALF_PI: f32 = 0.5 * std::f32::consts::PI;
+
+                        camera.yaw += xa;
+
+                        // round-robin yaw motion
+                        if camera.yaw.abs() > TWO_PI {
+                            camera.yaw = 0.0;
                         }
-                        if x > max {
-                            x = max;
+
+                        camera.pitch += ya;
+                        // Clamp up/down rotation of the camera
+                        pub fn clamp(val: f32, min: f32, max: f32) -> f32 {
+                            assert!(min <= max);
+                            let mut x = val;
+                            if x < min {
+                                x = min;
+                            }
+                            if x > max {
+                                x = max;
+                            }
+                            x
                         }
-                        x
+                        camera.pitch = clamp(camera.pitch, -HALF_PI, HALF_PI);
                     }
 
-                    camera.rotation += Vector3::new(
-                        0.0, //-ya,
-                        xa, 0.0,
-                    );
-                    // Clamp up/down rotation of the camera
-                    camera.rotation.x = clamp(
-                        camera.rotation.x,
-                        -(0.5 * std::f32::consts::PI),
-                        0.5 * std::f32::consts::PI,
-                    );
-
-                    let rot = Matrix4::from_euler_angles(
-                        -camera.rotation.y,
-                        camera.rotation.x,
-                        0.0, //camera.rotation.z,
-                    );
-                    let trans = Matrix4::new_translation(&-camera.pos);
-
-                    camera.view = trans * rot;
-                    camera.update_view_matrix();
+                    _rotate_camera(camera, xa, ya);
                 }
             }
             _ => {}

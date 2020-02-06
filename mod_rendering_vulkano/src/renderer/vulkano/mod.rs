@@ -17,9 +17,6 @@ use vulkano::image::{
 };
 use vulkano::instance::debug::DebugCallback;
 use vulkano::instance::{Instance, PhysicalDevice};
-use vulkano::pipeline::raster::{
-    CullMode, DepthBiasControl, FrontFace, PolygonMode, Rasterization,
-};
 use vulkano::pipeline::vertex::SingleBufferDefinition;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::swapchain;
@@ -375,22 +372,6 @@ impl VulkanoRenderer {
             depth_buffer.clone(),
         );
 
-        // TODO: re-enable this configuration, maybe at runtime?
-        // -----------------------------------------------
-        // Rendermodes, fill, lines, points
-        let mut raster = Rasterization::default();
-        raster.cull_mode = CullMode::Back;
-        raster.polygon_mode = match draw_mode {
-            DrawMode::Colored => PolygonMode::Fill,
-            DrawMode::Points => PolygonMode::Point,
-            DrawMode::Wireframe => PolygonMode::Line,
-        };
-        raster.depth_clamp = true;
-        raster.front_face = FrontFace::Clockwise;
-        raster.line_width = Some(2.0);
-        raster.depth_bias = DepthBiasControl::Dynamic;
-        // -------------------------------------------------
-
         let p = GraphicsPipeline::start()
             .vertex_input_single_buffer()
             .polygon_mode_fill()
@@ -402,7 +383,16 @@ impl VulkanoRenderer {
             .viewports_dynamic_scissors_irrelevant(1)
             .fragment_shader(fs.main_entry_point(), ())
             .depth_stencil_simple_depth()
-            .blend_alpha_blending()
+            .blend_alpha_blending();
+
+        let p = match draw_mode {
+            DrawMode::Wireframe(line_width) => p.line_width(line_width).polygon_mode_line(),
+            DrawMode::Points => p.polygon_mode_point(),
+
+            // add more variants here, but for now we default to Textured
+            _ => p.polygon_mode_fill(),
+        };
+        let p = p
             .render_pass(
                 Subpass::from(
                     renderpass.clone() as Arc<dyn RenderPassAbstract + Send + Sync>,

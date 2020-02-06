@@ -2,6 +2,7 @@
 extern crate engine;
 use engine::libloader::LibLoader;
 
+use game_state::state::DrawMode;
 use game_state::state::State;
 use std::time::{Duration, Instant};
 
@@ -17,8 +18,15 @@ fn main() {
     // TODO mod_network
 
     // because of #[no_mangle], each library needs it's own unique method name as well... sigh
-    state.add_window(800, 600, "sg-shell 1 (vulkano)".to_string());
-    state.add_window(800, 600, "sg-shell 2 (vulkano)".to_string());
+    state.add_window(1280, 720, "sg-shell 1 (vulkano)", 0, 0, DrawMode::Textured);
+    state.add_window(
+        800,
+        600,
+        "sg-shell 2 (vulkano)",
+        0,
+        720,
+        DrawMode::Wireframe(3.0),
+    );
 
     let mut mods = Vec::new();
     mods.push(load_mod!(gamepad));

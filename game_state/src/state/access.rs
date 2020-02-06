@@ -5,10 +5,13 @@ use std::sync::Arc;
 
 use sdl2::video::WindowContext;
 
+use super::DrawMode;
 use super::Model;
 use super::Renderer;
+
 use crate::input::events::InputEvent;
 use crate::input::screen::ScreenPoint;
+use crate::state::render_state::WindowWithAttrs;
 use crate::state::{SceneGraph, State, World};
 use crate::ui::events::UIEvent;
 use crate::Identity;
@@ -33,8 +36,8 @@ pub trait VariableAccess {
 }
 
 pub trait WindowAccess {
-    fn add_window(&mut self, w: u32, h: u32, title: String);
-    fn get_windows(&mut self) -> Vec<Rc<WindowContext>>;
+    fn add_window(&mut self, w: u32, h: u32, title: &str, x: i32, y: i32, draw_mode: DrawMode);
+    fn get_windows(&mut self) -> Vec<(Rc<WindowContext>, DrawMode)>;
 }
 
 // Accessor trait for State by topic
@@ -102,11 +105,12 @@ impl WorldAccess for State {
 
 impl WindowAccess for State {
     // TODO: make fallible
-    fn add_window(&mut self, w: u32, h: u32, title: String) {
+    fn add_window(&mut self, w: u32, h: u32, title: &str, x: i32, y: i32, draw_mode: DrawMode) {
         let window = {
             self.sdl_subsystems
                 .video
-                .window(&title, w, h)
+                .window(title, w, h)
+                .position(x, y)
                 .resizable()
                 .allow_highdpi()
                 .vulkan()
@@ -114,14 +118,16 @@ impl WindowAccess for State {
                 .unwrap()
         };
 
-        self.render_state.windows.push(window);
+        self.render_state
+            .windows
+            .push(WindowWithAttrs { window, draw_mode });
     }
 
-    fn get_windows(&mut self) -> Vec<Rc<WindowContext>> {
+    fn get_windows(&mut self) -> Vec<(Rc<WindowContext>, DrawMode)> {
         self.render_state
             .windows
             .iter()
-            .map(|w| w.context())
+            .map(|w| (w.window.context(), w.draw_mode))
             .collect::<Vec<_>>()
     }
 }
