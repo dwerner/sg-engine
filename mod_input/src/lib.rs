@@ -153,7 +153,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
                             camera.yaw = 0.0;
                         }
 
-                        camera.pitch += ya;
+                        camera.pitch += -ya;
                         // Clamp up/down rotation of the camera
                         pub fn clamp(val: f32, min: f32, max: f32) -> f32 {
                             assert!(min <= max);

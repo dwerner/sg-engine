@@ -153,7 +153,7 @@ impl CameraFacet {
     }
 
     pub fn update_view_matrix(&mut self) {
-        let rot = Matrix4::from_euler_angles(0.0, self.pitch, self.yaw);
+        let rot = Matrix4::from_euler_angles(self.pitch, self.yaw, 0.0);
         let trans = Matrix4::new_translation(&self.pos);
         self.view = trans * rot;
         self.dirty = true;

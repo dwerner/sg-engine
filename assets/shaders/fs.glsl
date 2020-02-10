@@ -17,5 +17,6 @@ void main() {
     vec3 dark_color = vec3(0.3, 0.3, 0.3);
     vec3 regular_color = vec3(1.0, 1.0, 1.0);
 
-    f_color = texture(tex, v_uv) * vec4(mix(dark_color, regular_color, brightness), 1.0);
+    //f_color = texture(tex, v_uv) * vec4(mix(dark_color, regular_color, brightness), 1.0);
+    f_color = vec4(1.0,1.0,1.0,1.0);
 }

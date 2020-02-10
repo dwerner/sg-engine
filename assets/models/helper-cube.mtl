@@ -1,4 +1,4 @@
-# Blender MTL File: 'helper-cube.blend1'
+# Blender MTL File: 'helper-cube.blend'
 # Material Count: 1
 
 newmtl Material.001
@@ -10,4 +10,3 @@ Ke 0.0 0.0 0.0
 Ni 1.000000
 d 1.000000
 illum 2
-map_Kd directions_cube.png

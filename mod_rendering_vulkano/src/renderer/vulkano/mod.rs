@@ -623,6 +623,14 @@ impl VulkanoRenderer {
             self.swapchain.clone(),
             Some(Duration::from_micros(300)),
         ) {
+            Ok((num, _)) if num >= self.framebuffers.len() => {
+                println!(
+                    "acquire_next_image returned out of bounds image index {}",
+                    num
+                );
+                self.flag_recreate_swapchain();
+                return;
+            }
             Ok((num, future)) => (num, future),
             Err(vulkano::swapchain::AcquireError::OutOfDate) => {
                 self.flag_recreate_swapchain();
