@@ -145,17 +145,8 @@ impl VulkanoRenderer {
         device: Arc<Device>,
         queue: Arc<Queue>,
         physical: PhysicalDevice,
-    ) -> Result<(Arc<Swapchain<WinPtr>>, Vec<Arc<SwapchainImage<WinPtr>>>), String> {
-        let caps = match surface.capabilities(physical.clone()) {
-            Ok(caps) => caps,
-            Err(err) => {
-                return Err(format!(
-                    "Unable to get capabilities from surface: {:?}",
-                    err
-                ))
-            }
-        };
-
+    ) -> Result<(Arc<Swapchain<WinPtr>>, Vec<Arc<SwapchainImage<WinPtr>>>), Box<dyn Error>> {
+        let caps = surface.capabilities(physical.clone())?;
         use vulkano::swapchain::PresentMode;
 
         let dimensions = caps.current_extent.unwrap_or([1280, 800]);
@@ -169,19 +160,18 @@ impl VulkanoRenderer {
         // and then syncing with state once per update, but allowing rendering to happen
         // without blocking
         let present_mode = if caps.present_modes.immediate {
-            Some(PresentMode::Immediate)
+            PresentMode::Immediate
         } else if caps.present_modes.mailbox {
-            Some(PresentMode::Mailbox)
+            PresentMode::Mailbox
         } else if caps.present_modes.relaxed {
-            Some(PresentMode::Relaxed)
+            PresentMode::Relaxed
         } else if caps.present_modes.fifo {
-            Some(PresentMode::Fifo)
+            PresentMode::Fifo
         } else {
-            None
-        }
-        .expect("No supported present mode found.");
+            return Err("No supported present mode found.".into());
+        };
 
-        Ok(Swapchain::new(
+        let swapchain = Swapchain::new(
             device,
             surface,
             caps.min_image_count,
@@ -193,10 +183,11 @@ impl VulkanoRenderer {
             SurfaceTransform::Identity,
             alpha,
             present_mode,
+            vulkano::swapchain::FullscreenExclusive::Default,
             true,
-            None,
-        )
-        .expect("Failed to create swapchain."))
+            vulkano::swapchain::ColorSpace::SrgbNonLinear,
+        )?;
+        Ok(swapchain)
     }
 
     fn create_descriptor_set(
@@ -220,7 +211,8 @@ impl VulkanoRenderer {
         )
         .unwrap();
 
-        let ds = PersistentDescriptorSet::start(pipeline, 0) // intended to be bound at 0
+        let layout = pipeline.layout().descriptor_set_layout(0).unwrap();
+        let ds = PersistentDescriptorSet::start(layout.clone())
             .add_sampled_image(texture, sampler)
             .expect("error loading texture")
             .add_buffer(uniform_buffer)
@@ -257,7 +249,7 @@ impl VulkanoRenderer {
     pub fn new(win_ptr: WinPtr, draw_mode: DrawMode) -> Result<Self, Box<dyn Error>> {
         let instance = {
             let extensions = vulkano_sdl2::required_extensions(win_ptr).unwrap();
-            let app_info = app_info_from_cargo_toml!();
+            let app_info = vulkano::app_info_from_cargo_toml!();
             Instance::new(Some(&app_info), &extensions, None)
                 .expect("Failed to create Vulkan instance. ")
         };
@@ -320,6 +312,7 @@ impl VulkanoRenderer {
         let uniform_buffer = CpuAccessibleBuffer::<vs::ty::Data>::from_data(
             device.clone(),
             vulkano::buffer::BufferUsage::all(),
+            false,
             vs::ty::Data { proj: proj.into() },
         )
         .expect("failed to create uniform buffer");
@@ -339,7 +332,7 @@ impl VulkanoRenderer {
         )
         .unwrap();
 
-        let renderpass = single_pass_renderpass!(device.clone(),
+        let renderpass = vulkano::single_pass_renderpass!(device.clone(),
             attachments: {
                 color: {
                     load: Clear,
@@ -454,6 +447,7 @@ impl VulkanoRenderer {
                 vulkano::buffer::cpu_access::CpuAccessibleBuffer::<[[u8; 4]]>::from_iter(
                     self.device.clone(),
                     BufferUsage::all(),
+                    false,
                     image_data_chunks,
                 )
                 .expect("failed to create buffer")
@@ -494,12 +488,14 @@ impl VulkanoRenderer {
                 vertices: CpuAccessibleBuffer::from_iter(
                     self.device.clone(),
                     BufferUsage::all(),
+                    false,
                     vertices.iter().cloned(),
                 )
                 .expect("Unable to create buffer"),
                 indices: CpuAccessibleBuffer::from_iter(
                     self.device.clone(),
                     BufferUsage::all(),
+                    false,
                     mesh.indices.iter().cloned(),
                 )
                 .expect("Unable to create buffer"),
@@ -578,7 +574,7 @@ impl VulkanoRenderer {
                 .current_extent
                 .unwrap_or([1024, 768]);
 
-            match self.swapchain.recreate_with_dimension(dims) {
+            match self.swapchain.recreate_with_dimensions(dims) {
                 Ok((new_swapchain, new_images)) => {
                     self.swapchain = new_swapchain;
                     self.images = new_images;
@@ -623,7 +619,7 @@ impl VulkanoRenderer {
             self.swapchain.clone(),
             Some(Duration::from_micros(300)),
         ) {
-            Ok((num, _)) if num >= self.framebuffers.len() => {
+            Ok((num, suboptimal, _)) if num >= self.framebuffers.len() || suboptimal => {
                 println!(
                     "acquire_next_image returned out of bounds image index {}",
                     num
@@ -631,7 +627,7 @@ impl VulkanoRenderer {
                 self.flag_recreate_swapchain();
                 return;
             }
-            Ok((num, future)) => (num, future),
+            Ok((num, _, future)) => (num, future),
             Err(vulkano::swapchain::AcquireError::OutOfDate) => {
                 self.flag_recreate_swapchain();
                 return;

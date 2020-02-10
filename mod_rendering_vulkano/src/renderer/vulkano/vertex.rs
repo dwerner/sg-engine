@@ -21,4 +21,4 @@ impl From<GSVertex> for Vertex {
 
 // the reason for this copying is to put the data into a struct we can
 // impl_vertex! on, in this crate...
-impl_vertex!(Vertex, position, normal, uv);
+vulkano::impl_vertex!(Vertex, position, normal, uv);

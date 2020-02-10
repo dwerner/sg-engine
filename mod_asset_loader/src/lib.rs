@@ -20,24 +20,26 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
     let origin = Vector3::new(0.0, 0.0, 0.0);
     let mx = Matrix4::new_translation(&origin) * Matrix4::new_scaling(1.0);
 
-    let helper = Model::create("assets/models/helper-cube.obj", mx);
+    let helper = Model::load("assets/models/helper-cube.obj", mx)
+        .unwrap()
+        .pop()
+        .unwrap();
+
     let am = Arc::new(helper);
 
     state.add_model(am.clone());
 
-    {
-        let world = state.get_world();
-        // build the actual entity within the world
-        let _thing = world
-            .start_thing()
-            .with_camera(CameraFacet::new(
-                Vector3::new(0.0, 0.0, 0.0), // pos
-                0.0,                         // pitch
-                0.0,                         // yaw
-            ))
-            .with_model(mx, am)
-            .build();
-    }
+    let world = state.get_world();
+    // build the actual entity within the world
+    let _thing = world
+        .start_thing()
+        .with_camera(CameraFacet::new(
+            Vector3::new(0.0, 0.0, 0.0), // pos
+            0.0,                         // pitch
+            0.0,                         // yaw
+        ))
+        .with_model(mx, am)
+        .build();
 
     // NOTE: there's some index-mirroring happening here, we probably want to associate somehow
     // other than this - it's going to be easy to get wrong

@@ -1,12 +1,8 @@
-#[macro_use]
-extern crate vulkano;
-
 use std::time::Duration;
 
 use game_state::sdl2::video::Window;
-
 use game_state::state::ModelAccess;
-use game_state::state::{DrawMode, RenderAccess, State, WindowAccess};
+use game_state::state::{RenderAccess, State, WindowAccess};
 
 mod renderer;
 use renderer::vulkano::VulkanoRenderer;

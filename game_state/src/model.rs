@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::path::Path;
+
 use nalgebra::Matrix4;
 
 // TODO: still need to refactor nom-obj to take BufReader, among other things
@@ -23,55 +26,44 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn create(filename: &str, model_mat: Matrix4<f32>) -> Self {
-        let obj = Obj::create(filename);
-        let Interleaved { v_vt_vn, idx } = obj.objects[0].interleaved();
+    pub fn load(filename: &str, model_mat: Matrix4<f32>) -> Result<Vec<Self>, Box<dyn Error>> {
+        let obj = Obj::read_file(filename)?;
 
-        let verts = v_vt_vn
-            .iter()
-            .map(|&(v, vt, vn)| Vertex::create(v.0, v.1, v.2, vt.0, vt.1, vt.2, vn.0, vn.1, vn.0))
-            .collect::<Vec<_>>();
+        let mut models = Vec::new();
+        for o in obj.objects.iter() {
+            let Interleaved { v_vt_vn, idx } = o.interleaved();
 
-        assert!(!verts.is_empty());
+            let verts = v_vt_vn
+                .iter()
+                .map(|&(v, vt, vn)| Vertex::new((v.0, v.1, v.2), vt, (vn.0, vn.1, vn.0)))
+                .collect::<Vec<_>>();
 
-        let indices = idx.iter().map(|x: &usize| *x as u16).collect::<Vec<_>>();
+            if verts.is_empty() {
+                return Err("model has no vertices".into());
+            }
 
-        use std::path::Path;
-        let path_str = obj.get_mtl().diffuse_map.clone();
-        let material_path = Path::new(&path_str);
-        let diffuse_map =
-            image::open(material_path).expect("unable to open image file from material");
+            let indices = idx.iter().map(|x: &usize| *x as u16).collect::<Vec<_>>();
 
-        Model {
-            filename: filename.to_string(),
-            id: create_next_identity(),
-            model_mat,
-            world_mat: Matrix4::<f32>::identity(),
-            mesh: Mesh::create(verts, indices),
-            material: Material { diffuse_map },
+            let diffuse_map_filename = &obj.objects[0]
+                .material
+                .as_ref()
+                .ok_or_else(|| format!("no diffuse map (map_Kd) defined in model {}", filename))?
+                .diffuse_map;
+
+            let material_path = Path::new(diffuse_map_filename);
+            let diffuse_map = image::open(material_path)?;
+
+            models.push(Model {
+                filename: filename.to_string(),
+                id: create_next_identity(),
+                model_mat,
+                world_mat: Matrix4::<f32>::identity(),
+                mesh: Mesh::create(verts, indices),
+                material: Material { diffuse_map },
+            })
         }
-    }
 
-    fn get_mesh(&self) -> &Mesh {
-        &self.mesh
-    }
-
-    fn get_world_matrix(&self) -> &Matrix4<f32> {
-        &self.world_mat
-    }
-
-    fn get_model_matrix(&self) -> &Matrix4<f32> {
-        &self.model_mat
-    }
-    fn get_diffuse_map(&self) -> &image::DynamicImage {
-        &self.material.diffuse_map
-    }
-
-    fn set_world_matrix(&mut self, mat: Matrix4<f32>) {
-        self.world_mat = mat;
-    }
-    fn set_model_matrix(&mut self, mat: Matrix4<f32>) {
-        self.model_mat = mat;
+        Ok(models)
     }
 }
 
@@ -109,21 +101,11 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub fn create(
-        vx: f32,
-        vy: f32,
-        vz: f32,
-        u: f32,
-        v: f32,
-        w: f32,
-        nx: f32,
-        ny: f32,
-        nz: f32,
-    ) -> Self {
+    pub fn new(v: (f32, f32, f32), vt: (f32, f32, f32), vn: (f32, f32, f32)) -> Self {
         Vertex {
-            position: Vector(vx, vy, vz),
-            uvw: UVW(u, v, w),
-            normal: Normal(nx, ny, nz),
+            position: Vector(v.0, v.1, v.2),
+            uvw: UVW(v.0, vt.1, vt.2),
+            normal: Normal(vn.0, vn.1, vn.2),
         }
     }
 

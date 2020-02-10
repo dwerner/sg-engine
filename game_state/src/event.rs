@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::collections::HashMap;
 
 /// Since we want cross-thread handling of input, we choose Arc
-pub type EventHandler<T> = Fn(T) -> ();
+pub type EventHandler<T> = dyn Fn(T) -> ();
 pub type ArcEventHandler<T> = Arc<Mutex<Box<EventHandler<T>>>>;
 pub type WeakEventHandler<T> = Weak<Mutex<Box<EventHandler<T>>>>;
 
