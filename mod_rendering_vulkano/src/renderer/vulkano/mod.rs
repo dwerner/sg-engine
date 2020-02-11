@@ -246,7 +246,11 @@ impl VulkanoRenderer {
             .collect::<Vec<_>>()
     }
 
-    pub fn new(win_ptr: WinPtr, draw_mode: DrawMode) -> Result<Self, Box<dyn Error>> {
+    pub fn new(
+        win_ptr: WinPtr,
+        draw_mode: DrawMode,
+        models: Vec<Arc<Model>>,
+    ) -> Result<Self, Box<dyn Error>> {
         let instance = {
             let extensions = vulkano_sdl2::required_extensions(win_ptr).unwrap();
             let app_info = vulkano::app_info_from_cargo_toml!();
@@ -400,7 +404,7 @@ impl VulkanoRenderer {
         let previous_frame_end = Box::new(now(device.clone())) as Box<dyn GpuFuture>;
         let instance = instance.clone();
 
-        Ok(VulkanoRenderer {
+        let mut renderer = VulkanoRenderer {
             id: game_state::create_next_identity(),
             instance,
             surface,
@@ -416,7 +420,7 @@ impl VulkanoRenderer {
             previous_frame_end,
             renderpass: renderpass as Arc<dyn RenderPassAbstract + Send + Sync>,
             recreate_swapchain: false, // flag indicating to rebuild the swapchain on the next frame
-            model_data: Vec::new(),
+            model_data: Vec::with_capacity(models.len()),
             render_layer_queue: VecDeque::new(),
             fps: fps::FPS::new(),
             dynamic_state: DynamicState {
@@ -428,7 +432,13 @@ impl VulkanoRenderer {
                 }]),
                 ..DynamicState::none()
             },
-        })
+        };
+
+        for model in models {
+            renderer.upload_model(model);
+        }
+
+        Ok(renderer)
     }
 
     pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) {
@@ -437,30 +447,30 @@ impl VulkanoRenderer {
             let mesh = &model.mesh;
             let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
 
-            let pixel_buffer = {
+            let (pixel_buffer, (width, height)) = {
                 let image = model.material.diffuse_map.to_rgba();
+                let dims = image.dimensions();
                 let image_data = image.into_raw();
 
                 let image_data_chunks = image_data.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]);
 
                 // TODO: staging buffer instead
-                vulkano::buffer::cpu_access::CpuAccessibleBuffer::<[[u8; 4]]>::from_iter(
-                    self.device.clone(),
-                    BufferUsage::all(),
-                    false,
-                    image_data_chunks,
-                )
-                .expect("failed to create buffer")
+                let pixel_buffer =
+                    vulkano::buffer::cpu_access::CpuAccessibleBuffer::<[[u8; 4]]>::from_iter(
+                        self.device.clone(),
+                        BufferUsage::all(),
+                        false,
+                        image_data_chunks,
+                    )
+                    .expect("failed to create buffer");
+                (pixel_buffer, dims)
             };
 
             // TODO: per-model textures are 2048x2048, perhaps this could depend on the image instead?
 
             let (texture, texture_init) = ImmutableImage::uninitialized(
                 self.device.clone(),
-                vulkano::image::Dimensions::Dim2d {
-                    width: 2048,
-                    height: 2048,
-                },
+                vulkano::image::Dimensions::Dim2d { width, height },
                 vulkano::format::R8G8B8A8Srgb,
                 MipmapsCount::One,
                 ImageUsage {
@@ -689,40 +699,45 @@ impl VulkanoRenderer {
                 let node = &mut rc.borrow_mut();
 
                 // TODO: implement a per model -instance- matrix in the graph itself?
-                let model = self.model_data[node.data as usize].model.clone();
-
-                let model_mat = model.model_mat;
-
-                // TODO: update the world matrices from the parent * child's local matrix
-                // eg. flag dirty a node, which means all children must be updated
-                // actually save the data in each node
-                let transform_mat = node
-                    .parent()
-                    .map(|parent| {
-                        let parent_model_id = parent.borrow().data;
-                        let parent_model = &self.model_data[parent_model_id as usize].model;
-                        parent_model.world_mat * model_mat
-                    })
-                    .unwrap_or(model_mat);
-
-                // Push constants are leveraged here to send per-model
-                // matrices into the shaders
-                let push_constants = vs::ty::PushConstants {
-                    model_mat: (viewscale * transform_mat).into(),
+                let model = match node.data.clone() {
+                    Some(model) => model.clone(),
+                    None => continue,
                 };
+                if let Some(md) = self.model_data.iter().find(|md| md.model.id == model.id) {
+                    let model_mat = model.model_mat;
 
-                let mdl = &self.model_data[node.data as usize];
+                    // TODO: update the world matrices from the parent * child's local matrix
+                    // eg. flag dirty a node, which means all children must be updated
+                    // actually save the data in each node
+                    let transform_mat = node
+                        .parent()
+                        .map(|parent| {
+                            let parent_model = parent.borrow().data.clone();
+                            if let Some(parent_model) = parent_model {
+                                parent_model.world_mat * model_mat
+                            } else {
+                                model_mat
+                            }
+                        })
+                        .unwrap_or_else(|| model_mat);
 
-                cmd_buffer_build = cmd_buffer_build
-                    .draw_indexed(
-                        self.pipeline.clone(),
-                        &self.dynamic_state,
-                        mdl.vertices.clone(),
-                        mdl.indices.clone(),
-                        mdl.material_data.descriptor_set.clone(),
-                        push_constants, // or () - both leak on win32...
-                    )
-                    .expect("Unable to add command");
+                    // Push constants are leveraged here to send per-model
+                    // matrices into the shaders
+                    let push_constants = vs::ty::PushConstants {
+                        model_mat: (viewscale * transform_mat).into(),
+                    };
+
+                    cmd_buffer_build = cmd_buffer_build
+                        .draw_indexed(
+                            self.pipeline.clone(),
+                            &self.dynamic_state,
+                            md.vertices.clone(),
+                            md.indices.clone(),
+                            md.material_data.descriptor_set.clone(),
+                            push_constants, // or () - both leak on win32...
+                        )
+                        .expect("Unable to add command");
+                }
             }
         }
 

@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "game_state"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "futures 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -460,7 +460,7 @@ dependencies = [
 name = "mod_rendering_vulkano"
 version = "0.1.0"
 dependencies = [
- "game_state 0.1.0",
+ "game_state 0.2.0",
  "image 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano-shaders 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -5,5 +5,5 @@ target
 .idea/**
 **/.idea/**
 *.log
-**/*.blend?+
+**/massif*
 

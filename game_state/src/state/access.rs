@@ -23,7 +23,7 @@ pub trait WorldAccess {
 }
 
 pub trait ModelAccess {
-    fn get_models(&self) -> &Vec<Arc<Model>>;
+    fn get_models(&self) -> Vec<Arc<Model>>;
     fn add_model(&mut self, model: Arc<Model>);
 }
 
@@ -88,8 +88,8 @@ impl VariableAccess for State {
 }
 
 impl ModelAccess for State {
-    fn get_models(&self) -> &Vec<Arc<Model>> {
-        &self.render_state.models
+    fn get_models(&self) -> Vec<Arc<Model>> {
+        self.render_state.models.clone()
     }
 
     fn add_model(&mut self, model: Arc<Model>) {

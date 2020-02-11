@@ -18,7 +18,7 @@ pub extern "C" fn mod_rendering_vulkano_load(state: &mut State) {
             let c = unsafe { &*sdlwin.raw() };
             crate::renderer::vulkano::vulkano_sdl2::WinPtr { raw: c as *const _ }
         };
-        let maybe_renderer = VulkanoRenderer::new(win_ptr, draw_mode);
+        let maybe_renderer = VulkanoRenderer::new(win_ptr, draw_mode, state.get_models());
 
         match maybe_renderer {
             Ok(mut renderer) => {

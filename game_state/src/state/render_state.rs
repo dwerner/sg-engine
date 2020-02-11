@@ -4,11 +4,10 @@ use sdl2::video::Window;
 
 use super::{Model, Renderer};
 use crate::tree::RcNode;
-use crate::Identity;
 
 #[derive(Default)]
-pub struct SceneGraph {
-    pub root: RcNode<Identity>,
+pub struct SceneGraph<T = Option<Arc<Model>>> {
+    pub root: RcNode<T>,
 }
 
 #[derive(Copy, Clone)]

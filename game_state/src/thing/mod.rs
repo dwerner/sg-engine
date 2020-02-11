@@ -5,6 +5,7 @@ use nalgebra::{Matrix4, Perspective3, Scalar, Vector3};
 
 use crate::{create_next_identity, model, Identifyable, Identity};
 
+#[derive(Copy, Clone)]
 pub enum FacetIndex {
     Physical(usize), // does it have mass?
     Health(usize),   // can it be hurt? die?
@@ -225,7 +226,7 @@ impl<'a> ThingBuilder<'a> {
             .facets
             .models
             .push(ModelInstanceFacet { transform, model });
-        self.facets.push(FacetIndex::Camera(idx));
+        self.facets.push(FacetIndex::Model(idx));
         self
     }
 
@@ -248,14 +249,30 @@ impl Thing {
         Thing { id, facets }
     }
 
-    pub fn get_camera_fi(&mut self) -> Option<&FacetIndex> {
-        self.facets.iter().find(|i| {
-            if let FacetIndex::Camera(_) = i {
-                true
-            } else {
-                false
-            }
-        })
+    pub fn get_camera_fi(&self) -> Option<FacetIndex> {
+        self.facets
+            .iter()
+            .find(|i| {
+                if let FacetIndex::Camera(_) = i {
+                    true
+                } else {
+                    false
+                }
+            })
+            .cloned()
+    }
+
+    pub fn get_model_fi(&self) -> Option<FacetIndex> {
+        self.facets
+            .iter()
+            .find(|i| {
+                if let FacetIndex::Camera(_) = i {
+                    true
+                } else {
+                    false
+                }
+            })
+            .cloned()
     }
 }
 

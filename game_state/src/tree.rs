@@ -66,15 +66,12 @@ impl<T> BreadthFirstVisitor<T> {
 impl<T> NodeVisitor<T> for BreadthFirstVisitor<T> {
     fn visit<F: FnMut(&T) -> ()>(&mut self, func: F) {
         let mut func = func;
-        match self.queue.pop_front() {
-            Some(ref n) => {
-                for child in n.borrow().children() {
-                    self.queue.push_back(child.clone());
-                }
-                (func)(&n.borrow().data);
+        if let Some(ref n) = self.queue.pop_front() {
+            for child in n.borrow().children() {
+                self.queue.push_back(child.clone());
             }
-            None => {}
-        };
+            (func)(&n.borrow().data);
+        }
     }
     fn has_next(&self) -> bool {
         !self.queue.is_empty()
@@ -99,7 +96,7 @@ impl<T> fmt::Display for Node<T> {
 }
 
 impl<T> Node<T> {
-    pub fn create(data: T, parent: Option<RcNode<T>>) -> RcNode<T> {
+    pub fn create(data: T, parent: Option<&RcNode<T>>) -> RcNode<T> {
         let prt = match parent {
             Some(ref p) => Some(Rc::downgrade(p)),
             None => None,
@@ -107,19 +104,15 @@ impl<T> Node<T> {
 
         let node = Rc::new(RefCell::new(Node::new(data, prt)));
 
-        match parent {
-            Some(ref p) => {
-                p.borrow_mut().add_child(node.clone());
-            }
-            None => {}
-        };
-
+        if let Some(ref p) = parent {
+            p.borrow_mut().add_child(node.clone());
+        }
         node
     }
 
     pub fn find_root(node: RcNode<T>) -> RcNode<T> {
         match node.borrow().parent() {
-            Some(p) => Node::find_root(p.clone()),
+            Some(p) => Node::find_root(p),
             None => node.clone(),
         }
     }
@@ -156,17 +149,15 @@ impl<T> Node<T> {
         }
         if !Node::is_child_of(target.clone(), child.clone()) {
             // check for cycles
-            match child.borrow().parent() {
-                Some(old_parent) => {
-                    old_parent.borrow_mut().remove_child(child.clone());
-                }
-                None => {}
+            if let Some(old_parent) = child.borrow().parent() {
+                old_parent.borrow_mut().remove_child(child.clone());
             }
             child.borrow_mut().parent = Some(Rc::downgrade(&target.clone()));
-            target.borrow_mut().add_child(child.clone());
+            target.borrow_mut().add_child(child);
             Ok(())
         } else {
-            Err("Node cycle detected. Child is a parent of reparent target.".to_string()) // format for better debug msg
+            Err("Node cycle detected. Child is a parent of reparent target.".to_string())
+            // format for better debug msg
         }
     }
 
@@ -179,12 +170,9 @@ impl<T> Node<T> {
                 break;
             }
         }
-        match idx {
-            Some(i) => {
-                self.children.remove(i);
-            }
-            _ => {}
-        };
+        if let Some(i) = idx {
+            self.children.remove(i);
+        }
     }
 
     pub fn find_child(&self, id: usize) -> Option<RcNode<T>> {
@@ -202,7 +190,7 @@ impl<T> Node<T> {
                     .children
                     .iter()
                     .filter(|x| x.borrow().id != self.id)
-                    .map(|x| x.clone())
+                    .cloned()
                     .collect(),
             ),
             None => None,
@@ -214,7 +202,7 @@ impl<T> Node<T> {
     }
 
     pub fn is_leaf(&self) -> bool {
-        self.children.len() == 0
+        self.children.is_empty()
     }
 
     // intentionally private for the time being (Node::new() specifies a parent)
@@ -235,7 +223,7 @@ impl<T> Node<T> {
         if lvl == 0 {
             println!("-- Hierarchy Dump --");
         }
-        let c = if self.children.len() > 0 {
+        let c = if !self.children.is_empty() {
             "..."
         } else {
             ".leaf*"

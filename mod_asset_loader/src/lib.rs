@@ -26,25 +26,27 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
         .unwrap();
 
     let am = Arc::new(helper);
-
     state.add_model(am.clone());
 
     let world = state.get_world();
     // build the actual entity within the world
-    let _thing = world
+    let _camera = world
         .start_thing()
         .with_camera(CameraFacet::new(
             Vector3::new(0.0, 0.0, 0.0), // pos
             0.0,                         // pitch
             0.0,                         // yaw
         ))
-        .with_model(mx, am)
         .build();
+
+    let _helper_cube = world.start_thing().with_model(mx, am.clone()).build();
+
+    let root = Node::create(None, None);
+    let _camera_node = Node::create(None, Some(&root));
+    let _helper_node = Node::create(Some(am), Some(&root));
 
     // NOTE: there's some index-mirroring happening here, we probably want to associate somehow
     // other than this - it's going to be easy to get wrong
-    let root = Node::create(0, None);
-
     state.add_render_layer(Arc::new(SceneGraph { root }));
 }
 
