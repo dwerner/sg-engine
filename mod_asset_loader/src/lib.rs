@@ -20,10 +20,9 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
     let origin = Vector3::new(0.0, 0.0, 0.0);
     let mx = Matrix4::new_translation(&origin) * Matrix4::new_scaling(1.0);
 
-    let helper = Model::load("assets/models/helper-cube.obj", mx)
-        .unwrap()
-        .pop()
-        .unwrap();
+    let model_path = "assets/models/plane.obj";
+    println!(" loading model: {}", model_path);
+    let helper = Model::load(model_path, mx).unwrap().pop().unwrap();
 
     let am = Arc::new(helper);
     state.add_model(am.clone());
@@ -33,17 +32,22 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
     let _camera = world
         .start_thing()
         .with_camera(CameraFacet::new(
-            Vector3::new(0.0, 0.0, 0.0), // pos
-            0.0,                         // pitch
-            0.0,                         // yaw
+            Vector3::new(0.0, 0.0, -2.0), // pos
+            -1.5,                         // pitch
+            0.0,                          // yaw
         ))
         .build();
 
     let _helper_cube = world.start_thing().with_model(mx, am.clone()).build();
 
     let root = Node::create(None, None);
-    let _camera_node = Node::create(None, Some(&root));
-    let _helper_node = Node::create(Some(am), Some(&root));
+
+    // TODO make this tree api better... currently returns the node, instead make a builder?
+    // or maybe load from a file format (yaml?)
+    let _ = Node::create(None, Some(&root));
+    let helpers = Node::create(None, Some(&root));
+    let _ = Node::create(Some(am.clone()), Some(&helpers));
+    let _ = Node::create(Some(am), Some(&helpers));
 
     // NOTE: there's some index-mirroring happening here, we probably want to associate somehow
     // other than this - it's going to be easy to get wrong

@@ -201,13 +201,13 @@ impl VulkanoRenderer {
             vulkano::sampler::Filter::Linear,
             vulkano::sampler::Filter::Linear,
             vulkano::sampler::MipmapMode::Nearest,
-            vulkano::sampler::SamplerAddressMode::Repeat,
-            vulkano::sampler::SamplerAddressMode::Repeat,
-            vulkano::sampler::SamplerAddressMode::Repeat,
-            0.0,
+            vulkano::sampler::SamplerAddressMode::ClampToEdge,
+            vulkano::sampler::SamplerAddressMode::ClampToEdge,
+            vulkano::sampler::SamplerAddressMode::ClampToEdge,
             1.0,
+            16.0,
             0.0,
-            0.0,
+            100.0,
         )
         .unwrap();
 
@@ -441,123 +441,124 @@ impl VulkanoRenderer {
         Ok(renderer)
     }
 
+    // save model+material in VulkanoRenderer buffer cache
     pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) {
-        {
-            // save model+material in VulkanoRenderer buffer cache
-            let mesh = &model.mesh;
-            let vertices: Vec<Vertex> = mesh.vertices.iter().map(|x| Vertex::from(*x)).collect();
+        println!("renderer {} uploading model {}", self.id, model.filename);
+        let mesh = &model.mesh;
+        let vertices: Vec<Vertex> = mesh
+            .vertices
+            .iter()
+            .map(|x| Vertex::from_gs_vertex(*x))
+            .collect();
 
-            let (pixel_buffer, (width, height)) = {
-                let image = model.material.diffuse_map.to_rgba();
-                let dims = image.dimensions();
-                let image_data = image.into_raw();
+        let (pixel_buffer, (width, height)) = {
+            let image = model.material.diffuse_map.to_rgba();
+            let dims = image.dimensions();
+            let image_data = image.into_raw();
 
-                let image_data_chunks = image_data.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]);
+            let image_data_chunks = image_data.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]);
 
-                // TODO: staging buffer instead
-                let pixel_buffer =
-                    vulkano::buffer::cpu_access::CpuAccessibleBuffer::<[[u8; 4]]>::from_iter(
-                        self.device.clone(),
-                        BufferUsage::all(),
-                        false,
-                        image_data_chunks,
-                    )
-                    .expect("failed to create buffer");
-                (pixel_buffer, dims)
-            };
-
-            // TODO: per-model textures are 2048x2048, perhaps this could depend on the image instead?
-
-            let (texture, texture_init) = ImmutableImage::uninitialized(
-                self.device.clone(),
-                vulkano::image::Dimensions::Dim2d { width, height },
-                vulkano::format::R8G8B8A8Srgb,
-                MipmapsCount::One,
-                ImageUsage {
-                    transfer_source: true, // for blits
-                    transfer_destination: true,
-                    sampled: true,
-                    ..ImageUsage::none()
-                },
-                ImageLayout::ShaderReadOnlyOptimal,
-                Some(self.queue.family()),
-            )
-            .unwrap();
-
-            let texture_init = Arc::new(texture_init);
-
-            let pipeline_set = Self::create_descriptor_set(
-                self.device.clone(),
-                self.uniform_buffer.clone(),
-                self.pipeline.clone(),
-                texture.clone(),
-            );
-
-            let item = ModelData {
-                model: model.clone(),
-                vertices: CpuAccessibleBuffer::from_iter(
+            // TODO: staging buffer instead
+            let pixel_buffer =
+                vulkano::buffer::cpu_access::CpuAccessibleBuffer::<[[u8; 4]]>::from_iter(
                     self.device.clone(),
                     BufferUsage::all(),
                     false,
-                    vertices.iter().cloned(),
+                    image_data_chunks,
                 )
-                .expect("Unable to create buffer"),
-                indices: CpuAccessibleBuffer::from_iter(
-                    self.device.clone(),
-                    BufferUsage::all(),
-                    false,
-                    mesh.indices.iter().cloned(),
-                )
-                .expect("Unable to create buffer"),
-                diffuse_map: pixel_buffer,
-                material_data: MaterialRenderData::new(
-                    texture,
-                    texture_init.clone(),
-                    pipeline_set.clone(),
-                ),
-            };
+                .expect("failed to create buffer");
+            (pixel_buffer, dims)
+        };
 
-            // TODO: think about a thread-based executor like tokio for dispatching CmdBuffer
-            // building to a thread pool.
+        let (texture, texture_init) = ImmutableImage::uninitialized(
+            self.device.clone(),
+            vulkano::image::Dimensions::Dim2d { width, height },
+            vulkano::format::R8G8B8A8Srgb,
+            MipmapsCount::One,
+            ImageUsage {
+                transfer_source: true, // for blits
+                transfer_destination: true,
+                sampled: true,
+                ..ImageUsage::none()
+            },
+            ImageLayout::ShaderReadOnlyOptimal,
+            Some(self.queue.family()),
+        )
+        .unwrap();
 
-            // upload to GPU memory
-            let cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
+        let texture_init = Arc::new(texture_init);
+
+        let pipeline_set = Self::create_descriptor_set(
+            self.device.clone(),
+            self.uniform_buffer.clone(),
+            self.pipeline.clone(),
+            texture.clone(),
+        );
+
+        let item = ModelData {
+            model: model.clone(),
+            vertices: CpuAccessibleBuffer::from_iter(
                 self.device.clone(),
-                self.queue.family(),
+                BufferUsage::all(),
+                false,
+                vertices.iter().cloned(),
             )
-            .unwrap(); // catch oom error here
+            .expect("Unable to create buffer"),
+            indices: CpuAccessibleBuffer::from_iter(
+                self.device.clone(),
+                BufferUsage::all(),
+                false,
+                mesh.indices.iter().cloned(),
+            )
+            .expect("Unable to create buffer"),
+            diffuse_map: pixel_buffer,
+            material_data: MaterialRenderData::new(
+                texture,
+                texture_init.clone(),
+                pipeline_set.clone(),
+            ),
+        };
 
-            let cmd_buffer = cmd_buffer_build
-                .copy_buffer_to_image(item.diffuse_map.clone(), texture_init)
-                .expect("unable to upload texture")
-                .build()
-                .expect("unable to build command buffer");
+        // TODO: think about a thread-based executor like tokio for dispatching CmdBuffer
+        // building to a thread pool.
 
-            let prev = mem::replace(
-                &mut self.previous_frame_end,
-                Box::new(now(self.device.clone())) as Box<dyn GpuFuture>,
-            );
+        // upload to GPU memory
+        let cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
+            self.device.clone(),
+            self.queue.family(),
+        )
+        .unwrap(); // catch oom error here
 
-            let execute = match prev.then_execute(self.queue.clone(), cmd_buffer) {
-                Ok(execute) => execute,
-                Err(e) => {
-                    println!("VulkanoRenderer::upload_model() frame {} - unable to execute command buffer {:?}", self.fps.count(), e);
-                    return;
-                }
-            };
+        let cmd_buffer = cmd_buffer_build
+            .copy_buffer_to_image(item.diffuse_map.clone(), texture_init)
+            .expect("unable to upload texture")
+            .build()
+            .expect("unable to build command buffer");
 
-            let after_future = execute.then_signal_fence_and_flush();
+        let prev = mem::replace(
+            &mut self.previous_frame_end,
+            Box::new(now(self.device.clone())) as Box<dyn GpuFuture>,
+        );
 
-            match after_future {
-                Ok(future) => {
-                    self.model_data.push(item);
-                    self.previous_frame_end = Box::new(future) as Box<_>;
-                }
-                Err(e) => {
-                    println!("Error ending frame {:?}", e);
-                    self.previous_frame_end =
-                        Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
-                }
+        let execute = match prev.then_execute(self.queue.clone(), cmd_buffer) {
+            Ok(execute) => execute,
+            Err(e) => {
+                println!("VulkanoRenderer::upload_model() frame {} - unable to execute command buffer {:?}", self.fps.count(), e);
+                return;
+            }
+        };
+
+        let after_future = execute.then_signal_fence_and_flush();
+
+        match after_future {
+            Ok(future) => {
+                self.model_data.push(item);
+                self.previous_frame_end = Box::new(future) as Box<_>;
+            }
+            Err(e) => {
+                println!("Error ending frame {:?}", e);
+                self.previous_frame_end =
+                    Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
             }
         }
     }

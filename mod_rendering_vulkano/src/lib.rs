@@ -9,7 +9,7 @@ use renderer::vulkano::VulkanoRenderer;
 
 #[no_mangle]
 pub extern "C" fn mod_rendering_vulkano_load(state: &mut State) {
-    let windows = state.get_windows().clone();
+    let windows = state.get_windows();
 
     for (w, draw_mode) in windows {
         // hack for sdl to own this "window", but pass it's surface to the underlying swapchain

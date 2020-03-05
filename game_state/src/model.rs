@@ -35,7 +35,7 @@ impl Model {
 
             let verts = v_vt_vn
                 .iter()
-                .map(|&(v, vt, vn)| Vertex::new((v.0, v.1, v.2), vt, (vn.0, vn.1, vn.0)))
+                .map(|&(v, vt, vn)| Vertex::new((v.0, v.1, v.2), vt, (vn.0, vn.1, vn.2)))
                 .collect::<Vec<_>>();
 
             if verts.is_empty() {
@@ -89,10 +89,13 @@ fn slice_windows_learning() {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector(pub f32, pub f32, pub f32);
+
 #[derive(Debug, Copy, Clone)]
 pub struct UVW(pub f32, pub f32, pub f32);
+
 #[derive(Debug, Copy, Clone)]
 pub struct Normal(pub f32, pub f32, pub f32);
+
 #[derive(Debug, Copy, Clone)]
 pub struct Vertex {
     pub position: Vector,
@@ -104,7 +107,7 @@ impl Vertex {
     pub fn new(v: (f32, f32, f32), vt: (f32, f32, f32), vn: (f32, f32, f32)) -> Self {
         Vertex {
             position: Vector(v.0, v.1, v.2),
-            uvw: UVW(v.0, vt.1, vt.2),
+            uvw: UVW(vt.0, vt.1, vt.2),
             normal: Normal(vn.0, vn.1, vn.2),
         }
     }

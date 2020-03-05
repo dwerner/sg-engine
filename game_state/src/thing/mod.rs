@@ -205,6 +205,13 @@ impl World {
     pub fn get_facets(&mut self) -> &mut WorldFacets {
         &mut self.facets
     }
+
+    pub fn clear(&mut self) {
+        self.facets.cameras.clear();
+        self.facets.health.clear();
+        self.facets.models.clear();
+        self.facets.physical.clear();
+    }
 }
 
 pub struct ThingBuilder<'a> {

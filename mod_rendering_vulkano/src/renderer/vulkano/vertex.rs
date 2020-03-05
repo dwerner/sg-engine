@@ -1,7 +1,5 @@
 use game_state::model::Vertex as GSVertex;
 
-use std::convert::From;
-
 #[derive(Default, Debug, Clone)]
 pub struct Vertex {
     position: [f32; 3],
@@ -9,8 +7,9 @@ pub struct Vertex {
     normal: [f32; 3],
 }
 
-impl From<GSVertex> for Vertex {
-    fn from(g: GSVertex) -> Self {
+impl Vertex {
+    pub fn from_gs_vertex(g: GSVertex) -> Self {
+        println!("vertex {:?}", g);
         Vertex {
             position: [g.position.0, g.position.1, g.position.2],
             uv: [g.uvw.0, g.uvw.1],

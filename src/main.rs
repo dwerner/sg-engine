@@ -17,15 +17,21 @@ fn main() {
     // TODO mod_gui
     // TODO mod_network
 
-    // because of #[no_mangle], each library needs it's own unique method name as well... sigh
-    state.add_window(1280, 720, "sg-shell 1 (vulkano)", 0, 0, DrawMode::Textured);
     state.add_window(
         800,
         600,
-        "sg-shell 2 (vulkano)",
+        "sg-shell 1 (vulkano) wireframe",
         0,
         720,
         DrawMode::Wireframe(3.0),
+    );
+    state.add_window(
+        1280,
+        720,
+        "sg-shell 1 (vulkano) textured",
+        0,
+        0,
+        DrawMode::Textured,
     );
 
     let mut mods = Vec::new();

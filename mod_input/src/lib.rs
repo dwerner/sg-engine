@@ -4,8 +4,6 @@ use game_state::sdl2::video::Window;
 use game_state::state::{InputAccess, State, VariableAccess, WindowAccess, WorldAccess};
 use game_state::thing::{CameraFacet, Direction};
 
-use game_state::nalgebra::{Matrix4, Rotation3, Vector3};
-
 use game_state::sdl2::{
     event::Event as SdlEvent, keyboard::Keycode, mouse::MouseUtil, video::FullscreenType,
 };
