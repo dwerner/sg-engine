@@ -1,28 +1,39 @@
 use std::collections::VecDeque;
-use std::error::Error;
 use std::mem;
 use std::sync::Arc;
 use std::time::Duration;
 
-use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
-use vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
+use eyre::WrapErr;
 use vulkano::descriptor::pipeline_layout::PipelineLayoutAbstract;
-use vulkano::device::{Device, Queue};
-use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract, Subpass};
-use vulkano::image::attachment::AttachmentImage;
+use vulkano::image::{attachment::AttachmentImage, view::ImageView};
 use vulkano::image::{
-    ImageAccess, ImageLayout, ImageUsage, ImageViewAccess, ImmutableImage, MipmapsCount,
-    SwapchainImage,
+    ImageAccess, ImageLayout, ImageUsage, ImmutableImage, MipmapsCount, SwapchainImage,
 };
 use vulkano::instance::debug::DebugCallback;
 use vulkano::instance::{Instance, PhysicalDevice};
 use vulkano::pipeline::vertex::SingleBufferDefinition;
 use vulkano::pipeline::GraphicsPipeline;
+use vulkano::render_pass::{Framebuffer, FramebufferAbstract, RenderPass, Subpass};
 use vulkano::swapchain;
 use vulkano::swapchain::{Surface, SurfaceTransform, Swapchain};
 use vulkano::sync::now;
 use vulkano::sync::GpuFuture;
+use vulkano::{
+    buffer::{BufferUsage, CpuAccessibleBuffer},
+    image::ImageCreateFlags,
+};
+use vulkano::{
+    command_buffer::CommandBufferUsage,
+    descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet},
+};
+use vulkano::{
+    command_buffer::SubpassContents,
+    device::{Device, Queue},
+};
+use vulkano::{
+    command_buffer::{AutoCommandBufferBuilder, DynamicState},
+    image::ImageViewAbstract,
+};
 
 use game_state;
 use game_state::model::Model;
@@ -75,21 +86,21 @@ pub struct ModelData {
     pub vertices: Arc<CpuAccessibleBuffer<[Vertex]>>,
     pub indices: Arc<CpuAccessibleBuffer<[u16]>>,
     pub diffuse_map: Arc<CpuAccessibleBuffer<[[u8; 4]]>>,
-    pub material_data: MaterialRenderData<vulkano::format::R8G8B8A8Srgb>,
+    pub material_data: MaterialRenderData,
 }
 
 // MaterialData holds the Vulkano handles to GPU images - `init` and `read` here alias the same
 // image, however init is used to write the data, while read is used to read
 // the descriptor_set is used to bind on a per-model basis during traversal of the scene graph
-pub struct MaterialRenderData<F> {
-    pub read: Arc<ImmutableImage<F>>,
+pub struct MaterialRenderData {
+    pub read: Arc<dyn ImageViewAbstract>,
     pub init: Arc<dyn ImageAccess>,
     pub descriptor_set: Arc<dyn DescriptorSet + Send + Sync>,
 }
 
-impl<F> MaterialRenderData<F> {
+impl MaterialRenderData {
     pub fn new(
-        read: Arc<ImmutableImage<F>>,
+        read: Arc<dyn ImageViewAbstract>,
         init: Arc<dyn ImageAccess>,
         descriptor_set: Arc<dyn DescriptorSet + Send + Sync>,
     ) -> Self {
@@ -104,7 +115,6 @@ impl<F> MaterialRenderData<F> {
 type ThisPipelineType = GraphicsPipeline<
     SingleBufferDefinition<vertex::Vertex>,
     Box<dyn PipelineLayoutAbstract + Send + Sync>,
-    Arc<dyn vulkano::framebuffer::RenderPassAbstract + Send + Sync>,
 >;
 
 type ThisFramebufferType = Arc<dyn FramebufferAbstract + Send + Sync + 'static>;
@@ -113,7 +123,7 @@ pub struct VulkanoRenderer {
     id: Identity,
     instance: Arc<Instance>,
     surface: Arc<Surface<WinPtr>>,
-    depth_buffer: Arc<dyn ImageViewAccess + Send + Sync>,
+    depth_buffer: Arc<dyn ImageViewAbstract + Send + Sync>,
     device: Arc<Device>,
     queue: Arc<Queue>,
     swapchain: Arc<Swapchain<WinPtr>>,
@@ -122,7 +132,7 @@ pub struct VulkanoRenderer {
     framebuffers: Vec<ThisFramebufferType>,
     fps: fps::FPS,
 
-    renderpass: Arc<dyn RenderPassAbstract + Send + Sync>,
+    renderpass: Arc<RenderPass>,
 
     // TODO: camera
     uniform_buffer: Arc<CpuAccessibleBuffer<vs::ty::Data>>,
@@ -143,9 +153,8 @@ impl VulkanoRenderer {
     fn create_swapchain(
         surface: Arc<Surface<WinPtr>>,
         device: Arc<Device>,
-        queue: Arc<Queue>,
         physical: PhysicalDevice,
-    ) -> Result<(Arc<Swapchain<WinPtr>>, Vec<Arc<SwapchainImage<WinPtr>>>), Box<dyn Error>> {
+    ) -> eyre::Result<(Arc<Swapchain<WinPtr>>, Vec<Arc<SwapchainImage<WinPtr>>>)> {
         let caps = surface.capabilities(physical.clone())?;
         use vulkano::swapchain::PresentMode;
 
@@ -168,25 +177,22 @@ impl VulkanoRenderer {
         } else if caps.present_modes.fifo {
             PresentMode::Fifo
         } else {
-            return Err("No supported present mode found.".into());
+            return Err(eyre::eyre!("No supported present mode found."));
         };
 
-        let swapchain = Swapchain::new(
-            device,
-            surface,
-            caps.min_image_count,
-            format,
-            dimensions,
-            1,
-            caps.supported_usage_flags,
-            &queue,
-            SurfaceTransform::Identity,
-            alpha,
-            present_mode,
-            vulkano::swapchain::FullscreenExclusive::Default,
-            true,
-            vulkano::swapchain::ColorSpace::SrgbNonLinear,
-        )?;
+        let swapchain = Swapchain::start(device, surface)
+            .num_images(caps.min_image_count)
+            .format(format)
+            .dimensions(dimensions)
+            .layers(1)
+            .usage(caps.supported_usage_flags)
+            .transform(SurfaceTransform::Identity)
+            .composite_alpha(alpha)
+            .present_mode(present_mode)
+            .fullscreen_exclusive(vulkano::swapchain::FullscreenExclusive::Default)
+            .color_space(vulkano::swapchain::ColorSpace::SrgbNonLinear)
+            .build()
+            .wrap_err("swapchain creation error")?;
         Ok(swapchain)
     }
 
@@ -194,7 +200,7 @@ impl VulkanoRenderer {
         device: Arc<Device>,
         uniform_buffer: Arc<CpuAccessibleBuffer<vs::ty::Data>>,
         pipeline: Arc<ThisPipelineType>,
-        texture: Arc<ImmutableImage<vulkano::format::R8G8B8A8Srgb>>,
+        texture: Arc<dyn ImageViewAbstract + Send + Sync>,
     ) -> Arc<dyn DescriptorSet + Send + Sync> {
         let sampler = vulkano::sampler::Sampler::new(
             device,
@@ -226,22 +232,23 @@ impl VulkanoRenderer {
     fn create_framebuffers(
         width: u32,
         height: u32,
-        renderpass: Arc<dyn RenderPassAbstract + Send + Sync + 'static>,
+        renderpass: Arc<RenderPass>,
         images: Vec<Arc<SwapchainImage<WinPtr>>>,
-        depth_buffer: Arc<dyn ImageViewAccess + Send + Sync + 'static>,
+        depth_buffer: Arc<dyn ImageViewAbstract + Send + Sync>,
     ) -> Vec<ThisFramebufferType> {
         images
             .iter()
             .map(|image| {
+                let image_view = ImageView::new(image.clone()).unwrap();
                 let dimensions = [width, height, 1];
                 let fb = Framebuffer::with_dimensions(renderpass.clone(), dimensions)
-                    .add(image.clone())
+                    .add(image_view)
                     .unwrap()
                     .add(depth_buffer.clone())
                     .unwrap()
                     .build()
                     .unwrap();
-                Arc::new(fb) as Arc<dyn FramebufferAbstract + Send + Sync + 'static>
+                Arc::new(fb) as Arc<dyn FramebufferAbstract + Send + Sync>
             })
             .collect::<Vec<_>>()
     }
@@ -250,12 +257,12 @@ impl VulkanoRenderer {
         win_ptr: WinPtr,
         draw_mode: DrawMode,
         models: Vec<Arc<Model>>,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> eyre::Result<Self> {
         let instance = {
             let extensions = vulkano_sdl2::required_extensions(win_ptr).unwrap();
             let app_info = vulkano::app_info_from_cargo_toml!();
             Instance::new(Some(&app_info), &extensions, None)
-                .expect("Failed to create Vulkan instance. ")
+                .wrap_err_with(|| "Failed to create Vulkan instance.")?
         };
 
         let debug_callback = DebugCallback::errors_and_warnings(&instance, |msg| {
@@ -263,17 +270,25 @@ impl VulkanoRenderer {
         })
         .ok();
 
-        let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
-            .next()
-            .expect("No device available.");
+        let mut physical_devices = vulkano::instance::PhysicalDevice::enumerate(&instance);
+
+        println!("physical devices {:?}", physical_devices);
+
+        let physical = physical_devices.next().unwrap();
+
+        println!(
+            "queue families ... {:?}",
+            physical.queue_families().collect::<Vec<_>>()
+        );
 
         let surface: Arc<Surface<WinPtr>> =
-            vulkano_sdl2::build_vk_surface(win_ptr, instance.clone()).unwrap();
+            vulkano_sdl2::build_vk_surface(win_ptr, instance.clone())
+                .wrap_err("unable to build vk surface")?;
 
         let queue = physical
             .queue_families()
             .find(|q| q.supports_graphics() && surface.is_supported(q.clone()).unwrap_or(false))
-            .expect("Couldn't find a graphical queue family.");
+            .ok_or_else(|| eyre::eyre!("Couldn't find a graphical queue family."))?;
 
         let (device, mut queues) = {
             let device_ext = vulkano::device::DeviceExtensions {
@@ -287,13 +302,13 @@ impl VulkanoRenderer {
                 &device_ext,
                 [(queue, 0.5)].iter().cloned(),
             )
-            .expect("Failed to create device.")
+            .wrap_err_with(|| eyre::eyre!("failed to create device"))?
         };
 
         let queue = queues.next().unwrap();
 
-        let (swapchain, images) =
-            Self::create_swapchain(surface.clone(), device.clone(), queue.clone(), physical)?;
+        let (swapchain, images) = Self::create_swapchain(surface.clone(), device.clone(), physical)
+            .wrap_err_with(|| "unable to create swapchain")?;
 
         // TODO: as part of asset_loader, we should be loading all the shaders we expect to use in a scene
         let vs = vs::Shader::load(device.clone()).expect("failed to create vs shader module");
@@ -317,9 +332,10 @@ impl VulkanoRenderer {
             device.clone(),
             vulkano::buffer::BufferUsage::all(),
             false,
+            // uniform projection matrix
             vs::ty::Data { proj: proj.into() },
         )
-        .expect("failed to create uniform buffer");
+        .wrap_err("failed to create uniform buffer")?;
 
         // ----------------------------------
 
@@ -328,11 +344,14 @@ impl VulkanoRenderer {
             input_attachment: true,
             ..ImageUsage::none()
         };
-        let depth_buffer = AttachmentImage::with_usage(
-            device.clone(),
-            SwapchainImage::dimensions(&images[0]),
-            vulkano::format::D16Unorm,
-            img_usage,
+        let depth_buffer = ImageView::new(
+            AttachmentImage::with_usage(
+                device.clone(),
+                SwapchainImage::dimensions(&images[0]),
+                vulkano::format::Format::D16Unorm,
+                img_usage,
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -341,13 +360,13 @@ impl VulkanoRenderer {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: swapchain.format(),//ImageAccess::format(&images[0]),
+                    format: swapchain.format(),
                     samples: 1,
                 },
                 depth: {
                     load: Clear,
                     store: Store,
-                    format: vulkano::image::ImageAccess::format(&depth_buffer),
+                    format: vulkano::format::Format::D16Unorm, //vulkano::image::ImageAccess::format(&depth_buffer),
                     samples: 1,
                 }
             },
@@ -359,7 +378,6 @@ impl VulkanoRenderer {
         .unwrap();
 
         let renderpass = Arc::new(renderpass); //as Arc<RenderPassAbstract + Send + Sync>;
-        let depth_buffer = Arc::new(depth_buffer); //
         let dimensions = ImageAccess::dimensions(&images[0]);
         let framebuffers = Self::create_framebuffers(
             dimensions.width(),
@@ -390,13 +408,7 @@ impl VulkanoRenderer {
             _ => p.polygon_mode_fill(),
         };
         let p = p
-            .render_pass(
-                Subpass::from(
-                    renderpass.clone() as Arc<dyn RenderPassAbstract + Send + Sync>,
-                    0,
-                )
-                .unwrap(),
-            )
+            .render_pass(Subpass::from(renderpass.clone(), 0).unwrap())
             .build(device.clone())?;
 
         let pipeline = Arc::new(p);
@@ -418,7 +430,7 @@ impl VulkanoRenderer {
             uniform_buffer,
             debug_callback,
             previous_frame_end,
-            renderpass: renderpass as Arc<dyn RenderPassAbstract + Send + Sync>,
+            renderpass: renderpass as Arc<RenderPass>,
             recreate_swapchain: false, // flag indicating to rebuild the swapchain on the next frame
             model_data: Vec::with_capacity(models.len()),
             render_layer_queue: VecDeque::new(),
@@ -435,15 +447,14 @@ impl VulkanoRenderer {
         };
 
         for model in models {
-            renderer.upload_model(model);
+            renderer.upload_model(model).unwrap_or_else(|_| todo!());
         }
 
         Ok(renderer)
     }
 
     // save model+material in VulkanoRenderer buffer cache
-    pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) {
-        println!("renderer {} uploading model {}", self.id, model.filename);
+    pub fn upload_model(&mut self, model: Arc<game_state::model::Model>) -> eyre::Result<()> {
         let mesh = &model.mesh;
         let vertices: Vec<Vertex> = mesh
             .vertices
@@ -452,7 +463,7 @@ impl VulkanoRenderer {
             .collect();
 
         let (pixel_buffer, (width, height)) = {
-            let image = model.material.diffuse_map.to_rgba();
+            let image = model.material.diffuse_map.to_rgba8();
             let dims = image.dimensions();
             let image_data = image.into_raw();
 
@@ -472,8 +483,12 @@ impl VulkanoRenderer {
 
         let (texture, texture_init) = ImmutableImage::uninitialized(
             self.device.clone(),
-            vulkano::image::Dimensions::Dim2d { width, height },
-            vulkano::format::R8G8B8A8Srgb,
+            vulkano::image::ImageDimensions::Dim2d {
+                width,
+                height,
+                array_layers: 1,
+            },
+            vulkano::format::Format::R8G8B8A8Srgb,
             MipmapsCount::One,
             ImageUsage {
                 transfer_source: true, // for blits
@@ -481,10 +496,11 @@ impl VulkanoRenderer {
                 sampled: true,
                 ..ImageUsage::none()
             },
+            ImageCreateFlags::none(),
             ImageLayout::ShaderReadOnlyOptimal,
             Some(self.queue.family()),
         )
-        .unwrap();
+        .wrap_err("could not initialize image")?;
 
         let texture_init = Arc::new(texture_init);
 
@@ -492,7 +508,7 @@ impl VulkanoRenderer {
             self.device.clone(),
             self.uniform_buffer.clone(),
             self.pipeline.clone(),
-            texture.clone(),
+            ImageView::new(texture.clone()).unwrap(),
         );
 
         let item = ModelData {
@@ -513,7 +529,7 @@ impl VulkanoRenderer {
             .expect("Unable to create buffer"),
             diffuse_map: pixel_buffer,
             material_data: MaterialRenderData::new(
-                texture,
+                ImageView::new(texture).unwrap(),
                 texture_init.clone(),
                 pipeline_set.clone(),
             ),
@@ -523,15 +539,17 @@ impl VulkanoRenderer {
         // building to a thread pool.
 
         // upload to GPU memory
-        let cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
+        let mut cmd_buffer_build = AutoCommandBufferBuilder::primary(
             self.device.clone(),
             self.queue.family(),
+            CommandBufferUsage::OneTimeSubmit,
         )
         .unwrap(); // catch oom error here
 
-        let cmd_buffer = cmd_buffer_build
+        cmd_buffer_build
             .copy_buffer_to_image(item.diffuse_map.clone(), texture_init)
-            .expect("unable to upload texture")
+            .expect("unable to upload texture");
+        let cmd_buffer = cmd_buffer_build
             .build()
             .expect("unable to build command buffer");
 
@@ -544,7 +562,7 @@ impl VulkanoRenderer {
             Ok(execute) => execute,
             Err(e) => {
                 println!("VulkanoRenderer::upload_model() frame {} - unable to execute command buffer {:?}", self.fps.count(), e);
-                return;
+                return Ok(());
             }
         };
 
@@ -560,7 +578,8 @@ impl VulkanoRenderer {
                 self.previous_frame_end =
                     Box::new(vulkano::sync::now(self.device.clone())) as Box<_>;
             }
-        }
+        };
+        Ok(())
     }
 
     fn flag_recreate_swapchain(&mut self) {
@@ -571,12 +590,11 @@ impl VulkanoRenderer {
         self.previous_frame_end.cleanup_finished();
 
         if self.recreate_swapchain {
-            //println!("recreating swapchain with dimensions {:?}", size);
             use vulkano::swapchain::SwapchainCreationError;
 
             let physical = vulkano::instance::PhysicalDevice::enumerate(&self.instance)
                 .next()
-                .expect("no device availble");
+                .expect("no device available");
 
             let dims = self
                 .surface
@@ -585,15 +603,20 @@ impl VulkanoRenderer {
                 .current_extent
                 .unwrap_or([1024, 768]);
 
-            match self.swapchain.recreate_with_dimensions(dims) {
+            println!("recreating swapchain with dimensions {:?}", dims);
+
+            match self.swapchain.recreate().dimensions(dims).build() {
                 Ok((new_swapchain, new_images)) => {
                     self.swapchain = new_swapchain;
                     self.images = new_images;
 
-                    self.depth_buffer = AttachmentImage::transient(
-                        self.device.clone(),
-                        dims,
-                        vulkano::format::D16Unorm,
+                    self.depth_buffer = ImageView::new(
+                        AttachmentImage::transient(
+                            self.device.clone(),
+                            dims,
+                            vulkano::format::Format::D16Unorm,
+                        )
+                        .unwrap(),
                     )
                     .unwrap();
 
@@ -650,16 +673,18 @@ impl VulkanoRenderer {
             Err(e) => panic!("{:?}", e),
         };
 
-        let mut cmd_buffer_build = AutoCommandBufferBuilder::primary_one_time_submit(
+        let mut cmd_buffer_build = AutoCommandBufferBuilder::primary(
             self.device.clone(),
             self.queue.family(),
+            CommandBufferUsage::OneTimeSubmit,
         )
+        .wrap_err("unable to start command buffer builder")
         .unwrap(); // catch oom error here
 
-        cmd_buffer_build = cmd_buffer_build
+        cmd_buffer_build
             .begin_render_pass(
                 self.framebuffers[image_num].clone(),
-                false,
+                SubpassContents::Inline,
                 vec![
                     vulkano::format::ClearValue::from([0.0, 0.0, 0.0, 1.0]),
                     vulkano::format::ClearValue::Depth(1.0),
@@ -728,7 +753,7 @@ impl VulkanoRenderer {
                         model_mat: (viewscale * transform_mat).into(),
                     };
 
-                    cmd_buffer_build = cmd_buffer_build
+                    cmd_buffer_build
                         .draw_indexed(
                             self.pipeline.clone(),
                             &self.dynamic_state,
@@ -736,17 +761,18 @@ impl VulkanoRenderer {
                             md.indices.clone(),
                             md.material_data.descriptor_set.clone(),
                             push_constants, // or () - both leak on win32...
+                            vec![],
                         )
                         .expect("Unable to add command");
                 }
             }
         }
 
-        let cmd_buffer = cmd_buffer_build
+        cmd_buffer_build
             .end_render_pass()
-            .expect("unable to end renderpass ")
-            .build()
-            .unwrap();
+            .expect("unable to end renderpass ");
+
+        let cmd_buffer = cmd_buffer_build.build().unwrap();
 
         let prev = mem::replace(
             &mut self.previous_frame_end,

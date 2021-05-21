@@ -4,5 +4,5 @@ export RUST_BACKTRACE=full
 export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json
 
 set -e
-./rebuild-mods && cargo run $1
+./rebuild-mods && cargo build $1 && heaptrack target/debug/sg_engine
 

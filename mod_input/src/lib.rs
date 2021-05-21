@@ -130,10 +130,7 @@ pub extern "C" fn mod_input_update(state: &mut State, dt: &Duration) {
             }
             SdlEvent::MouseMotion { xrel, yrel, .. } => {
                 if !paused {
-                    println!(
-                        "pos {:?} pitch {}, yaw {}",
-                        camera.pos, camera.pitch, camera.yaw
-                    );
+                    // println!( "mod_input: pos {:?} pitch {}, yaw {}", camera.pos, camera.pitch, camera.yaw);
                     let sensitivity = 100.0;
                     let (dx, dy) = (xrel as f32, yrel as f32);
                     let xa = dx / sensitivity;

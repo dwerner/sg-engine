@@ -1,13 +1,12 @@
-use game_state::sdl2;
-use sdl2::sys::SDL_Window;
-use sdl2::sys::SDL_bool::SDL_FALSE;
-use sdl2::sys::SDL_SYSWM_TYPE;
-use sdl2::sys::{SDL_GetError, SDL_GetWindowWMInfo, SDL_SysWMinfo};
-use sdl2::sys::{SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL};
-use std::ffi::CString;
+use game_state::sdl2_sys::SDL_Window;
+use game_state::sdl2_sys::SDL_bool::SDL_FALSE;
+use game_state::sdl2_sys::SDL_SYSWM_TYPE;
+use game_state::sdl2_sys::{SDL_GetError, SDL_GetWindowWMInfo, SDL_SysWMinfo};
+use game_state::sdl2_sys::{SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL};
 use std::mem;
 use std::os::raw::c_char;
 use std::sync::Arc;
+use std::{ffi::CString, ops::Deref};
 use vulkano::instance::{Instance, InstanceExtensions};
 use vulkano::swapchain::{Surface, SurfaceCreationError};
 
@@ -18,13 +17,26 @@ pub struct WinPtr {
 
 unsafe impl Send for WinPtr {}
 unsafe impl Sync for WinPtr {}
+impl Deref for WinPtr {
+    type Target = *const SDL_Window;
 
-#[derive(Debug)]
+    fn deref(&self) -> &Self::Target {
+        &self.raw
+    }
+}
+unsafe impl vulkano::SafeDeref for WinPtr {}
+
+#[derive(thiserror::Error, Debug)]
 pub enum ErrorType {
+    #[error("unknown")]
     Unknown,
+    #[error("platform not supported")]
     PlatformNotSupported,
+    #[error("out of memory")]
     OutOfMemory,
+    #[error("missing extension {0}")]
     MissingExtension(String),
+    #[error("generic error {0}")]
     Generic(String),
 }
 
@@ -52,7 +64,6 @@ pub fn required_extensions(window: WinPtr) -> Result<InstanceExtensions, ErrorTy
         SDL_SYSWM_TYPE::SDL_SYSWM_ANDROID => extensions.khr_android_surface = true,
         _ => return Err(ErrorType::PlatformNotSupported),
     }
-    let supported = extensions;
     match InstanceExtensions::supported_by_core() {
         Ok(supported) => Ok(supported.intersection(&ideal)),
         Err(_) => Ok(InstanceExtensions::none()),
