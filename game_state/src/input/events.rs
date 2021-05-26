@@ -133,7 +133,7 @@ mod tests {
         let not_pressed = !state.lock().unwrap().get_keys()[42];
         assert!(not_pressed);
 
-        producer.publish(down_event);
+        producer.publish(down_event.clone());
         let pressed = state.lock().unwrap().get_keys()[42];
         assert!(pressed);
 

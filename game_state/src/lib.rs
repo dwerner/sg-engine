@@ -1,6 +1,7 @@
 // opinion here? reexport winit or import in other libs...?
-pub extern crate nalgebra;
-pub extern crate sdl2;
+pub use nalgebra;
+pub use sdl2;
+pub use sdl2::sys as sdl2_sys;
 
 pub mod model;
 pub mod state;

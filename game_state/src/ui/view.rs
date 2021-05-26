@@ -97,10 +97,10 @@ mod tests {
     #[test]
     fn test_window_hit_test() {
         let mut window = UIWindow::new("window1".to_string(), ScreenRect::new(10, 10, 20, 20));
-        let generic = UIView::new("dunno".to_string(), ScreenRect::new(5, 5, 5, 5));
+        let _generic = UIView::new("dunno".to_string(), ScreenRect::new(5, 5, 5, 5));
         let hit = ScreenPoint::new(15, 15);
         let miss = ScreenPoint::new(5, 5);
-        window.view.move_to_point(hit);
+        window.view.move_to_point(hit.clone());
         assert!(window.view.hit_test(hit));
         assert!(!window.view.hit_test(miss));
     }
@@ -122,5 +122,4 @@ mod tests {
 
         assert!(*flag.lock().unwrap() == 1);
     }
-
 }

@@ -23,7 +23,9 @@ pub extern "C" fn mod_rendering_vulkano_load(state: &mut State) {
         match maybe_renderer {
             Ok(mut renderer) => {
                 for model in state.get_models().iter() {
-                    renderer.upload_model(model.clone());
+                    renderer
+                        .upload_model(model.clone())
+                        .unwrap_or_else(|_| todo!());
                 }
                 state.add_renderer(Box::new(renderer));
             }

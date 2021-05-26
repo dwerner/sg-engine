@@ -106,3 +106,16 @@ Access Traits Used: `SimulationAccess`
 Todo:
 - everything - this mod is just stubbed at this point
 
+
+# Building on linux
+## Dependencies:
+- libudev-dev
+- libsdl2-dev
+- python-is-python3
+
+## Environment 
+You may have to set
+```
+export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json
+```
+Or similar, depending on your device.

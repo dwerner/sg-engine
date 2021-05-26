@@ -1,9 +1,9 @@
 use std::fs;
-use std::io::Error;
 use std::path::Path;
 use std::time::{Duration, Instant, UNIX_EPOCH};
 
 use ansi_term::Color::{Cyan, Green, Yellow};
+use eyre::WrapErr;
 use game_state::state;
 use libloading::{Library, Symbol};
 
@@ -131,16 +131,18 @@ impl LibLoader {
                             if self.lib.is_some() {
                                 self.unload(state);
                             }
-                            match Library::new(&new_filename) {
-                                Ok(lib) => {
-                                    self.version += 1;
-                                    self.lib = Some(lib);
-                                    self.load(state);
+                            unsafe {
+                                match Library::new(&new_filename) {
+                                    Ok(lib) => {
+                                        self.version += 1;
+                                        self.lib = Some(lib);
+                                        self.load(state);
+                                    }
+                                    Err(err) => println!(
+                                        "Unable to open new library: {} - err: {}",
+                                        new_filename, err
+                                    ),
                                 }
-                                Err(err) => println!(
-                                    "Unable to open new library: {} - err: {}",
-                                    new_filename, err
-                                ),
                             }
                         }
                         Err(err) => println!(
@@ -227,10 +229,9 @@ impl LibLoader {
             Some(ref lib) => unsafe {
                 let method = method_name.as_bytes();
 
-                let maybe_func: Result<
+                let maybe_func: eyre::Result<
                     Symbol<unsafe extern "C" fn(&mut state::State, &Duration)>,
-                    Error,
-                > = lib.get(method);
+                > = lib.get(method).wrap_err("couldn't get symbol");
 
                 match maybe_func {
                     Ok(func) => func(state, delta_time),
@@ -249,8 +250,8 @@ impl LibLoader {
             Some(ref lib) => unsafe {
                 let method = method_name.as_bytes();
 
-                let maybe_func: Result<Symbol<unsafe extern "C" fn(&mut state::State)>, Error> =
-                    lib.get(method);
+                let maybe_func: eyre::Result<Symbol<unsafe extern "C" fn(&mut state::State)>> =
+                    lib.get(method).wrap_err("could not get method");
 
                 match maybe_func {
                     Ok(func) => func(state),

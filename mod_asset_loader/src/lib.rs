@@ -44,10 +44,10 @@ pub extern "C" fn mod_asset_loader_load(state: &mut State) {
 
     // TODO make this tree api better... currently returns the node, instead make a builder?
     // or maybe load from a file format (yaml?)
-    let _ = Node::create(None, Some(&root));
-    let helpers = Node::create(None, Some(&root));
-    let _ = Node::create(Some(am.clone()), Some(&helpers));
-    let _ = Node::create(Some(am), Some(&helpers));
+    let _ = Node::create(None, Some(root.clone()));
+    let helpers = Node::create(None, Some(root.clone()));
+    let _ = Node::create(Some(am.clone()), Some(helpers.clone()));
+    let _ = Node::create(Some(am), Some(helpers.clone()));
 
     // NOTE: there's some index-mirroring happening here, we probably want to associate somehow
     // other than this - it's going to be easy to get wrong

@@ -67,7 +67,7 @@ pub struct CameraFacet {
     pub pitch: f32,
     pub yaw: f32,
 
-    dirty: bool,
+    _dirty: bool,
     pub rotation_speed: f32,
     pub movement_speed: f32,
 
@@ -95,7 +95,7 @@ impl CameraFacet {
             rotation_speed: 1.0,
             movement_speed: 1.0,
             movement_dir: None,
-            dirty: false,
+            _dirty: false,
             view: Matrix4::<f32>::identity(),
 
             // TODO fix default perspective values
@@ -157,7 +157,7 @@ impl CameraFacet {
         let rot = Matrix4::from_euler_angles(self.pitch, self.yaw, 0.0);
         let trans = Matrix4::new_translation(&self.pos);
         self.view = trans * rot;
-        self.dirty = true;
+        self._dirty = true;
     }
 }
 

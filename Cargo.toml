@@ -1,3 +1,7 @@
+
+# [workspace]
+# members = [ "mod_rendering_vulkano"]
+
 [package]
 name = "sg_engine"
 version = "0.2.0"
@@ -11,9 +15,9 @@ name = "engine"
 crate-type = ["rlib"]
 
 [dependencies]
-# LibLoader
-libloading = "0.5"
 ansi_term = "0.12"
+libloading = "0.7"
+eyre = "0.6.5"
 
 [dependencies.game_state]
 path = "game_state"

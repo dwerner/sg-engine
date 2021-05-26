@@ -15,10 +15,10 @@ crate-type=["rlib"]
 [dependencies]
 
 # needs to match all other modules
-sdl2 = "0.32"
-nalgebra = "0.18"
-image = "0.17"
+sdl2 = "0.34"
+nalgebra = "0.26"
+image = "0.23"
 nom-obj = "0.2"
 serde = "1"
 futures="0.3.1"
-nphysics3d = "0.13"
+nphysics3d = "0.21"

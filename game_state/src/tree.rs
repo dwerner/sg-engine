@@ -96,7 +96,7 @@ impl<T> fmt::Display for Node<T> {
 }
 
 impl<T> Node<T> {
-    pub fn create(data: T, parent: Option<&RcNode<T>>) -> RcNode<T> {
+    pub fn create(data: T, parent: Option<RcNode<T>>) -> RcNode<T> {
         let prt = match parent {
             Some(ref p) => Some(Rc::downgrade(p)),
             None => None,

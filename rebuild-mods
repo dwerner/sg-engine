@@ -1,5 +1,10 @@
 #!/bin/bash
+
 # shortcut to recompile both game_state and mod_rendering, in case of working on rendering innards
+#
+# TODO: add better error reporting to this script so that we know when a mod fails to build.
+# EVENBETTER: write a launcher
+#
 export RUST_BACKTRACE=full
 set -e
 
